@@ -15,7 +15,7 @@ import { MARKIERUNG, FAHRZEIT } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
-import { ohneFahrzeit } from "../src/planer.js";
+import { ohneFahrzeit, kursAnbieter } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
 
 // Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
@@ -201,6 +201,11 @@ if (heimadresse) {
     berechnet.push(`${tagZeit(t)}=${minuten ?? "?"}`);
   }
   ausgabe(`Fahrzeiten berechnet: ${berechnet.length} [${berechnet.join(", ")}]`);
+  // Überblick: private Termine mit Adresse und ihr Fahrzeit-Stand (ohne Titel).
+  const privat = (await api.holeBereich(tage[0], tage[6])).filter(
+    (t) => !t.generiert && hatAdresse(t.ort) && !kursAnbieter(t, einstellungen)
+  );
+  ausgabe(`Private Termine (7 Tage): ${privat.map((t) => `${tagZeit(t)}=${t.fahrzeit}`).join(", ")}`);
 }
 
 const ergebnis = await planeZeitraum(api, tage, einstellungen, { schreiben });
