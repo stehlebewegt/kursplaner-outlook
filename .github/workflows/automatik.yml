@@ -4,11 +4,23 @@ on:
     - cron: "*/15 5-21 * * *"
   workflow_dispatch:
 concurrency: automatik
+permissions:
+  contents: read
+  actions: write
 jobs:
   planen:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # GitHub schaltet geplante Läufe in öffentlichen Repos nach 60 Tagen ohne
+      # Aktivität ab. Einmal am Tag "einschalten" setzt diese Frist zurück.
+      - if: github.event_name == 'schedule'
+        run: |
+          if [ "$(date -u +%H)" = "05" ]; then
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/automatik.yml/enable" && echo "Wachgehalten." || echo "::warning::Wachhalten fehlgeschlagen"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
