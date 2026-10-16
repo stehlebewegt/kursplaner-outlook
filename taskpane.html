@@ -37,6 +37,12 @@
     table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
     td, th { text-align: left; padding: 2px 4px; border-bottom: 1px solid var(--rand); }
     .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    details.karte { padding: 0; }
+    details.karte > summary { list-style: none; cursor: pointer; padding: 10px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    details.karte > summary::-webkit-details-marker { display: none; }
+    details.karte > summary::after { content: "▸"; color: var(--leise); }
+    details.karte[open] > summary::after { content: "▾"; }
+    details.karte > .inhalt { padding: 0 10px 10px; }
     .neu::before { content: "+ "; color: var(--gruen); font-weight: 600; }
     .weg::before { content: "− "; color: var(--rot); font-weight: 600; }
   </style>
@@ -45,24 +51,29 @@
   <h1 id="titel">Kursplaner</h1>
   <div id="info" class="leise">Wird geladen …</div>
 
-  <div id="bereich-anbieter" class="karte" hidden>
-    <div><strong>Diesen Kurs in meinen Kalender</strong></div>
+  <details id="bereich-anbieter" class="karte" data-auf="1" hidden>
+    <summary>Diesen Kurs in meinen Kalender</summary>
+    <div class="inhalt">
     <button id="ich-gebe">Ich gebe diesen Kurs</button>
     <button id="ich-vertrete" class="zweit">Ich vertrete diesen Kurs (V)</button>
-  </div>
+    </div>
+  </details>
 
-  <div id="bereich-eigen" class="karte" hidden>
-    <div><strong>Kurs markieren</strong></div>
+  <details id="bereich-eigen" class="karte" data-auf="1" hidden>
+    <summary>Kurs markieren</summary>
+    <div class="inhalt">
     <div class="reihe">
       <button data-kuerzel="U" class="zweit">Urlaub (U)</button>
       <button data-kuerzel="A" class="zweit">Abgesagt (A)</button>
       <button data-kuerzel="F" class="zweit">Ferien (F)</button>
       <button data-kuerzel="" class="zweit">Findet statt</button>
     </div>
-  </div>
+    </div>
+  </details>
 
-  <div id="bereich-protokoll" class="karte" hidden>
-    <div><strong>Kursprotokoll</strong></div>
+  <details id="bereich-protokoll" class="karte" data-auf="1" hidden>
+    <summary>Kursprotokoll</summary>
+    <div class="inhalt">
     <div id="p-serie" class="leise" hidden>Du hast die ganze Serie geöffnet. Schließ das Fenster ohne Speichern und öffne nur diesen einen Termin, dann kannst du das Protokoll ausfüllen.</div>
     <div id="p-formular">
     <label for="p-erstvertretung">Offizielle Erstvertretung</label>
@@ -86,17 +97,21 @@
     <textarea id="p-besonderheiten" rows="3"></textarea>
     <button id="p-speichern">Protokoll speichern</button>
     </div>
-  </div>
+    </div>
+  </details>
 
-  <div class="karte">
-    <div><strong>Tag neu planen</strong></div>
+  <details id="bereich-planen" class="karte" hidden>
+    <summary>Tag neu planen</summary>
+    <div class="inhalt">
     <div class="leise">Fahrten, Vor- und Nachbereitung für den ganzen Tag neu berechnen.</div>
     <button id="vorschau" class="zweit">Vorschau</button>
     <button id="ausfuehren" hidden>Änderungen übernehmen</button>
-  </div>
+    </div>
+  </details>
 
-  <div class="karte">
-    <div><strong>Monatsauswertung</strong></div>
+  <details id="bereich-auswertung" class="karte" hidden>
+    <summary>Monatsauswertung</summary>
+    <div class="inhalt">
     <div class="reihe">
       <div><label for="a-monat">Monat</label><input id="a-monat" type="month"></div>
       <div><label for="a-anbieter">Anbieter</label><select id="a-anbieter"></select></div>
@@ -109,7 +124,8 @@
       <button id="a-pdf" class="zweit">PDF speichern</button>
       <button id="a-mail">E-Mail-Entwurf mit PDF</button>
     </div>
-  </div>
+    </div>
+  </details>
 
   <div id="ergebnis"></div>
   <script type="module" src="web/taskpane.js"></script>

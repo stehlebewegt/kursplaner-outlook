@@ -50,12 +50,44 @@ function eigeneId(item) {
   );
 }
 
+// Auf-/Zugeklappt merken, damit jeder Bereich so bleibt, wie du ihn zuletzt hattest.
+function richteKlappenEin() {
+  document.querySelectorAll("details.karte").forEach((d) => {
+    const schluessel = `klappe-${d.id}`;
+    let gemerkt = null;
+    try {
+      gemerkt = localStorage.getItem(schluessel);
+    } catch {
+      /* ohne Speicher eben Standard */
+    }
+    d.open = gemerkt === null ? d.dataset.auf === "1" : gemerkt === "1";
+    // Nur echte Klicks merken, nicht das Aufklappen durch das Add-in selbst.
+    d.querySelector("summary").addEventListener("click", () => {
+      try {
+        localStorage.setItem(schluessel, d.open ? "0" : "1");
+      } catch {
+        /* egal */
+      }
+    });
+  });
+}
+
 async function start() {
   if (config.clientId.startsWith("HIER")) {
     $("info").textContent = "Noch nicht eingerichtet: Die App-Registrierung fehlt in web/config.js.";
     return;
   }
-  const ewsId = await eigeneId(Office.context.mailbox.item);
+  richteKlappenEin();
+  const item = Office.context.mailbox.item;
+  // Ohne Termin (z. B. aus einer E-Mail geöffnet): nur die Monatsauswertung.
+  if (item?.itemType !== Office.MailboxEnums.ItemType.Appointment) {
+    $("info").textContent = "Für die Monatsauswertung brauchst du keinen Termin.";
+    $("bereich-auswertung").hidden = false;
+    $("bereich-auswertung").open = true;
+    richteAuswertungEin();
+    return;
+  }
+  const ewsId = await eigeneId(item);
   const id = Office.context.mailbox.convertToRestId(ewsId, Office.MailboxEnums.RestVersion.v2_0);
   termin = await api.holeTermin(id);
   const datum = termin.start.slice(0, 10);
@@ -67,8 +99,10 @@ async function start() {
   $("bereich-anbieter").hidden = !(istAnbieterKalender && anbieter);
   $("bereich-eigen").hidden = !(termin.eigenerKalender && anbieter && !termin.generiert);
 
-  if (!$("bereich-eigen").hidden) await zeigeProtokoll();
+  $("bereich-planen").hidden = false;
+  $("bereich-auswertung").hidden = false;
   richteAuswertungEin();
+  if (!$("bereich-eigen").hidden) await zeigeProtokoll();
 
   $("ich-gebe").onclick = () => uebernehme(false);
   $("ich-vertrete").onclick = () => uebernehme(true);
@@ -223,7 +257,7 @@ function richteAuswertungEin() {
   if (Number(heute.slice(8, 10)) <= 10) d.setUTCMonth(d.getUTCMonth() - 1);
   $("a-monat").value = d.toISOString().slice(0, 7);
   $("a-anbieter").innerHTML = einstellungen.anbieter.map((a) => `<option value="${a.kuerzel}">${html(a.name)}</option>`).join("");
-  const anbieter = findeAnbieter(termin, einstellungen);
+  const anbieter = termin && findeAnbieter(termin, einstellungen);
   if (anbieter) $("a-anbieter").value = anbieter.kuerzel;
   const zeigeEmpfaenger = () => ($("a-empfaenger").value = Office.context.roamingSettings.get(`empfaenger-${$("a-anbieter").value}`) || "");
   $("a-anbieter").onchange = () => {

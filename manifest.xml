@@ -5,7 +5,7 @@
            xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
            xsi:type="MailApp">
   <Id>ddd0f0fb-1acd-40f0-8585-5d45455f2e6d</Id>
-  <Version>0.1.0.0</Version>
+  <Version>0.2.0.0</Version>
   <ProviderName>Michael Stehle</ProviderName>
   <DefaultLocale>de-DE</DefaultLocale>
   <DisplayName DefaultValue="Kursplaner"/>
@@ -36,6 +36,7 @@
   <Permissions>ReadWriteItem</Permissions>
   <Rule xsi:type="RuleCollection" Mode="Or">
     <Rule xsi:type="ItemIs" ItemType="Appointment" FormType="Read"/>
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
   </Rule>
   <DisableEntityHighlighting>false</DisableEntityHighlighting>
 
@@ -93,6 +94,29 @@
               </Group>
             </OfficeTab>
           </ExtensionPoint>
+          <!-- In einer E-Mail: Monatsauswertung ohne Termin -->
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="kursplaner.gruppe.mail">
+                <Label resid="Gruppe.Label"/>
+                <Control xsi:type="Button" id="kursplaner.oeffnen.mail">
+                  <Label resid="Button.Label"/>
+                  <Supertip>
+                    <Title resid="Button.Label"/>
+                    <Description resid="Button.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
         </DesktopFormFactor>
       </Host>
     </Hosts>
@@ -110,7 +134,7 @@
         <bt:String id="Button.Label" DefaultValue="Kursplaner"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="Button.Tooltip" DefaultValue="Kurs übernehmen, vertreten oder den Tag neu planen."/>
+        <bt:String id="Button.Tooltip" DefaultValue="Kurs übernehmen, Protokoll, Tag neu planen oder Monatsauswertung."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
