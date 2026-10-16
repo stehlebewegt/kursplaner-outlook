@@ -207,3 +207,18 @@ test("Fahrzeit bewusst auf 0 gesetzt: keine Fahrten, auch wenn noch alte Blöcke
   assert.equal(anlegen.length, 0);
   assert.deepEqual(loeschen.map((t) => t.id), ["1"]);
 });
+
+test("ohneFahrzeit: nur private Termine ohne Fahrzeit und ohne eigene Anfahrt", async () => {
+  const { ohneFahrzeit } = await import("../src/planer.js");
+  const d = "2026-11-03";
+  const t = (id, titel, extra = {}) => ({ id, titel, start: `${d}T10:00`, ende: `${d}T11:00`, kategorien: [], ort: "x", generiert: false, fahrzeit: null, ...extra });
+  const termine = [
+    t("1", "Zahnarzt"),
+    t("2", "Arzt", { fahrzeit: 20 }),
+    t("3", "Podologie"),
+    t("4", "Anfahrt - Podologie", { kategorien: ["90 🚗 Fahrzeit"] }),
+    t("5", "RehaSport (Michael)", { kategorien: ["10 SVE: RehaSport"] }),
+    t("6", "Friseur", { fahrzeit: 0 }),
+  ];
+  assert.deepEqual(ohneFahrzeit(termine, einstellungen).map((x) => x.id), ["1"]);
+});

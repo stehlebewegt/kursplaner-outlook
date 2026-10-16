@@ -31,4 +31,5 @@ jobs:
         env:
           KURSPLANER_SECRET: ${{ secrets.KURSPLANER_SECRET }}
           KURSPLANER_POSTFACH: ${{ secrets.KURSPLANER_POSTFACH }}
+          KURSPLANER_HEIMADRESSE: ${{ secrets.KURSPLANER_HEIMADRESSE }}
           SCHREIBEN: ${{ vars.SCHREIBEN }}

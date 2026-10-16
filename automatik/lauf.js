@@ -15,6 +15,8 @@ import { MARKIERUNG, FAHRZEIT } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
+import { ohneFahrzeit } from "../src/planer.js";
+import { routenRechner, hatAdresse } from "./route.js";
 
 // Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
 // auf der Übersichtsseite des Laufs stehen.
@@ -175,6 +177,29 @@ ausgabe(
     `, verschoben ${dauer.verschieben.length} [${dauer.verschieben.map((v) => `${tagZeit(v.termin)}→${v.start.slice(11)}`).join(", ")}]` +
     `, eigene ohne Gegenstück ${dauer.ohneGegenstueck.length} [${dauer.ohneGegenstueck.map(tagZeit).join(", ")}]`
 );
+
+// Private Termine mit Adresse: Fahrzeit ab zu Hause berechnen und im Termin
+// merken (einmal pro Termin). Heimadresse nur als Secret, nie im Code.
+const heimadresse = process.env.KURSPLANER_HEIMADRESSE;
+if (heimadresse) {
+  const rechne = routenRechner({ heimadresse });
+  const offen = ohneFahrzeit(await api.holeBereich(tage[0], tage[tage.length - 1]), einstellungen)
+    .filter((t) => hatAdresse(t.ort))
+    .slice(0, 20);
+  const berechnet = [];
+  for (const t of offen) {
+    let minuten;
+    try {
+      minuten = await rechne(t.ort);
+    } catch {
+      continue; // Netz-Problem: beim nächsten Lauf nochmal
+    }
+    // Nicht gefunden: 0 merken, dann fragt die Automatik nicht jedes Mal neu.
+    if (schreiben) await api.setzeFahrzeit(t.id, minuten ?? 0);
+    berechnet.push(`${tagZeit(t)}=${minuten ?? "?"}`);
+  }
+  ausgabe(`Fahrzeiten berechnet: ${berechnet.length} [${berechnet.join(", ")}]`);
+}
 
 const ergebnis = await planeZeitraum(api, tage, einstellungen, { schreiben });
 ausgabe(`${schreiben ? "Ausgeführt" : "Nur Vorschau"}: ${heute} + ${anzahlTage} Tage, ${ergebnis.length} Tage mit Änderungen`);

@@ -166,6 +166,8 @@ export function planeTag(datum, termine, einstellungen) {
 // nicht, weil ihr Ort keinem Anbieter gehört.
 const ALTE_BLOCK_TITEL = /^(Anfahrt|Vorbereitung|Nach-\/Vorbereitung|Nachbereitung|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - /;
 
+export const istBlockTitel = (titel) => ALTE_BLOCK_TITEL.test(titel.trim());
+
 export function istAlterBlock(termin, einstellungen, kursTitel = []) {
   if (termin.generiert) return false;
   const kats = termin.kategorien || [];
@@ -218,4 +220,18 @@ export function vergleiche(soll, termine) {
     anlegen: soll.filter((s) => !vorhanden.some((v) => gleich(s, v))),
     loeschen: vorhanden.filter((v) => !soll.some((s) => gleich(s, v))),
   };
+}
+
+// Private Termine, für die noch niemand eine Fahrzeit festgelegt hat und für
+// die es auch keine von Hand angelegte Anfahrt gibt: Kandidaten fürs Berechnen.
+export function ohneFahrzeit(termine, einstellungen) {
+  const titel = new Set(termine.map((t) => t.titel.trim()));
+  return termine.filter(
+    (t) =>
+      !t.generiert &&
+      t.fahrzeit == null &&
+      !kursAnbieter(t, einstellungen) &&
+      !istBlockTitel(t.titel) &&
+      !titel.has(`Anfahrt - ${t.titel.trim()}`)
+  );
 }
