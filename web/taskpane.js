@@ -35,13 +35,25 @@ async function mitWarten(knopf, arbeit) {
   }
 }
 
+// Eigene Termine öffnen sich zum Bearbeiten; dort gibt es itemId nicht direkt.
+function eigeneId(item) {
+  if (item.itemId) return Promise.resolve(item.itemId);
+  return new Promise((ok, fehler) =>
+    item.getItemIdAsync((r) =>
+      r.status === Office.AsyncResultStatus.Succeeded
+        ? ok(r.value)
+        : fehler(new Error("Bitte den Termin erst speichern, dann den Kursplaner öffnen."))
+    )
+  );
+}
+
 async function start() {
   if (config.clientId.startsWith("HIER")) {
     $("info").textContent = "Noch nicht eingerichtet: Die App-Registrierung fehlt in web/config.js.";
     return;
   }
-  const item = Office.context.mailbox.item;
-  const id = Office.context.mailbox.convertToRestId(item.itemId, Office.MailboxEnums.RestVersion.v2_0);
+  const ewsId = await eigeneId(Office.context.mailbox.item);
+  const id = Office.context.mailbox.convertToRestId(ewsId, Office.MailboxEnums.RestVersion.v2_0);
   termin = await api.holeTermin(id);
   const datum = termin.start.slice(0, 10);
   const anbieter = findeAnbieter(termin, einstellungen);
@@ -60,6 +72,10 @@ async function start() {
         const v = await setzeKuerzel(api, termin, b.dataset.kuerzel, einstellungen);
         termin = await api.holeTermin(termin.id);
         $("titel").textContent = termin.titel;
+        // Ist der Termin zum Bearbeiten offen, auch dort den Titel anpassen,
+        // sonst überschreibt "Speichern" die Änderung wieder.
+        const item = Office.context.mailbox.item;
+        if (item.subject?.setAsync) item.subject.setAsync(termin.titel);
         zeigeAenderungen(v, "Erledigt");
       });
   });
