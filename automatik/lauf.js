@@ -71,7 +71,8 @@ function zuTermin(e) {
   const prop = props.find((p) => p.id === MARKIERUNG);
   // null = nie eingestellt, 0 = bewusst keine Fahrzeit.
   const wert = props.find((p) => p.id === FAHRZEIT)?.value;
-  const fahrzeit = wert === undefined ? null : Number(wert) || 0;
+  // "" = bitte (neu) berechnen, -1 = Adresse nicht gefunden.
+  const fahrzeit = wert === undefined || wert === "" ? null : Number(wert) || 0;
   return {
     id: e.id,
     titel: e.subject || "",
@@ -194,8 +195,9 @@ if (heimadresse) {
     } catch {
       continue; // Netz-Problem: beim nächsten Lauf nochmal
     }
-    // Nicht gefunden: 0 merken, dann fragt die Automatik nicht jedes Mal neu.
-    if (schreiben) await api.setzeFahrzeit(t.id, minuten ?? 0);
+    // Nicht gefunden: -1 merken, dann fragt die Automatik nicht jedes Mal neu,
+    // und der Kursplaner kann es anzeigen.
+    if (schreiben) await api.setzeFahrzeit(t.id, minuten ?? -1);
     berechnet.push(`${tagZeit(t)}=${minuten ?? "?"}`);
   }
   ausgabe(`Fahrzeiten berechnet: ${berechnet.length} [${berechnet.join(", ")}]`);

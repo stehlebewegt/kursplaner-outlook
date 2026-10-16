@@ -19,7 +19,7 @@ export function hatAdresse(ort) {
 
 const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export function routenRechner({ heimadresse, maxMin = 90 }) {
+export function routenRechner({ heimadresse, maxMin = 240 }) {
   const koordinaten = new Map();
   let letzteAnfrage = 0;
   async function suche(text) {

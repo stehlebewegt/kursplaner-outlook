@@ -57,7 +57,8 @@ function zuTermin(e) {
   const prop = props.find((p) => p.id === MARKIERUNG);
   // null = nie eingestellt, 0 = bewusst keine Fahrzeit.
   const wert = props.find((p) => p.id === FAHRZEIT)?.value;
-  const fahrzeit = wert === undefined ? null : Number(wert) || 0;
+  // "" = bitte (neu) berechnen, -1 = Adresse nicht gefunden.
+  const fahrzeit = wert === undefined || wert === "" ? null : Number(wert) || 0;
   return {
     id: e.id,
     titel: e.subject || "",

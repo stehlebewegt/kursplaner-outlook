@@ -325,11 +325,19 @@ function richteFahrzeitEin() {
       const m = Number(b.dataset.fahrzeit);
       b.classList.toggle("zweit", m !== termin.fahrzeit);
     });
-  $("f-info").textContent = termin.fahrzeit
-    ? `Eingestellt: ${termin.fahrzeit} Minuten pro Strecke.`
-    : vorschlag
-      ? `Letztes Mal an diesem Ort: ${vorschlag} Minuten.`
-      : "Wie lange fährst du pro Strecke?";
+  const f = termin.fahrzeit;
+  $("f-info").textContent =
+    f > 0
+      ? `Eingestellt: ${f} Minuten pro Strecke.`
+      : f === -1
+        ? "Die Adresse wurde nicht gefunden. Bitte wähle die Fahrzeit selbst."
+        : f === 0
+          ? "Keine Fahrzeit."
+          : termin.ort.trim()
+            ? "Die Fahrzeit wird automatisch ab deiner Adresse berechnet (innerhalb von 15 Minuten). Oder wähle selbst:"
+            : vorschlag
+              ? `Letztes Mal an diesem Ort: ${vorschlag} Minuten.`
+              : "Wie lange fährst du pro Strecke?";
   markiere();
   document.querySelectorAll("[data-fahrzeit]").forEach((b) => {
     b.onclick = () =>
