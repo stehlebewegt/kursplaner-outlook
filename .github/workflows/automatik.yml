@@ -1,7 +1,7 @@
 name: Kursplaner-Automatik
 on:
   schedule:
-    - cron: "*/15 5-21 * * *"
+    - cron: "*/5 4-21 * * *"
   workflow_dispatch:
 concurrency: automatik
 permissions:
