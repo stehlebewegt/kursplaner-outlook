@@ -72,13 +72,36 @@ export async function holeTag(datum) {
 
 export async function holeTermin(id) {
   const e = await graph("GET", `/me/events/${id}?${AUSWAHL.replace("showAs", "showAs,body")}`);
-  const kalender = await graph("GET", `/me/events/${id}/calendar?$select=name,isDefaultCalendar`);
-  return {
-    ...zuTermin(e),
-    text: e.body?.content || "",
-    kalender: kalender.name,
-    eigenerKalender: kalender.isDefaultCalendar,
-  };
+  const t = zuTermin(e);
+  const kalender = await findeKalender(t);
+  return { ...t, text: e.body?.content || "", kalender: kalender.name, eigenerKalender: kalender.isDefaultCalendar };
+}
+
+// In welchem Kalender liegt der Termin? Bei Serienterminen liefert Graph über
+// /events/{id}/calendar nicht zuverlässig den richtigen, deshalb schauen wir
+// in jedem Kalender an dem Tag nach.
+async function findeKalender(t) {
+  const { value: kalender } = await graph("GET", "/me/calendars?$select=id,name,isDefaultCalendar&$top=50");
+  const datum = t.start.slice(0, 10);
+  const tage = await Promise.all(
+    kalender.map(async (k) => ({
+      k,
+      termine: (
+        await graph(
+          "GET",
+          `/me/calendars/${k.id}/calendarView?startDateTime=${datum}T00:00:00&endDateTime=${datum}T23:59:59&$select=subject,start&$top=100`
+        )
+      ).value,
+    }))
+  );
+  // Erst über die ID suchen. Gleiche Titel gibt es oft in zwei Kalendern
+  // (Anbieter-Kalender und eigene Kopie), deshalb der Titel nur als Notlösung.
+  const perId = tage.find(({ termine }) => termine.some((e) => e.id === t.id));
+  if (perId) return perId.k;
+  const gleich = (e) => (e.subject || "").trim() === t.titel.trim() && e.start.dateTime.slice(0, 16) === t.start;
+  const perTitel = tage.filter(({ termine }) => termine.some(gleich));
+  if (perTitel.length === 1) return perTitel[0].k;
+  return kalender.find((k) => k.isDefaultCalendar) || { name: "?", isDefaultCalendar: false };
 }
 
 export async function legeAn(t, { generiert, text, frei } = {}) {
