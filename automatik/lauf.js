@@ -34,6 +34,13 @@ async function holeToken() {
   return (await antwort.json()).access_token;
 }
 
+// Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
+// auf der Übersichtsseite des Laufs stehen.
+process.on("uncaughtException", (e) => {
+  console.log(`::error::${String(e.message).replace(/\n/g, " ")}`);
+  process.exit(1);
+});
+
 const token = await holeToken();
 const basis = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(postfach)}`;
 const warte = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -104,11 +111,14 @@ const api = {
 const heute = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
 const ergebnis = await planeZeitraum(api, naechsteTage(heute, anzahlTage), einstellungen, { schreiben });
 const zeit = (t) => `${t.start.slice(11)}–${t.ende.slice(11)}`;
-console.log(`${schreiben ? "Ausgeführt" : "Nur Vorschau"}: ${heute} + ${anzahlTage} Tage, ${ergebnis.length} Tage mit Änderungen`);
+const zeilen = [];
+const ausgabe = (z) => (console.log(z), zeilen.push(z));
+ausgabe(`${schreiben ? "Ausgeführt" : "Nur Vorschau"}: ${heute} + ${anzahlTage} Tage, ${ergebnis.length} Tage mit Änderungen`);
 for (const r of ergebnis) {
-  console.log(
+  ausgabe(
     `${r.datum}: +${r.anlegen.length} [${r.anlegen.map(zeit).join(", ")}]` +
       ` −${r.loeschen.length} [${r.loeschen.map(zeit).join(", ")}]` +
       ` übernommen ${r.uebernehmen.length}, freigegeben ${r.freigeben.length}`
   );
 }
+console.log(`::notice::${zeilen.join("%0A")}`);
