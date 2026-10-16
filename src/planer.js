@@ -225,13 +225,14 @@ export function vergleiche(soll, termine) {
 // Private Termine, für die noch niemand eine Fahrzeit festgelegt hat und für
 // die es auch keine von Hand angelegte Anfahrt gibt: Kandidaten fürs Berechnen.
 export function ohneFahrzeit(termine, einstellungen) {
-  const titel = new Set(termine.map((t) => t.titel.trim()));
+  // Anfahrt muss am selben Tag liegen (gleicher Titel an anderen Tagen zählt nicht).
+  const titel = new Set(termine.map((t) => `${t.start.slice(0, 10)} ${t.titel.trim()}`));
   return termine.filter(
     (t) =>
       !t.generiert &&
       t.fahrzeit == null &&
       !kursAnbieter(t, einstellungen) &&
       !istBlockTitel(t.titel) &&
-      !titel.has(`Anfahrt - ${t.titel.trim()}`)
+      !titel.has(`${t.start.slice(0, 10)} Anfahrt - ${t.titel.trim()}`)
   );
 }

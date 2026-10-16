@@ -222,3 +222,13 @@ test("ohneFahrzeit: nur private Termine ohne Fahrzeit und ohne eigene Anfahrt", 
   ];
   assert.deepEqual(ohneFahrzeit(termine, einstellungen).map((x) => x.id), ["1"]);
 });
+
+test("ohneFahrzeit: gleicher Titel an einem anderen Tag zählt nicht als Anfahrt", async () => {
+  const { ohneFahrzeit } = await import("../src/planer.js");
+  const termine = [
+    { id: "1", titel: "Anfahrt - Fortbildung", start: "2026-10-16T11:30", ende: "2026-10-16T13:00", kategorien: ["90 🚗 Fahrzeit"], ort: "x", generiert: true },
+    { id: "2", titel: "Fortbildung", start: "2026-10-16T13:00", ende: "2026-10-16T16:00", kategorien: [], ort: "x", generiert: false, fahrzeit: 90 },
+    { id: "3", titel: "Fortbildung", start: "2026-10-17T08:00", ende: "2026-10-17T14:30", kategorien: [], ort: "x", generiert: false, fahrzeit: null },
+  ];
+  assert.deepEqual(ohneFahrzeit(termine, einstellungen).map((x) => x.id), ["3"]);
+});
