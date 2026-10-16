@@ -36,6 +36,8 @@ export const einstellungen = {
   pauseHeimfahrtMin: 120,
   kategorieFahrt: "90 🚗 Fahrzeit",
   kategoriePuffer: "Vor-/Nachbereitung",
+  // Fahrten mit dieser Kategorie kommen nicht in den Monatsbericht.
+  kategorieNichtAbrechenbar: "Fahrtkosten nicht abrechenbar",
   // Material zum Anhaken im Kursprotokoll. Was im Protokoll neu dazukommt,
   // erscheint beim nächsten Mal automatisch mit.
   material: ["Airpad", "Gymnastikball", "Hanteln", "Hocker", "Matte", "Pilatesball", "Stab", "Theraband"],
@@ -43,6 +45,10 @@ export const einstellungen = {
   // Anbieter-Kalendern automatisch in den eigenen Kalender.
   // schreiben: false = die Automatik zeigt nur an, was sie tun würde.
   dauerkurse: { kursleitung: "Michael", schreiben: true },
+  // Monatsbericht: an diesem Tag legt die Automatik pro Anbieter einen
+  // E-Mail-Entwurf für den Vormonat an (wird nie selbst verschickt).
+  // teilnehmer: true = Spalte mit Teilnehmerzahlen im Bericht.
+  monatsbericht: { tag: 15, teilnehmer: false },
   // Kürzel vor dem Titel. aktiv = Kurs findet statt (bekommt Fahrt und Puffer).
   kuerzel: {
     "": { bedeutung: "regulär", aktiv: true },

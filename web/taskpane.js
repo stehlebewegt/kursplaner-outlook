@@ -281,23 +281,22 @@ function richteAuswertungEin() {
       $("a-ergebnis").innerHTML =
         `<div style="margin-top:8px"><strong>${html(zeitraum.name)} · ${html(anbieter.kuerzel)}</strong></div>` +
         `<div>Geleistet: ${s.geleistet} (davon ${s.davonVertretung} Vertretung) · Geplant: ${s.geplant} · Ferien: ${s.ferien}</div>` +
-        `<div>Teilnehmer: ${s.teilnehmerSchnitt === null ? "keine Angaben" : `${s.teilnehmer}, Schnitt ${s.teilnehmerSchnitt}`}</div>` +
-        (s.ohneProtokoll ? `<div class="fehler">${s.ohneProtokoll} geleistete Kurse ohne Teilnehmerzahl</div>` : "") +
-        `<table><tr><th>Tag</th><th>Kurs</th><th>Status</th><th>TN</th></tr>` +
+        `<div>Fahrten: ${s.fahrten} (${Math.round(s.fahrtStunden * 100) / 100} Std.)</div>` +
+        `<table><tr><th>Tag</th><th>Kurs</th><th>Status</th></tr>` +
         a.zeilen
-          .map((z) => `<tr><td>${tag(z.datum)}</td><td>${html(z.kurs)}${z.art === "Vertretung" ? " (V)" : ""}</td><td>${z.status}</td><td>${z.anwesend ?? "–"}</td></tr>`)
+          .map((z) => `<tr><td>${tag(z.datum)}</td><td>${html(z.kurs)}${z.art === "Vertretung" ? " (V)" : ""}</td><td>${z.status}</td></tr>`)
           .join("") +
         `</table>`;
       $("a-aktionen").hidden = false;
     });
 
   const dateiname = () => `Monatsauswertung ${bericht.anbieter.kuerzel} ${bericht.zeitraum.name}.pdf`;
-  $("a-pdf").onclick = () => erstellePdf(bericht.a, bericht.anbieter, bericht.zeitraum, bericht.stand).save(dateiname());
+  $("a-pdf").onclick = () => erstellePdf(bericht.a, bericht.anbieter, bericht.zeitraum, bericht.stand, einstellungen.monatsbericht).save(dateiname());
   $("a-mail").onclick = () =>
     mitWarten($("a-mail"), async () => {
       const an = $("a-empfaenger").value.trim();
       if (an) merke(`empfaenger-${bericht.anbieter.kuerzel}`, an);
-      const pdf = erstellePdf(bericht.a, bericht.anbieter, bericht.zeitraum, bericht.stand);
+      const pdf = erstellePdf(bericht.a, bericht.anbieter, bericht.zeitraum, bericht.stand, einstellungen.monatsbericht);
       const id = await api.legeEntwurfAn({
         an,
         betreff: `Monatsauswertung ${bericht.zeitraum.name} – Michael Stehle`,
