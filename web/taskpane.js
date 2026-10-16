@@ -70,7 +70,8 @@ async function start() {
     b.onclick = () =>
       mitWarten(b, async () => {
         const v = await setzeKuerzel(api, termin, b.dataset.kuerzel, einstellungen);
-        termin = await api.holeTermin(termin.id);
+        // Titel lokal nachziehen statt den Termin neu zu laden (spart Abfragen).
+        termin = { ...termin, titel: v.titel ?? termin.titel };
         $("titel").textContent = termin.titel;
         // Ist der Termin zum Bearbeiten offen, auch dort den Titel anpassen,
         // sonst überschreibt "Speichern" die Änderung wieder.

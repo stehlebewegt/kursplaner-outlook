@@ -49,5 +49,5 @@ export async function setzeKuerzel(api, kurs, kuerzel, einstellungen) {
   const titel = (kuerzel ? `(${kuerzel}) ` : "") + ohneKuerzel(kurs.titel);
   const aktiv = einstellungen.kuerzel[kuerzel]?.aktiv ?? true;
   await api.aendere(kurs.id, { subject: titel, showAs: aktiv ? "busy" : "free" });
-  return planeTagNeu(api, datumVon(kurs), einstellungen);
+  return { ...(await planeTagNeu(api, datumVon(kurs), einstellungen)), titel };
 }

@@ -36,9 +36,9 @@ async function graph(methode, pfad, body, versuch = 0) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  // Gebremst: kurz warten und bis zu dreimal neu versuchen.
-  if ((antwort.status === 429 || antwort.status === 503) && versuch < 3) {
-    const sekunden = Number(antwort.headers.get("Retry-After")) || 2 ** versuch;
+  // Gebremst: kurz warten (2, 4, 8, 16 Sekunden) und neu versuchen.
+  if ((antwort.status === 429 || antwort.status === 503) && versuch < 4) {
+    const sekunden = Number(antwort.headers.get("Retry-After")) || 2 ** (versuch + 1);
     await warte(sekunden * 1000);
     return graph(methode, pfad, body, versuch + 1);
   }
@@ -89,30 +89,32 @@ export async function holeTermin(id) {
 // In welchem Kalender liegt der Termin? Bei Serienterminen liefert Graph über
 // /events/{id}/calendar nicht zuverlässig den richtigen, deshalb schauen wir
 // in jedem Kalender an dem Tag nach.
+let kalenderListe;
+
 async function findeKalender(t) {
-  const { value: kalender } = await graph("GET", "/me/calendars?$select=id,name,isDefaultCalendar&$top=50");
+  kalenderListe ??= (await graph("GET", "/me/calendars?$select=id,name,isDefaultCalendar&$top=50")).value;
   const datum = t.start.slice(0, 10);
-  // Nur eigener Kalender und Anbieter-Kalender, nacheinander: zu viele
-  // gleichzeitige Abfragen bremst Microsoft aus (Fehler 429).
-  const relevant = kalender.filter(
-    (k) => k.isDefaultCalendar || einstellungen.anbieter.some((a) => a.kalender === k.name)
-  );
+  // Nur eigener Kalender (zuerst) und Anbieter-Kalender, nacheinander, und
+  // aufhören, sobald die ID gefunden ist: zu viele Abfragen bremst Microsoft
+  // aus (Fehler 429).
+  const relevant = kalenderListe
+    .filter((k) => k.isDefaultCalendar || einstellungen.anbieter.some((a) => a.kalender === k.name))
+    .sort((a, b) => b.isDefaultCalendar - a.isDefaultCalendar);
   const tage = [];
   for (const k of relevant) {
     const { value } = await graph(
       "GET",
       `/me/calendars/${k.id}/calendarView?startDateTime=${datum}T00:00:00&endDateTime=${datum}T23:59:59&$select=subject,start&$top=100`
     );
+    if (value.some((e) => e.id === t.id)) return k;
     tage.push({ k, termine: value });
   }
-  // Erst über die ID suchen. Gleiche Titel gibt es oft in zwei Kalendern
-  // (Anbieter-Kalender und eigene Kopie), deshalb der Titel nur als Notlösung.
-  const perId = tage.find(({ termine }) => termine.some((e) => e.id === t.id));
-  if (perId) return perId.k;
+  // Gleiche Titel gibt es oft in zwei Kalendern (Anbieter-Kalender und eigene
+  // Kopie), deshalb der Titel nur als Notlösung.
   const gleich = (e) => (e.subject || "").trim() === t.titel.trim() && e.start.dateTime.slice(0, 16) === t.start;
   const perTitel = tage.filter(({ termine }) => termine.some(gleich));
   if (perTitel.length === 1) return perTitel[0].k;
-  return kalender.find((k) => k.isDefaultCalendar) || { name: "?", isDefaultCalendar: false };
+  return kalenderListe.find((k) => k.isDefaultCalendar) || { name: "?", isDefaultCalendar: false };
 }
 
 export async function legeAn(t, { generiert, text, frei } = {}) {
