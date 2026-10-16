@@ -31,6 +31,9 @@ export const einstellungen = {
   nachbereitungMin: 15,
   // Lücke bis zu dieser Länge: Kurse gelten als "am Stück".
   maxLueckeAmStueckMin: 30,
+  // Pause zwischen zwei Kursen: erst ab so vielen Minuten fährt Michael heim
+  // (und nur, wenn die Zeit für Hin- und Rückweg reicht).
+  pauseHeimfahrtMin: 120,
   kategorieFahrt: "90 🚗 Fahrzeit",
   kategoriePuffer: "Vor-/Nachbereitung",
   // Kürzel vor dem Titel. aktiv = Kurs findet statt (bekommt Fahrt und Puffer).

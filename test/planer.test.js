@@ -131,3 +131,40 @@ test("Erster Lauf: von Hand angelegte Blöcke werden übernommen, nichts doppelt
   assert.equal(loeschen.length, 0);
   assert.equal(markiert[7].generiert, false, "private Anfahrt bleibt unberührt");
 });
+
+test("10.11. PTM: 75 min Pause beim selben Anbieter, Michael bleibt vor Ort", () => {
+  const d = "2026-11-10";
+  const termine = [
+    kurs("(V) RehaSport / PUR (Agne)", d, "11:00", "11:45", "01 PTM: PUR Kurs", PTM),
+    kurs("(V) RehaSport / PUR-Senioren (Agne)", d, "11:45", "12:30", "01 PTM: PUR Kurs", PTM),
+    kurs("RehaSport / PUR (Michael)", d, "14:15", "15:00", "01 PTM: PUR Kurs", PTM),
+  ];
+  assert.deepEqual(kurz(planeTag(d, termine, einstellungen)), [
+    "10:30-10:45 Anfahrt - (V) RehaSport / PUR (Agne)",
+    "10:45-11:00 Vorbereitung - (V) RehaSport / PUR (Agne)",
+    "12:30-12:45 Nachbereitung - (V) RehaSport / PUR-Senioren (Agne)",
+    "14:00-14:15 Vorbereitung - RehaSport / PUR (Michael)",
+    "15:00-15:15 Nachbereitung - RehaSport / PUR (Michael)",
+    "15:15-15:30 Rückfahrt - RehaSport / PUR (Michael)",
+  ]);
+});
+
+test("Besprechung am Ort eines Anbieters, aber ohne Kurs-Kategorie: keine Blöcke", () => {
+  const d = "2026-11-06";
+  const termine = [{ titel: "Besprechung PTM", start: `${d}T12:00`, ende: `${d}T13:00`, kategorien: [], ort: PTM, generiert: false }];
+  assert.deepEqual(planeTag(d, termine, einstellungen), []);
+});
+
+test("26.11.: alte Rückfahrt mit Heimadresse als Ort wird übernommen, nicht verdoppelt", () => {
+  const d = "2026-11-26";
+  const termine = markiereAlteBloecke(
+    [
+      kurs("RehaSport / PUR-Senioren (Michael)", d, "11:45", "12:30", "01 PTM: PUR Kurs", PTM),
+      { titel: "Rückfahrt - RehaSport / PUR-Senioren (Michael)", start: `${d}T12:30`, ende: `${d}T13:00`, kategorien: ["90 🚗 Fahrzeit"], ort: "Tannenriedweg 14, 88048 Friedrichshafen", generiert: false },
+      { titel: "Rückfahrt - Kontrolluntersuchung & Zahnstein", start: `${d}T15:30`, ende: `${d}T15:55`, kategorien: ["90 🚗 Fahrzeit"], ort: "Bahnhofstr. 1, 88682 Salem", generiert: false },
+    ],
+    einstellungen
+  );
+  const { loeschen } = vergleiche(planeTag(d, termine, einstellungen), termine);
+  assert.deepEqual(kurz(loeschen), ["12:30-13:00 Rückfahrt - RehaSport / PUR-Senioren (Michael)"]);
+});

@@ -39,11 +39,20 @@ export function findeAnbieter(termin, einstellungen) {
   return einstellungen.anbieter.find((a) => a.ortErkennung.some((t) => ort.includes(t))) || null;
 }
 
-// Kurse, die tatsächlich stattfinden: Anbieter erkannt, Kürzel aktiv, nicht generiert.
+// Anbieter nur über die Kategorie. Ein Termin, der bloß am Ort eines Anbieters
+// liegt (z. B. "Besprechung PTM"), ist kein Kurs.
+function kursAnbieter(termin, einstellungen) {
+  const kats = termin.kategorien || [];
+  return (
+    einstellungen.anbieter.find((a) => kats.some((k) => a.kategorien.includes(k) || k === a.kategorieVertretung)) || null
+  );
+}
+
+// Kurse, die tatsächlich stattfinden: Anbieter-Kategorie, Kürzel aktiv, nicht generiert.
 export function aktiveKurse(termine, einstellungen) {
   return termine
     .filter((t) => !t.generiert)
-    .map((t) => ({ termin: t, anbieter: findeAnbieter(t, einstellungen) }))
+    .map((t) => ({ termin: t, anbieter: kursAnbieter(t, einstellungen) }))
     .filter(({ termin, anbieter }) => {
       if (!anbieter) return false;
       const k = einstellungen.kuerzel[leseKuerzel(termin.titel)];
@@ -87,6 +96,9 @@ function fahrzeit(von, nach, einstellungen) {
 export function planeTag(datum, termine, einstellungen) {
   const e = einstellungen;
   const bloecke = bildeBloecke(aktiveKurse(termine, e), e);
+  // Lohnt sich zwischen zwei Blöcken die Fahrt nach Hause?
+  const heimfahrt = (von, nach, pause) =>
+    pause >= Math.max(von.anbieter.fahrzeitMin + nach.anbieter.fahrzeitMin, e.pauseHeimfahrtMin ?? 0);
   const soll = [];
   const neu = (titel, start, ende, kategorie, anbieter) =>
     soll.push({
@@ -108,9 +120,10 @@ export function planeTag(datum, termine, einstellungen) {
 
     // Anfahrt: von zu Hause, oder direkt vom vorherigen Anbieter, wenn
     // die Zeit dazwischen für Heimfahrt und erneute Anfahrt nicht reicht.
-    const direktVomVorherigen =
-      vor && vorStart - (vor.ende ?? 0) < vor.anbieter.fahrzeitMin + b.anbieter.fahrzeitMin;
-    if (!direktVomVorherigen) {
+    const direktVomVorherigen = vor && !heimfahrt(vor, b, vorStart - vor.ende);
+    if (direktVomVorherigen && vor.anbieter === b.anbieter) {
+      // Beim selben Anbieter geblieben: keine Fahrt.
+    } else if (!direktVomVorherigen) {
       neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter);
     } else {
       const dauer = fahrzeit(vor.anbieter, b.anbieter, e);
@@ -129,9 +142,7 @@ export function planeTag(datum, termine, einstellungen) {
     neu(`Nachbereitung - ${letzter.vollerTitel}`, letzter.ende, nachEnde, e.kategoriePuffer, b.anbieter);
     b.ende = nachEnde;
 
-    const direktZumNaechsten =
-      nach &&
-      nach.kurse[0].start - e.vorbereitungMin - nachEnde < b.anbieter.fahrzeitMin + nach.anbieter.fahrzeitMin;
+    const direktZumNaechsten = nach && !heimfahrt(b, nach, nach.kurse[0].start - e.vorbereitungMin - nachEnde);
     if (!direktZumNaechsten) {
       neu(`Rückfahrt - ${letzter.vollerTitel}`, nachEnde, nachEnde + b.anbieter.fahrzeitMin, e.kategorieFahrt, b.anbieter);
     }
@@ -145,18 +156,25 @@ export function planeTag(datum, termine, einstellungen) {
 // nicht, weil ihr Ort keinem Anbieter gehört.
 const ALTE_BLOCK_TITEL = /^(Anfahrt|Vorbereitung|Nach-\/Vorbereitung|Nachbereitung|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - /;
 
-export function istAlterBlock(termin, einstellungen) {
+export function istAlterBlock(termin, einstellungen, kursTitel = []) {
   if (termin.generiert) return false;
   const kats = termin.kategorien || [];
   const passendeKategorie =
     kats.includes(einstellungen.kategorieFahrt) || kats.includes(einstellungen.kategoriePuffer);
   const ort = termin.ort || "";
   const beiAnbieter = einstellungen.anbieter.some((a) => a.ortErkennung.some((t) => ort.includes(t)));
-  return ALTE_BLOCK_TITEL.test(termin.titel.trim()) && passendeKategorie && beiAnbieter;
+  // Manche alten Rückfahrten haben die Heimadresse als Ort; die erkennen wir
+  // daran, dass ihr Titel einen Kurs des Tages nennt.
+  const titel = termin.titel.trim();
+  const nenntKurs = kursTitel.includes(titel.replace(ALTE_BLOCK_TITEL, "").trim());
+  return ALTE_BLOCK_TITEL.test(titel) && passendeKategorie && (beiAnbieter || nenntKurs);
 }
 
 export function markiereAlteBloecke(termine, einstellungen) {
-  return termine.map((t) => (istAlterBlock(t, einstellungen) ? { ...t, generiert: true, uebernommen: true } : t));
+  const kursTitel = termine.filter((t) => kursAnbieter(t, einstellungen)).map((t) => t.titel.trim());
+  return termine.map((t) =>
+    istAlterBlock(t, einstellungen, kursTitel) ? { ...t, generiert: true, uebernommen: true } : t
+  );
 }
 
 // Vergleicht Soll mit den vorhandenen generierten Blöcken.
