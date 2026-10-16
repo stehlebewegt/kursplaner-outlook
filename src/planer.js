@@ -41,7 +41,7 @@ export function findeAnbieter(termin, einstellungen) {
 
 // Anbieter nur über die Kategorie. Ein Termin, der bloß am Ort eines Anbieters
 // liegt (z. B. "Besprechung PTM"), ist kein Kurs.
-function kursAnbieter(termin, einstellungen) {
+export function kursAnbieter(termin, einstellungen) {
   const kats = termin.kategorien || [];
   return (
     einstellungen.anbieter.find((a) => kats.some((k) => a.kategorien.includes(k) || k === a.kategorieVertretung)) || null

@@ -131,6 +131,19 @@ async function findeKalender(t) {
   return kalenderListe.find((k) => k.isDefaultCalendar) || { name: "?", isDefaultCalendar: false };
 }
 
+// E-Mail-Entwurf mit PDF im Anhang, landet im Ordner "Entwürfe".
+export async function legeEntwurfAn({ an, betreff, text, dateiname, pdfBase64 }) {
+  const m = await graph("POST", "/me/messages", {
+    subject: betreff,
+    body: { contentType: "text", content: text },
+    toRecipients: an ? [{ emailAddress: { address: an } }] : [],
+    attachments: [
+      { "@odata.type": "#microsoft.graph.fileAttachment", name: dateiname, contentType: "application/pdf", contentBytes: pdfBase64 },
+    ],
+  });
+  return m.id;
+}
+
 export async function legeAn(t, { generiert, text, frei } = {}) {
   const body = {
     subject: t.titel,

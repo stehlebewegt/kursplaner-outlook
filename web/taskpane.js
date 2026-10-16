@@ -3,6 +3,8 @@ import { config } from "./config.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { findeAnbieter, ohneKuerzel } from "../src/planer.js";
 import { FELDER, leseProtokoll, schreibeProtokoll, gesamt, auswertungVerlauf, teileMaterial } from "../src/protokoll.js";
+import { erstelleAuswertung, monatsZeitraum } from "../src/auswertung.js";
+import { erstellePdf } from "./bericht.js";
 import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel } from "../src/aktionen.js";
 
 const $ = (id) => document.getElementById(id);
@@ -66,6 +68,7 @@ async function start() {
   $("bereich-eigen").hidden = !(termin.eigenerKalender && anbieter && !termin.generiert);
 
   if (!$("bereich-eigen").hidden) await zeigeProtokoll();
+  richteAuswertungEin();
 
   $("ich-gebe").onclick = () => uebernehme(false);
   $("ich-vertrete").onclick = () => uebernehme(true);
@@ -202,6 +205,76 @@ async function zeigeProtokoll() {
       } else {
         await api.aendere(termin.id, { body: { contentType: "text", content: text } });
         zeige(`<div class="karte"><strong>Protokoll gespeichert</strong></div>`);
+      }
+    });
+}
+
+// --- Monatsauswertung ---
+const jetztLokal = () => new Date().toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16);
+const merke = (k, v) => {
+  Office.context.roamingSettings.set(k, v);
+  Office.context.roamingSettings.saveAsync();
+};
+
+function richteAuswertungEin() {
+  const heute = jetztLokal().slice(0, 10);
+  // Bis zum 10. ist meist der Vormonat gemeint.
+  const d = new Date(`${heute.slice(0, 7)}-01T12:00:00Z`);
+  if (Number(heute.slice(8, 10)) <= 10) d.setUTCMonth(d.getUTCMonth() - 1);
+  $("a-monat").value = d.toISOString().slice(0, 7);
+  $("a-anbieter").innerHTML = einstellungen.anbieter.map((a) => `<option value="${a.kuerzel}">${html(a.name)}</option>`).join("");
+  const anbieter = findeAnbieter(termin, einstellungen);
+  if (anbieter) $("a-anbieter").value = anbieter.kuerzel;
+  const zeigeEmpfaenger = () => ($("a-empfaenger").value = Office.context.roamingSettings.get(`empfaenger-${$("a-anbieter").value}`) || "");
+  $("a-anbieter").onchange = () => {
+    zeigeEmpfaenger();
+    $("a-aktionen").hidden = true;
+    $("a-ergebnis").innerHTML = "";
+  };
+  zeigeEmpfaenger();
+
+  let bericht;
+  $("a-anzeigen").onclick = () =>
+    mitWarten($("a-anzeigen"), async () => {
+      const anbieter = einstellungen.anbieter.find((a) => a.kuerzel === $("a-anbieter").value);
+      const zeitraum = monatsZeitraum($("a-monat").value);
+      const stand = jetztLokal();
+      const a = erstelleAuswertung(await api.holeVerlauf(zeitraum.von, zeitraum.bis), anbieter, stand, einstellungen);
+      bericht = { a, anbieter, zeitraum, stand };
+      const s = a.summe;
+      const tag = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.`;
+      $("a-ergebnis").innerHTML =
+        `<div style="margin-top:8px"><strong>${html(zeitraum.name)} · ${html(anbieter.kuerzel)}</strong></div>` +
+        `<div>Geleistet: ${s.geleistet} (davon ${s.davonVertretung} Vertretung) · Geplant: ${s.geplant} · Ferien: ${s.ferien}</div>` +
+        `<div>Teilnehmer: ${s.teilnehmerSchnitt === null ? "keine Angaben" : `${s.teilnehmer}, Schnitt ${s.teilnehmerSchnitt}`}</div>` +
+        (s.ohneProtokoll ? `<div class="fehler">${s.ohneProtokoll} geleistete Kurse ohne Teilnehmerzahl</div>` : "") +
+        `<table><tr><th>Tag</th><th>Kurs</th><th>Status</th><th>TN</th></tr>` +
+        a.zeilen
+          .map((z) => `<tr><td>${tag(z.datum)}</td><td>${html(z.kurs)}${z.art === "Vertretung" ? " (V)" : ""}</td><td>${z.status}</td><td>${z.anwesend ?? "–"}</td></tr>`)
+          .join("") +
+        `</table>`;
+      $("a-aktionen").hidden = false;
+    });
+
+  const dateiname = () => `Monatsauswertung ${bericht.anbieter.kuerzel} ${bericht.zeitraum.name}.pdf`;
+  $("a-pdf").onclick = () => erstellePdf(bericht.a, bericht.anbieter, bericht.zeitraum, bericht.stand).save(dateiname());
+  $("a-mail").onclick = () =>
+    mitWarten($("a-mail"), async () => {
+      const an = $("a-empfaenger").value.trim();
+      if (an) merke(`empfaenger-${bericht.anbieter.kuerzel}`, an);
+      const pdf = erstellePdf(bericht.a, bericht.anbieter, bericht.zeitraum, bericht.stand);
+      const id = await api.legeEntwurfAn({
+        an,
+        betreff: `Monatsauswertung ${bericht.zeitraum.name} – Michael Stehle`,
+        text: `Hallo,\n\nanbei meine Monatsauswertung für ${bericht.zeitraum.name}.\n\nViele Grüße\nMichael Stehle`,
+        dateiname: dateiname(),
+        pdfBase64: pdf.output("datauristring").split(",")[1],
+      });
+      zeige(`<div class="karte"><strong>E-Mail-Entwurf erstellt</strong><div class="leise">Er liegt in deinen Entwürfen und öffnet sich gleich.</div></div>`);
+      try {
+        Office.context.mailbox.displayMessageForm(Office.context.mailbox.convertToEwsId(id, Office.MailboxEnums.RestVersion.v2_0));
+      } catch {
+        /* dann eben aus den Entwürfen öffnen */
       }
     });
 }

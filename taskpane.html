@@ -6,6 +6,7 @@
   <title>Kursplaner</title>
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   <script src="web/vendor/msal-browser.min.js"></script>
+  <script src="web/vendor/jspdf.umd.min.js"></script>
   <style>
     :root { --gruen: #0f6e56; --text: #1f1f1f; --leise: #616161; --rand: #e0e0e0; --hinter: #ffffff; --rot: #b3261e; }
     @media (prefers-color-scheme: dark) {
@@ -33,6 +34,8 @@
     .haken input, .haken-zeile input { width: auto; }
     .reihe button { margin: 0; }
     #p-letzte div { margin: 2px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+    td, th { text-align: left; padding: 2px 4px; border-bottom: 1px solid var(--rand); }
     .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
     .neu::before { content: "+ "; color: var(--gruen); font-weight: 600; }
     .weg::before { content: "− "; color: var(--rot); font-weight: 600; }
@@ -90,6 +93,22 @@
     <div class="leise">Fahrten, Vor- und Nachbereitung für den ganzen Tag neu berechnen.</div>
     <button id="vorschau" class="zweit">Vorschau</button>
     <button id="ausfuehren" hidden>Änderungen übernehmen</button>
+  </div>
+
+  <div class="karte">
+    <div><strong>Monatsauswertung</strong></div>
+    <div class="reihe">
+      <div><label for="a-monat">Monat</label><input id="a-monat" type="month"></div>
+      <div><label for="a-anbieter">Anbieter</label><select id="a-anbieter"></select></div>
+    </div>
+    <label for="a-empfaenger">Empfänger</label>
+    <input id="a-empfaenger" type="email" placeholder="wird für diesen Anbieter gemerkt">
+    <button id="a-anzeigen" class="zweit">Auswertung anzeigen</button>
+    <div id="a-ergebnis"></div>
+    <div id="a-aktionen" hidden>
+      <button id="a-pdf" class="zweit">PDF speichern</button>
+      <button id="a-mail">E-Mail-Entwurf mit PDF</button>
+    </div>
   </div>
 
   <div id="ergebnis"></div>
