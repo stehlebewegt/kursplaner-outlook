@@ -42,7 +42,7 @@ export const einstellungen = {
   // Dauerkurse: Kurse mit "(kursleitung)" im Titel kommen aus den
   // Anbieter-Kalendern automatisch in den eigenen Kalender.
   // schreiben: false = die Automatik zeigt nur an, was sie tun würde.
-  dauerkurse: { kursleitung: "Michael", schreiben: false },
+  dauerkurse: { kursleitung: "Michael", schreiben: true },
   // Kürzel vor dem Titel. aktiv = Kurs findet statt (bekommt Fahrt und Puffer).
   kuerzel: {
     "": { bedeutung: "regulär", aktiv: true },
