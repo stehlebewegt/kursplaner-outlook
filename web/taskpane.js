@@ -110,13 +110,28 @@ function protokollAusFormular() {
   return Object.fromEntries(FELDER.map(([k]) => [k, $(`p-${k}`)?.value ?? ""]));
 }
 
+// Ist die ganze Serie offen statt nur ein Termin? Dann darf kein Protokoll
+// hinein, sonst stünde es in jedem Termin der Serie.
+function istSerie() {
+  const item = Office.context.mailbox.item;
+  if (!item.recurrence?.getAsync) return Promise.resolve(false);
+  return new Promise((ok) =>
+    item.recurrence.getAsync((r) => ok(r.status === Office.AsyncResultStatus.Succeeded && !!r.value))
+  );
+}
+
 async function zeigeProtokoll() {
+  $("bereich-protokoll").hidden = false;
+  if (await istSerie()) {
+    $("p-formular").hidden = true;
+    $("p-serie").hidden = false;
+    return;
+  }
   const p = leseProtokoll(await terminText());
   for (const [k] of FELDER) if ($(`p-${k}`)) $(`p-${k}`).value = p[k];
   const zeigeGesamt = () => ($("p-gesamt").textContent = `Teilnehmer gesamt: ${gesamt(protokollAusFormular()) || "–"}`);
   ["p-anwesend", "p-entschuldigt", "p-unentschuldigt"].forEach((id) => ($(id).oninput = zeigeGesamt));
   zeigeGesamt();
-  $("bereich-protokoll").hidden = false;
   $("p-speichern").onclick = () =>
     mitWarten($("p-speichern"), async () => {
       const text = schreibeProtokoll(protokollAusFormular());
