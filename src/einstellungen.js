@@ -39,6 +39,10 @@ export const einstellungen = {
   // Material zum Anhaken im Kursprotokoll. Was im Protokoll neu dazukommt,
   // erscheint beim nächsten Mal automatisch mit.
   material: ["Airpad", "Gymnastikball", "Hanteln", "Hocker", "Matte", "Pilatesball", "Stab", "Theraband"],
+  // Dauerkurse: Kurse mit "(kursleitung)" im Titel kommen aus den
+  // Anbieter-Kalendern automatisch in den eigenen Kalender.
+  // schreiben: false = die Automatik zeigt nur an, was sie tun würde.
+  dauerkurse: { kursleitung: "Michael", schreiben: false },
   // Kürzel vor dem Titel. aktiv = Kurs findet statt (bekommt Fahrt und Puffer).
   kuerzel: {
     "": { bedeutung: "regulär", aktiv: true },

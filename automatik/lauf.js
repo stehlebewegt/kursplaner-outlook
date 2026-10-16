@@ -14,6 +14,7 @@ import { config } from "../web/config.js";
 import { MARKIERUNG } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
+import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
 
 // Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
 // auf der Übersichtsseite des Laufs stehen.
@@ -91,7 +92,28 @@ const api = {
     }
     return termine;
   },
-  async legeAn(t) {
+  // Kurse aus den Anbieter-Kalendern, mit originalStart (Ortszeit) bei
+  // Serienterminen, damit verschobene Termine erkennbar sind.
+  async holeAnbieter(von, bis) {
+    const kalender = (await graph("GET", "/calendars?$select=id,name&$top=50")).value;
+    const termine = [];
+    for (const a of einstellungen.anbieter) {
+      const k = kalender.find((k) => k.name === a.kalender);
+      if (!k) continue;
+      let url =
+        `/calendars/${k.id}/calendarView?startDateTime=${von}T00:00:00&endDateTime=${bis}T23:59:59&$top=200` +
+        `&$select=subject,start,end,categories,location,isAllDay,originalStart,body`;
+      while (url) {
+        const seite = await graph("GET", url);
+        for (const e of seite.value.filter((e) => !e.isAllDay)) {
+          termine.push({ ...zuTermin(e), text: e.body?.content || "", originalStart: e.originalStart ? ortszeit(e.originalStart) : null });
+        }
+        url = seite["@odata.nextLink"];
+      }
+    }
+    return termine;
+  },
+  async legeAn(t, { generiert = true, text } = { generiert: true }) {
     await graph("POST", "/events", {
       subject: t.titel,
       start: { dateTime: `${t.start}:00`, timeZone: config.zeitzone },
@@ -100,7 +122,8 @@ const api = {
       categories: t.kategorien || [],
       showAs: "busy",
       isReminderOn: false,
-      singleValueExtendedProperties: [{ id: MARKIERUNG, value: "1" }],
+      ...(text ? { body: { contentType: "text", content: text } } : {}),
+      ...(generiert ? { singleValueExtendedProperties: [{ id: MARKIERUNG, value: "1" }] } : {}),
     });
   },
   markiere: (id) => graph("PATCH", `/events/${id}`, { singleValueExtendedProperties: [{ id: MARKIERUNG, value: "1" }] }),
@@ -108,11 +131,45 @@ const api = {
   loesche: (id) => graph("DELETE", `/events/${id}`),
 };
 
+// UTC-Zeitpunkt (z. B. "2026-11-04T14:00:00Z") als deutsche Ortszeit "JJJJ-MM-TTTHH:MM".
+function ortszeit(utc) {
+  const iso = /[zZ]|[+-]\d\d:\d\d$/.test(utc) ? utc : `${utc}Z`;
+  return new Date(iso).toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16);
+}
+
 const heute = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
-const ergebnis = await planeZeitraum(api, naechsteTage(heute, anzahlTage), einstellungen, { schreiben });
+const tage = naechsteTage(heute, anzahlTage);
 const zeit = (t) => `${t.start.slice(11)}–${t.ende.slice(11)}`;
+const tagZeit = (t) => `${t.start.slice(8, 10)}.${t.start.slice(5, 7)}. ${t.start.slice(11)}`;
 const zeilen = [];
 const ausgabe = (z) => (console.log(z), zeilen.push(z));
+
+// Erst Dauerkurse abgleichen, dann die Tage planen.
+const dauer = gleicheAb(
+  await api.holeAnbieter(tage[0], tage[tage.length - 1]),
+  await api.holeBereich(tage[0], tage[tage.length - 1]),
+  einstellungen
+);
+const dauerSchreiben = schreiben && einstellungen.dauerkurse.schreiben;
+if (dauerSchreiben) {
+  for (const p of dauer.anlegen) {
+    const kurs = alsEigenerKurs(p);
+    await api.legeAn(kurs, { generiert: false, text: kurs.text });
+  }
+  for (const v of dauer.verschieben) {
+    await api.aendere(v.termin.id, {
+      start: { dateTime: `${v.start}:00`, timeZone: config.zeitzone },
+      end: { dateTime: `${v.ende}:00`, timeZone: config.zeitzone },
+    });
+  }
+}
+ausgabe(
+  `Dauerkurse (${dauerSchreiben ? "ausgeführt" : "nur Vorschau"}): neu ${dauer.anlegen.length} [${dauer.anlegen.map(tagZeit).join(", ")}]` +
+    `, verschoben ${dauer.verschieben.length} [${dauer.verschieben.map((v) => `${tagZeit(v.termin)}→${v.start.slice(11)}`).join(", ")}]` +
+    `, eigene ohne Gegenstück ${dauer.ohneGegenstueck.length} [${dauer.ohneGegenstueck.map(tagZeit).join(", ")}]`
+);
+
+const ergebnis = await planeZeitraum(api, tage, einstellungen, { schreiben });
 ausgabe(`${schreiben ? "Ausgeführt" : "Nur Vorschau"}: ${heute} + ${anzahlTage} Tage, ${ergebnis.length} Tage mit Änderungen`);
 for (const r of ergebnis) {
   ausgabe(
