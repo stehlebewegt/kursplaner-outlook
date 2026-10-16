@@ -7,6 +7,8 @@ Outlook-Add-in für Michaels Kursplanung als Übungsleiter.
 - Im eigenen Kalender: Kurs als Urlaub (U), Abgesagt (A), Ferien (F) markieren oder wieder auf „findet statt“ setzen.
 - „Tag neu planen“: Anfahrt, Vorbereitung, Puffer, Nachbereitung und Rückfahrt für den ganzen Tag neu berechnen, mit Vorschau. Angefasst werden nur Blöcke, die das Add-in angelegt oder von den alten, von Hand angelegten übernommen hat.
 
+**Automatik (Schritt 3):** `automatik/lauf.js` läuft alle 15 Minuten (7–23 Uhr) in GitHub Actions und plant die nächsten 8 Wochen neu. So ziehen die Blöcke auch mit, wenn am iPhone ein Kurs verschoben, gelöscht oder mit (U)/(A)/(F) markiert wird. Braucht in Entra die Anwendungsberechtigung `Calendars.ReadWrite`, einen geheimen Clientschlüssel und in GitHub die Secrets `KURSPLANER_SECRET` und `KURSPLANER_POSTFACH`. Ohne die Variable `SCHREIBEN=1` zeigt sie nur an, was sie tun würde. Die Ausgabe ist öffentlich, deshalb nur Datum und Uhrzeit, keine Titel.
+
 ## Aufbau
 - `manifest.xml` – Beschreibung für Outlook (Button „Kursplaner“ in geöffneten Terminen)
 - `taskpane.html`, `web/` – Oberfläche, Anmeldung und Kalenderzugriff über Microsoft Graph

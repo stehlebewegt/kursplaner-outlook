@@ -1,0 +1,22 @@
+name: Kursplaner-Automatik
+on:
+  schedule:
+    - cron: "*/15 5-21 * * *"
+  workflow_dispatch:
+concurrency: automatik
+jobs:
+  planen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: |
+          if [ -z "$KURSPLANER_SECRET" ]; then echo "Noch nicht eingerichtet."; exit 0; fi
+          node automatik/lauf.js
+        env:
+          KURSPLANER_SECRET: ${{ secrets.KURSPLANER_SECRET }}
+          KURSPLANER_POSTFACH: ${{ secrets.KURSPLANER_POSTFACH }}
+          SCHREIBEN: ${{ vars.SCHREIBEN }}
