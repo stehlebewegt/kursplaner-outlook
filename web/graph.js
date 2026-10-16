@@ -2,6 +2,7 @@
 // Anmeldung über "Nested App Authentication" (NAA): Outlook reicht die
 // Anmeldung an das Add-in weiter, kein extra Login-Fenster nötig.
 import { config } from "./config.js";
+import { einstellungen } from "../src/einstellungen.js";
 
 const GRAPH = "https://graph.microsoft.com/v1.0";
 // Unsichtbare Markierung an jedem Block, den das Add-in anlegt.
@@ -23,7 +24,9 @@ async function token() {
   }
 }
 
-async function graph(methode, pfad, body) {
+const warte = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function graph(methode, pfad, body, versuch = 0) {
   const antwort = await fetch(pfad.startsWith("http") ? pfad : GRAPH + pfad, {
     method: methode,
     headers: {
@@ -33,6 +36,12 @@ async function graph(methode, pfad, body) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
+  // Gebremst: kurz warten und bis zu dreimal neu versuchen.
+  if ((antwort.status === 429 || antwort.status === 503) && versuch < 3) {
+    const sekunden = Number(antwort.headers.get("Retry-After")) || 2 ** versuch;
+    await warte(sekunden * 1000);
+    return graph(methode, pfad, body, versuch + 1);
+  }
   if (!antwort.ok) {
     const text = await antwort.text();
     throw new Error(`Graph ${methode} ${pfad}: ${antwort.status} ${text.slice(0, 200)}`);
@@ -83,17 +92,19 @@ export async function holeTermin(id) {
 async function findeKalender(t) {
   const { value: kalender } = await graph("GET", "/me/calendars?$select=id,name,isDefaultCalendar&$top=50");
   const datum = t.start.slice(0, 10);
-  const tage = await Promise.all(
-    kalender.map(async (k) => ({
-      k,
-      termine: (
-        await graph(
-          "GET",
-          `/me/calendars/${k.id}/calendarView?startDateTime=${datum}T00:00:00&endDateTime=${datum}T23:59:59&$select=subject,start&$top=100`
-        )
-      ).value,
-    }))
+  // Nur eigener Kalender und Anbieter-Kalender, nacheinander: zu viele
+  // gleichzeitige Abfragen bremst Microsoft aus (Fehler 429).
+  const relevant = kalender.filter(
+    (k) => k.isDefaultCalendar || einstellungen.anbieter.some((a) => a.kalender === k.name)
   );
+  const tage = [];
+  for (const k of relevant) {
+    const { value } = await graph(
+      "GET",
+      `/me/calendars/${k.id}/calendarView?startDateTime=${datum}T00:00:00&endDateTime=${datum}T23:59:59&$select=subject,start&$top=100`
+    );
+    tage.push({ k, termine: value });
+  }
   // Erst über die ID suchen. Gleiche Titel gibt es oft in zwei Kalendern
   // (Anbieter-Kalender und eigene Kopie), deshalb der Titel nur als Notlösung.
   const perId = tage.find(({ termine }) => termine.some((e) => e.id === t.id));
