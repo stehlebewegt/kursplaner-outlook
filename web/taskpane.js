@@ -131,7 +131,8 @@ function setzeMaterial(gewaehlt) {
 // hinein, sonst stünde es in jedem Termin der Serie.
 function istSerie() {
   const item = Office.context.mailbox.item;
-  if (!item.recurrence?.getAsync) return Promise.resolve(false);
+  // Ein einzelner Termin aus einer Serie hat eine seriesId, die Serie selbst nicht.
+  if (!item.recurrence?.getAsync || item.seriesId) return Promise.resolve(false);
   return new Promise((ok) =>
     item.recurrence.getAsync((r) => ok(r.status === Office.AsyncResultStatus.Succeeded && !!r.value))
   );
