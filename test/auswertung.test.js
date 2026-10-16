@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { erstelleAuswertung, monatsZeitraum } from "../src/auswertung.js";
+import { erstelleAuswertung, monatsZeitraum, fahrtenTabelle } from "../src/auswertung.js";
 import { einstellungen } from "../src/einstellungen.js";
 
 const SVE = einstellungen.anbieter.find((a) => a.kuerzel === "SVE");
@@ -20,13 +20,13 @@ test("Monatsauswertung SVE: geleistet, geplant, Vertretung, Ferien, U/A und ande
   const { zeilen, summe, fahrten } = erstelleAuswertung(termine, SVE, "2026-10-16T10:00", einstellungen);
   assert.equal(zeilen.length, 5);
   assert.deepEqual(fahrten, [
-    { datum: "2026-10-07", von: "08:10", bis: "08:30", fahrt: "Hinfahrt", kurs: "RehaSport (Michael)", minuten: 20, status: "geleistet" },
+    { datum: "2026-10-07", uhrzeit: "08:10", fahrt: "Hinfahrt", von: "heim", nach: "SVE", kurs: "RehaSport (Michael)", minuten: 20, status: "geleistet", km: null, minutenBerechnet: null },
   ]);
   assert.deepEqual(summe, {
     geleistet: 3, geleistetStunden: 2.25, davonVertretung: 1,
     geplant: 1, geplantStunden: 0.75, ferien: 1,
     teilnehmer: 19, teilnehmerSchnitt: 9.5, ohneProtokoll: 1,
-    fahrten: 1, fahrtStunden: 20 / 60,
+    fahrten: 1, fahrtKm: null,
   });
 });
 
@@ -49,4 +49,23 @@ test("Fahrten: nur zu Kursen des Anbieters am selben Tag, nicht zu abgesagten", 
   ];
   const { fahrten } = erstelleAuswertung(termine, SVE, "2026-10-16T10:00", einstellungen);
   assert.deepEqual(fahrten.map((f) => `${f.datum} ${f.fahrt}`), ["2026-10-07 Hinfahrt", "2026-10-07 Rückfahrt"]);
+});
+
+test("Fahrten-Tabelle: eine Zeile pro Tag, km und Minuten aus dem Routenplaner", () => {
+  const PTM = einstellungen.anbieter.find((a) => a.kuerzel === "PTM");
+  const fahrt = (titel, start, ende) => ({ ...kurs(titel, start, ende, ["90 🚗 Fahrzeit"]), generiert: true });
+  const termine = [
+    kurs("(H) RehaSport (Dushko)", "2026-10-07T15:00", "2026-10-07T15:45", ["10 SVE: RehaSport"]),
+    fahrt("Fahrt PTM → SVE - (H) RehaSport (Dushko)", "2026-10-07T14:25", "2026-10-07T14:45"),
+    fahrt("Rückfahrt - (H) RehaSport (Dushko)", "2026-10-07T16:00", "2026-10-07T16:20"),
+  ];
+  const strecke = (von, nach) => ({ "PTM SVE": { km: 12.34, minuten: 17 }, "SVE heim": { km: 5.1, minuten: 9 } })[`${von} ${nach}`];
+  const a = erstelleAuswertung(termine, SVE, "2026-10-16T10:00", einstellungen, strecke);
+  assert.equal(a.zeilen[0].art, "Hospitation");
+  assert.equal(a.summe.fahrtKm, 17.4);
+  assert.deepEqual(fahrtenTabelle(a.fahrten), {
+    kopf: ["Datum", "Strecke", "Fahrten", "km", "Min."],
+    reihen: [["2026-10-07", "PTM – SVE – Zuhause", 2, "17,4", 26]],
+  });
+  assert.equal(erstelleAuswertung(termine, PTM, "2026-10-16T10:00", einstellungen).fahrten.length, 0);
 });

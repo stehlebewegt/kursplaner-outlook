@@ -1,4 +1,5 @@
 // PDF der Monatsauswertung (mit jsPDF, liegt in web/vendor).
+import { fahrtenTabelle, fahrtenSumme } from "../src/auswertung.js";
 const datumDe = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
 const zahl = (x) => String(Math.round(x * 100) / 100).replace(".", ",");
 
@@ -19,10 +20,10 @@ export function erstellePdf({ zeilen, summe, fahrten = [] }, anbieter, zeitraum,
   doc.setFontSize(11);
   const block = [
     ["Geleistet", `${summe.geleistet} Einheiten (${zahl(summe.geleistetStunden)} Std.), davon ${summe.davonVertretung} Vertretung`],
-    ["Noch geplant", `${summe.geplant} Einheiten (${zahl(summe.geplantStunden)} Std.)`],
-    ["Entfällt (Ferien)", `${summe.ferien} Einheiten`],
-    ["Fahrten", `${summe.fahrten ?? 0} Fahrten (${zahl(summe.fahrtStunden ?? 0)} Std.)`],
-  ];
+    summe.geplant && ["Noch geplant", `${summe.geplant} Einheiten (${zahl(summe.geplantStunden)} Std.)`],
+    summe.ferien && ["Entfällt (Ferien)", `${summe.ferien} Einheiten`],
+    ["Fahrten", fahrtenSumme(summe).replace("Fahrten: ", "")],
+  ].filter(Boolean);
   if (teilnehmer)
     block.push(["Teilnehmer", summe.teilnehmerSchnitt === null ? "keine Angaben" : `${summe.teilnehmer} gesamt, im Schnitt ${zahl(summe.teilnehmerSchnitt)}`]);
   for (const [k, v] of block) {
@@ -75,11 +76,10 @@ export function erstellePdf({ zeilen, summe, fahrten = [] }, anbieter, zeitraum,
       return w;
     })
   );
-  if (fahrten.length)
-    tabelle(
-      "Fahrten",
-      [["Datum", 15], ["Zeit", 38], ["Fahrt", 62], ["zum Kurs", 100], ["Min.", 165], ["Status", 178]],
-      fahrten.map((f) => [datumDe(f.datum), `${f.von}–${f.bis}`, f.fahrt, f.kurs, f.minuten, f.status])
-    );
+  if (fahrten.length) {
+    const { kopf, reihen } = fahrtenTabelle(fahrten);
+    const x = [15, 40, 140, 160, 180];
+    tabelle("Fahrten", kopf.map((k, i) => [k, x[i]]), reihen.map((r) => [datumDe(r[0]), ...r.slice(1)]));
+  }
   return doc;
 }

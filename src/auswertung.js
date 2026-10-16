@@ -7,7 +7,9 @@ import { leseProtokoll } from "./protokoll.js";
 
 const minuten = (t) => (Date.parse(t.ende) - Date.parse(t.start)) / 60000;
 
-export function erstelleAuswertung(termine, anbieter, jetzt, einstellungen) {
+// strecke(von, nach): berechnete Fahrt { km, minuten } zwischen "heim" und
+// Anbieter-Kürzeln (siehe automatik/route.js); ohne sie bleiben km leer.
+export function erstelleAuswertung(termine, anbieter, jetzt, einstellungen, strecke = () => null) {
   const zeilen = termine
     .filter((t) => !t.generiert && kursAnbieter(t, einstellungen) === anbieter)
     .filter((t) => !["U", "A"].includes(leseKuerzel(t.titel)))
@@ -20,7 +22,7 @@ export function erstelleAuswertung(termine, anbieter, jetzt, einstellungen) {
         bis: t.ende.slice(11, 16),
         kurs: ohneKuerzel(t.titel).trim(),
         vollerTitel: t.titel.trim(),
-        art: k === "V" ? "Vertretung" : "regulär",
+        art: k === "V" ? "Vertretung" : k === "H" ? "Hospitation" : "regulär",
         status: k === "F" ? "entfällt (Ferien)" : t.start <= jetzt ? "geleistet" : "geplant",
         minuten: minuten(t),
         anwesend: p.anwesend === "" ? null : parseInt(p.anwesend, 10) || 0,
@@ -46,14 +48,17 @@ export function erstelleAuswertung(termine, anbieter, jetzt, einstellungen) {
       : null,
     ohneProtokoll: geleistet.length - mitTeilnehmern.length,
   };
-  const fahrten = sammleFahrten(termine, zeilen, einstellungen, anbieter);
+  const fahrten = sammleFahrten(termine, zeilen, einstellungen, anbieter).map((f) => {
+    const r = strecke(f.von, f.nach);
+    return { ...f, km: r?.km ?? null, minutenBerechnet: r?.minuten ?? null };
+  });
   const gefahren = fahrten.filter((f) => f.status === "geleistet");
   summe.fahrten = gefahren.length;
-  summe.fahrtStunden = gefahren.reduce((s, f) => s + f.minuten, 0) / 60;
+  summe.fahrtKm = gefahren.every((f) => f.km !== null) ? Math.round(gefahren.reduce((s, f) => s + f.km, 0) * 10) / 10 : null;
   return { zeilen, summe, fahrten };
 }
 
-const FAHRT_TITEL = /^(Anfahrt|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - (.+)$/;
+const FAHRT_TITEL = /^(Anfahrt|Rückfahrt|Fahrt ([A-Z]+) → ([A-Z]+)) - (.+)$/;
 
 // Fahrt-Blöcke (Kategorie Fahrzeit) an Tagen, an denen bei diesem Anbieter
 // ein Kurs stattfand: Der Titel nennt einen Kurs des Tages, oder der Ort ist
@@ -72,21 +77,52 @@ function sammleFahrten(termine, zeilen, e, anbieter) {
       const m = t.titel.trim().match(FAHRT_TITEL);
       if (!m) return null;
       const datum = t.start.slice(0, 10);
-      const kurs = kurse.get(`${datum} ${m[2].trim()}`);
+      const kurs = kurse.get(`${datum} ${m[4].trim()}`);
       const status = kurs ? kurs.status : beiAnbieter(t) && tage.get(datum);
       if (!status) return null;
+      const [von, nach] = m[1] === "Anfahrt" ? ["heim", anbieter.kuerzel] : m[1] === "Rückfahrt" ? [anbieter.kuerzel, "heim"] : [m[2], m[3]];
       return {
         datum,
-        von: t.start.slice(11, 16),
-        bis: t.ende.slice(11, 16),
-        fahrt: m[1] === "Anfahrt" ? "Hinfahrt" : m[1],
-        kurs: ohneKuerzel(m[2]).trim(),
+        uhrzeit: t.start.slice(11, 16),
+        fahrt: m[1] === "Anfahrt" ? "Hinfahrt" : m[1] === "Rückfahrt" ? "Rückfahrt" : "Weiterfahrt",
+        von,
+        nach,
+        kurs: ohneKuerzel(m[4]).trim(),
         minuten: minuten(t),
         status,
       };
     })
     .filter(Boolean)
-    .sort((a, b) => (a.datum + a.von < b.datum + b.von ? -1 : 1));
+    .sort((a, b) => (a.datum + a.uhrzeit < b.datum + b.uhrzeit ? -1 : 1));
+}
+
+// Fahrten-Tabelle (für PDF und E-Mail gleich): eine Zeile pro Tag, nur
+// tatsächlich gefahrene. Mit berechneter Strecke km und Fahrminuten laut
+// Routenplaner, sonst die Minuten aus dem Kalender.
+const ortName = (k) => (k === "heim" ? "Zuhause" : k);
+const zahlDe = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
+export function fahrtenTabelle(fahrten) {
+  const gefahren = fahrten.filter((f) => f.status === "geleistet");
+  const mitKm = gefahren.some((f) => f.km !== null && f.km !== undefined);
+  const kopf = mitKm ? ["Datum", "Strecke", "Fahrten", "km", "Min."] : ["Datum", "Strecke", "Fahrten", "Min. (Kalender)"];
+  const tage = new Map();
+  for (const f of gefahren) tage.set(f.datum, [...(tage.get(f.datum) || []), f]);
+  const reihen = [...tage].map(([datum, fs]) => {
+    const orte = [fs[0].von];
+    for (const f of fs) {
+      if (orte[orte.length - 1] !== f.von) orte.push(f.von);
+      orte.push(f.nach);
+    }
+    const r = [datum, orte.map(ortName).join(" – "), fs.length];
+    if (!mitKm) return [...r, fs.reduce((s, f) => s + f.minuten, 0)];
+    const fehlt = fs.some((f) => f.km === null);
+    return [...r, fehlt ? "–" : zahlDe(fs.reduce((s, f) => s + f.km, 0)), fehlt ? "–" : fs.reduce((s, f) => s + f.minutenBerechnet, 0)];
+  });
+  return { kopf, reihen };
+}
+
+export function fahrtenSumme(summe) {
+  return `Fahrten: ${summe.fahrten ?? 0}${summe.fahrtKm != null ? `, zusammen ${zahlDe(summe.fahrtKm)} km` : ""}`;
 }
 
 export const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];

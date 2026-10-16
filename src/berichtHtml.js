@@ -1,4 +1,5 @@
-// Monatsauswertung als HTML-Tabelle für den Text eines E-Mail-Entwurfs.
+// Monatsauswertung als HTML-Tabelle (Vorschau; verschickt wird das PDF).
+import { fahrtenTabelle, fahrtenSumme } from "./auswertung.js";
 const datumDe = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
 const zahl = (x) => String(Math.round(x * 100) / 100).replace(".", ",");
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -25,7 +26,7 @@ export function berichtHtml({ zeilen, summe, fahrten = [] }, anbieter, zeitraum,
     `Geleistet: ${summe.geleistet} Einheiten (${zahl(summe.geleistetStunden)} Std.), davon ${summe.davonVertretung} Vertretung`,
     summe.geplant ? `Noch geplant: ${summe.geplant} Einheiten (${zahl(summe.geplantStunden)} Std.)` : "",
     summe.ferien ? `Entfällt (Ferien): ${summe.ferien} Einheiten` : "",
-    `Fahrten: ${summe.fahrten ?? 0} (${zahl(summe.fahrtStunden ?? 0)} Std.)`,
+    fahrtenSumme(summe),
   ].filter(Boolean);
   if (teilnehmer && summe.teilnehmerSchnitt !== null) summen.push(`Teilnehmer: ${summe.teilnehmer} gesamt, im Schnitt ${zahl(summe.teilnehmerSchnitt)}`);
   return (
@@ -35,7 +36,7 @@ export function berichtHtml({ zeilen, summe, fahrten = [] }, anbieter, zeitraum,
     tabelle(kursKopf, kursReihen) +
     (fahrten.length
       ? `<h3>Fahrten</h3>` +
-        tabelle(["Datum", "Zeit", "Fahrt", "zum Kurs", "Minuten", "Status"], fahrten.map((f) => [datumDe(f.datum), `${f.von}–${f.bis}`, f.fahrt, f.kurs, f.minuten, f.status]))
+        (({ kopf, reihen }) => tabelle(kopf, reihen.map((r) => [datumDe(r[0]), ...r.slice(1)])))(fahrtenTabelle(fahrten))
       : "") +
     `<p>Viele Grüße<br>Michael Stehle</p>`
   );

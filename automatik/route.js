@@ -41,20 +41,35 @@ export function routenRechner({ heimadresse, maxMin = 240 }) {
     }
     return null;
   }
+  async function route(a, b) {
+    const url = `https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=false`;
+    const antwort = await fetch(url);
+    if (!antwort.ok) return null;
+    return (await antwort.json()).routes?.[0] ?? null;
+  }
   let heim;
-  return async function fahrzeitMin(ort) {
+  async function fahrzeitMin(ort) {
     heim ??= await finde(heimadresse);
     const ziel = await finde(ort);
     if (!heim || !ziel) return null;
-    const url = `https://router.project-osrm.org/route/v1/driving/${heim.lon},${heim.lat};${ziel.lon},${ziel.lat}?overview=false`;
-    const antwort = await fetch(url);
-    if (!antwort.ok) return null;
-    const sekunden = (await antwort.json()).routes?.[0]?.duration;
+    const sekunden = (await route(heim, ziel))?.duration;
     if (!sekunden) return null;
     const minuten = sekunden / 60;
     // Praktisch zu Hause: keine Fahrt.
     if (minuten < 3) return 0;
     // Weiter als maxMin: vermutlich falsch gefundene Adresse, lieber nichts tun.
     return minuten > maxMin ? null : aufViertelstunde(minuten);
+  }
+  // Genaue Strecke für den Monatsbericht: { km, minuten } ohne Aufrunden auf
+  // die Viertelstunde. null als Ort = zu Hause.
+  fahrzeitMin.strecke = async (vonOrt, nachOrt) => {
+    heim ??= await finde(heimadresse);
+    const a = vonOrt === null ? heim : await finde(vonOrt);
+    const b = nachOrt === null ? heim : await finde(nachOrt);
+    if (!a || !b) return null;
+    const r = await route(a, b);
+    if (!r) return null;
+    return { km: Math.round(r.distance / 100) / 10, minuten: Math.ceil(r.duration / 60) };
   };
+  return fahrzeitMin;
 }

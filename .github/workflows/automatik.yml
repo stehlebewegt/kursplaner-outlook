@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      monatsbericht_probe:
+        description: "Probe-Monatsbericht für Monat JJJJ-MM (leer = normal)"
+        required: false
+        default: ""
 concurrency: automatik
 permissions:
   contents: read
@@ -33,3 +38,4 @@ jobs:
           KURSPLANER_POSTFACH: ${{ secrets.KURSPLANER_POSTFACH }}
           KURSPLANER_HEIMADRESSE: ${{ secrets.KURSPLANER_HEIMADRESSE }}
           SCHREIBEN: ${{ vars.SCHREIBEN }}
+          MONATSBERICHT_PROBE: ${{ inputs.monatsbericht_probe }}

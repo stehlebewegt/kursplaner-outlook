@@ -48,7 +48,18 @@ export const einstellungen = {
   // Monatsbericht: an diesem Tag legt die Automatik pro Anbieter einen
   // E-Mail-Entwurf für den Vormonat an (wird nie selbst verschickt).
   // teilnehmer: true = Spalte mit Teilnehmerzahlen im Bericht.
-  monatsbericht: { tag: 15, teilnehmer: false },
+  // {monat} und {anbieter} werden ersetzt.
+  monatsbericht: {
+    tag: 15,
+    teilnehmer: false,
+    betreff: "Monatsauswertung {monat} – Michael Stehle",
+    text:
+      "Hallo zusammen,\n\n" +
+      "ich hoffe, bei euch ist alles gut! Im Anhang findet ihr meine Monatsauswertung für {monat}, " +
+      "mit allen Kursen, die ich bei euch gegeben oder vertreten habe, und den Fahrten dazu.\n\n" +
+      "Wenn etwas nicht passt oder ihr Fragen habt, meldet euch gern jederzeit bei mir.\n\n" +
+      "Herzliche Grüße und bis bald\nMichael Stehle",
+  },
   // Kürzel vor dem Titel. aktiv = Kurs findet statt (bekommt Fahrt und Puffer).
   kuerzel: {
     "": { bedeutung: "regulär", aktiv: true },
@@ -56,5 +67,6 @@ export const einstellungen = {
     U: { bedeutung: "Urlaub", aktiv: false },
     A: { bedeutung: "abgesagt", aktiv: false },
     F: { bedeutung: "Ferien", aktiv: false },
+    H: { bedeutung: "Hospitation", aktiv: true },
   },
 };

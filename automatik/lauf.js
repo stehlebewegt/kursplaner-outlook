@@ -17,6 +17,7 @@ import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
 import { ohneFahrzeit, kursAnbieter } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
+import { monatsberichte } from "./monatsbericht.js";
 
 // Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
 // auf der Übersichtsseite des Laufs stehen.
@@ -182,8 +183,8 @@ ausgabe(
 // Private Termine mit Adresse: Fahrzeit ab zu Hause berechnen und im Termin
 // merken (einmal pro Termin). Heimadresse nur als Secret, nie im Code.
 const heimadresse = process.env.KURSPLANER_HEIMADRESSE;
+const rechne = heimadresse ? routenRechner({ heimadresse }) : null;
 if (heimadresse) {
-  const rechne = routenRechner({ heimadresse });
   const offen = ohneFahrzeit(await api.holeBereich(tage[0], tage[tage.length - 1]), einstellungen)
     .filter((t) => hatAdresse(t.ort))
     .slice(0, 20);
@@ -216,5 +217,20 @@ for (const r of ergebnis) {
       ` −${r.loeschen.length} [${r.loeschen.map(zeit).join(", ")}]` +
       ` übernommen ${r.uebernehmen.length}, freigegeben ${r.freigeben.length}, Fahrzeit erkannt ${r.fahrzeit.length}`
   );
+}
+// Monatsbericht als Entwurf (am eingestellten Tag oder als Probe per Hand).
+try {
+  await monatsberichte({
+    graph,
+    holeBereich: api.holeBereich,
+    rechne,
+    einstellungen,
+    heute,
+    jetzt: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16),
+    probe: process.env.MONATSBERICHT_PROBE || "",
+    ausgabe,
+  });
+} catch (e) {
+  ausgabe(/ 403 /.test(e.message) ? "Monatsbericht: Mail-Berechtigung (Mail.ReadWrite) fehlt noch" : `Monatsbericht fehlgeschlagen: ${e.message.slice(0, 120)}`);
 }
 console.log(`::notice::${zeilen.join("%0A")}`);
