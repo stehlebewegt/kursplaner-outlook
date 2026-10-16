@@ -11,7 +11,7 @@
 // Die Ausgabe ist öffentlich lesbar, deshalb nur Datum, Uhrzeit und Anzahl,
 // keine Titel.
 import { config } from "../web/config.js";
-import { MARKIERUNG } from "../web/graph.js";
+import { MARKIERUNG, FAHRZEIT } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
@@ -65,7 +65,11 @@ async function graph(methode, pfad, body, versuch = 0) {
 }
 
 function zuTermin(e) {
-  const prop = (e.singleValueExtendedProperties || []).find((p) => p.id === MARKIERUNG);
+  const props = e.singleValueExtendedProperties || [];
+  const prop = props.find((p) => p.id === MARKIERUNG);
+  // null = nie eingestellt, 0 = bewusst keine Fahrzeit.
+  const wert = props.find((p) => p.id === FAHRZEIT)?.value;
+  const fahrzeit = wert === undefined ? null : Number(wert) || 0;
   return {
     id: e.id,
     titel: e.subject || "",
@@ -75,6 +79,7 @@ function zuTermin(e) {
     ort: e.location?.displayName || "",
     showAs: e.showAs,
     generiert: prop?.value === "1",
+    fahrzeit,
   };
 }
 
@@ -83,7 +88,7 @@ const api = {
     let url =
       `/calendarView?startDateTime=${von}T00:00:00&endDateTime=${bis}T23:59:59&$top=200` +
       `&$select=subject,start,end,categories,location,showAs,isAllDay` +
-      `&$expand=singleValueExtendedProperties($filter=id eq '${MARKIERUNG}')`;
+      `&$expand=singleValueExtendedProperties($filter=id eq '${MARKIERUNG}' or id eq '${FAHRZEIT}')`;
     const termine = [];
     while (url) {
       const seite = await graph("GET", url);
@@ -126,6 +131,8 @@ const api = {
       ...(generiert ? { singleValueExtendedProperties: [{ id: MARKIERUNG, value: "1" }] } : {}),
     });
   },
+  setzeFahrzeit: (id, minuten) =>
+    graph("PATCH", `/events/${id}`, { singleValueExtendedProperties: [{ id: FAHRZEIT, value: String(minuten) }] }),
   markiere: (id) => graph("PATCH", `/events/${id}`, { singleValueExtendedProperties: [{ id: MARKIERUNG, value: "1" }] }),
   aendere: (id, felder) => graph("PATCH", `/events/${id}`, felder),
   loesche: (id) => graph("DELETE", `/events/${id}`),
@@ -175,7 +182,7 @@ for (const r of ergebnis) {
   ausgabe(
     `${r.datum}: +${r.anlegen.length} [${r.anlegen.map(zeit).join(", ")}]` +
       ` −${r.loeschen.length} [${r.loeschen.map(zeit).join(", ")}]` +
-      ` übernommen ${r.uebernehmen.length}, freigegeben ${r.freigeben.length}`
+      ` übernommen ${r.uebernehmen.length}, freigegeben ${r.freigeben.length}, Fahrzeit erkannt ${r.fahrzeit.length}`
   );
 }
 console.log(`::notice::${zeilen.join("%0A")}`);

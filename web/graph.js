@@ -7,6 +7,8 @@ import { einstellungen } from "../src/einstellungen.js";
 const GRAPH = "https://graph.microsoft.com/v1.0";
 // Unsichtbare Markierung an jedem Block, den das Add-in anlegt.
 export const MARKIERUNG = "String {6f1c2a4e-3b7d-4c1a-9e55-8a2d9c0b7f31} Name KursplanerGeneriert";
+// Fahrzeit in Minuten an privaten Terminen (Hin- und Rückfahrt).
+export const FAHRZEIT = "String {6f1c2a4e-3b7d-4c1a-9e55-8a2d9c0b7f31} Name KursplanerFahrzeit";
 
 let msalApp;
 
@@ -51,7 +53,11 @@ async function graph(methode, pfad, body, versuch = 0) {
 
 // Graph-Termin in das Format von planer.js umwandeln.
 function zuTermin(e) {
-  const prop = (e.singleValueExtendedProperties || []).find((p) => p.id === MARKIERUNG);
+  const props = e.singleValueExtendedProperties || [];
+  const prop = props.find((p) => p.id === MARKIERUNG);
+  // null = nie eingestellt, 0 = bewusst keine Fahrzeit.
+  const wert = props.find((p) => p.id === FAHRZEIT)?.value;
+  const fahrzeit = wert === undefined ? null : Number(wert) || 0;
   return {
     id: e.id,
     titel: e.subject || "",
@@ -60,12 +66,13 @@ function zuTermin(e) {
     kategorien: e.categories || [],
     ort: e.location?.displayName || "",
     generiert: prop?.value === "1",
+    fahrzeit,
   };
 }
 
 const AUSWAHL =
   "$select=subject,start,end,categories,location,showAs" +
-  `&$expand=singleValueExtendedProperties($filter=id eq '${MARKIERUNG}')`;
+  `&$expand=singleValueExtendedProperties($filter=id eq '${MARKIERUNG}' or id eq '${FAHRZEIT}')`;
 
 // Alle Termine eines Tages im eigenen Kalender.
 export async function holeTag(datum) {
@@ -162,6 +169,10 @@ export async function legeAn(t, { generiert, text, frei } = {}) {
 // Übernimmt einen von Hand angelegten Block: markiert ihn als generiert.
 export async function markiere(id) {
   await graph("PATCH", `/me/events/${id}`, { singleValueExtendedProperties: [{ id: MARKIERUNG, value: "1" }] });
+}
+
+export async function setzeFahrzeit(id, minuten) {
+  await graph("PATCH", `/me/events/${id}`, { singleValueExtendedProperties: [{ id: FAHRZEIT, value: String(minuten) }] });
 }
 
 export async function aendere(id, felder) {

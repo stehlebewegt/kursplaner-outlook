@@ -9,7 +9,8 @@ export async function vorschauTag(api, datum, einstellungen) {
   const termine = markiereAlteBloecke(await api.holeTag(datum), einstellungen);
   const { anlegen, loeschen } = vergleiche(planeTag(datum, termine, einstellungen), termine);
   const uebernehmen = termine.filter((t) => t.uebernommen && !loeschen.includes(t));
-  return { anlegen, loeschen, uebernehmen };
+  const fahrzeitMerken = termine.filter((t) => t.fahrzeitMerken);
+  return { anlegen, loeschen, uebernehmen, fahrzeitMerken };
 }
 
 export async function planeTagNeu(api, datum, einstellungen) {
@@ -18,6 +19,7 @@ export async function planeTagNeu(api, datum, einstellungen) {
   for (const t of v.anlegen) await api.legeAn(t, { generiert: true });
   // Von Hand angelegte Blöcke, die passen, bekommen die Markierung.
   for (const t of v.uebernehmen) await api.markiere(t.id);
+  for (const t of v.fahrzeitMerken) await api.setzeFahrzeit(t.id, t.fahrzeit);
   return v;
 }
 
@@ -50,4 +52,10 @@ export async function setzeKuerzel(api, kurs, kuerzel, einstellungen) {
   const aktiv = einstellungen.kuerzel[kuerzel]?.aktiv ?? true;
   await api.aendere(kurs.id, { subject: titel, showAs: aktiv ? "busy" : "free" });
   return { ...(await planeTagNeu(api, datumVon(kurs), einstellungen)), titel };
+}
+
+// Fahrzeit für einen privaten Termin setzen (0 = keine) und den Tag neu planen.
+export async function setzeFahrzeit(api, termin, minuten, einstellungen) {
+  await api.setzeFahrzeit(termin.id, minuten);
+  return planeTagNeu(api, datumVon(termin), einstellungen);
 }

@@ -5,7 +5,7 @@ import { findeAnbieter, ohneKuerzel } from "../src/planer.js";
 import { FELDER, leseProtokoll, schreibeProtokoll, gesamt, auswertungVerlauf, teileMaterial } from "../src/protokoll.js";
 import { erstelleAuswertung, monatsZeitraum } from "../src/auswertung.js";
 import { erstellePdf } from "./bericht.js";
-import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel } from "../src/aktionen.js";
+import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel, setzeFahrzeit } from "../src/aktionen.js";
 
 const $ = (id) => document.getElementById(id);
 let termin;
@@ -99,6 +99,7 @@ async function start() {
   $("bereich-anbieter").hidden = !(istAnbieterKalender && anbieter);
   $("bereich-eigen").hidden = !(termin.eigenerKalender && anbieter && !termin.generiert);
 
+  if (termin.eigenerKalender && !anbieter && !termin.generiert) richteFahrzeitEin();
   $("bereich-planen").hidden = false;
   $("bereich-auswertung").hidden = false;
   richteAuswertungEin();
@@ -311,6 +312,37 @@ function richteAuswertungEin() {
         /* dann eben aus den Entwürfen öffnen */
       }
     });
+}
+
+// Privater Termin: Fahrzeit wählen, Hin- und Rückfahrt werden angelegt und
+// wandern mit, wenn der Termin verschoben wird.
+function richteFahrzeitEin() {
+  $("bereich-fahrzeit").hidden = false;
+  const schluessel = `fahrzeit-ort-${termin.ort.trim().toLowerCase()}`;
+  const vorschlag = termin.ort.trim() ? Number(Office.context.roamingSettings.get(schluessel)) || 0 : 0;
+  const markiere = () =>
+    document.querySelectorAll("[data-fahrzeit]").forEach((b) => {
+      const m = Number(b.dataset.fahrzeit);
+      b.classList.toggle("zweit", m !== termin.fahrzeit);
+    });
+  $("f-info").textContent = termin.fahrzeit
+    ? `Eingestellt: ${termin.fahrzeit} Minuten pro Strecke.`
+    : vorschlag
+      ? `Letztes Mal an diesem Ort: ${vorschlag} Minuten.`
+      : "Wie lange fährst du pro Strecke?";
+  markiere();
+  document.querySelectorAll("[data-fahrzeit]").forEach((b) => {
+    b.onclick = () =>
+      mitWarten(b, async () => {
+        const minuten = Number(b.dataset.fahrzeit);
+        const v = await setzeFahrzeit(api, termin, minuten, einstellungen);
+        termin = { ...termin, fahrzeit: minuten };
+        if (minuten && termin.ort.trim()) merke(schluessel, minuten);
+        $("f-info").textContent = minuten ? `Eingestellt: ${minuten} Minuten pro Strecke.` : "Keine Fahrzeit.";
+        markiere();
+        zeigeAenderungen(v, "Erledigt");
+      });
+  });
 }
 
 function uebernehme(vertretung) {

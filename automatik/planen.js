@@ -21,8 +21,9 @@ export async function planeZeitraum(api, tage, einstellungen, { schreiben }) {
     );
     const v = schreiben ? await planeTagNeu(tagApi, datum, einstellungen) : await vorschauTag(tagApi, datum, einstellungen);
     if (schreiben) for (const t of freigeben) await api.aendere(t.id, { showAs: "free" });
-    if (v.anlegen.length || v.loeschen.length || v.uebernehmen.length || freigeben.length) {
-      ergebnis.push({ datum, anlegen: v.anlegen, loeschen: v.loeschen, uebernehmen: v.uebernehmen, freigeben });
+    const fahrzeit = v.fahrzeitMerken || [];
+    if (v.anlegen.length || v.loeschen.length || v.uebernehmen.length || freigeben.length || fahrzeit.length) {
+      ergebnis.push({ datum, anlegen: v.anlegen, loeschen: v.loeschen, uebernehmen: v.uebernehmen, freigeben, fahrzeit });
     }
   }
   return ergebnis;

@@ -110,6 +110,16 @@ export function planeTag(datum, termine, einstellungen) {
       generiert: true,
     });
 
+  // Private Termine mit Fahrzeit (im Termin gespeichert): Hin- und Rückfahrt.
+  for (const t of privateMitFahrzeit(termine, e)) {
+    const titel = t.titel.trim();
+    const von = zuMinuten(t.start);
+    const bis = zuMinuten(t.ende);
+    const ort = { ort: t.ort };
+    neu(`Anfahrt - ${titel}`, von - t.fahrzeit, von, e.kategorieFahrt, ort);
+    neu(`Rückfahrt - ${titel}`, bis, bis + t.fahrzeit, e.kategorieFahrt, ort);
+  }
+
   bloecke.forEach((b, i) => {
     const erster = b.kurse[0];
     const letzter = b.kurse[b.kurse.length - 1];
@@ -170,11 +180,33 @@ export function istAlterBlock(termin, einstellungen, kursTitel = []) {
   return ALTE_BLOCK_TITEL.test(titel) && passendeKategorie && (beiAnbieter || nenntKurs);
 }
 
+// Private Termine: kein Kurs, nicht generiert, mit Fahrzeit in Minuten.
+export function privateMitFahrzeit(termine, einstellungen) {
+  return termine.filter((t) => !t.generiert && !kursAnbieter(t, einstellungen) && t.fahrzeit > 0);
+}
+
+const dauer = (t) => zuMinuten(t.ende) - zuMinuten(t.start);
+
 export function markiereAlteBloecke(termine, einstellungen) {
-  const kursTitel = termine.filter((t) => kursAnbieter(t, einstellungen)).map((t) => t.titel.trim());
-  return termine.map((t) =>
-    istAlterBlock(t, einstellungen, kursTitel) ? { ...t, generiert: true, uebernommen: true } : t
-  );
+  const e = einstellungen;
+  // Privater Termin ohne gespeicherte Fahrzeit, aber mit einer von Hand
+  // angelegten "Anfahrt - <Titel>": Die Dauer dieser Anfahrt wird seine
+  // Fahrzeit (und im Termin gemerkt, siehe fahrzeitMerken).
+  termine = termine.map((t) => {
+    if (t.generiert || t.fahrzeit != null || kursAnbieter(t, e)) return t;
+    const anfahrt = termine.find(
+      (b) =>
+        !b.generiert &&
+        b.titel.trim() === `Anfahrt - ${t.titel.trim()}` &&
+        (b.kategorien || []).includes(e.kategorieFahrt)
+    );
+    return anfahrt && dauer(anfahrt) > 0 ? { ...t, fahrzeit: dauer(anfahrt), fahrzeitMerken: true } : t;
+  });
+  const titel = [
+    ...termine.filter((t) => kursAnbieter(t, e)),
+    ...privateMitFahrzeit(termine, e),
+  ].map((t) => t.titel.trim());
+  return termine.map((t) => (istAlterBlock(t, e, titel) ? { ...t, generiert: true, uebernommen: true } : t));
 }
 
 // Vergleicht Soll mit den vorhandenen generierten Blöcken.

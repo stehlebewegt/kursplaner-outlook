@@ -37,6 +37,7 @@
     table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
     td, th { text-align: left; padding: 2px 4px; border-bottom: 1px solid var(--rand); }
     .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .drei button { margin: 0; }
     details.karte { padding: 0; }
     details.karte > summary { list-style: none; cursor: pointer; padding: 10px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
     details.karte > summary::-webkit-details-marker { display: none; }
@@ -97,6 +98,22 @@
     <textarea id="p-besonderheiten" rows="3"></textarea>
     <button id="p-speichern">Protokoll speichern</button>
     </div>
+    </div>
+  </details>
+
+  <details id="bereich-fahrzeit" class="karte" data-auf="1" hidden>
+    <summary>Fahrzeit</summary>
+    <div class="inhalt">
+    <div id="f-info" class="leise"></div>
+    <div class="drei">
+      <button data-fahrzeit="10" class="zweit">10 min</button>
+      <button data-fahrzeit="15" class="zweit">15 min</button>
+      <button data-fahrzeit="20" class="zweit">20 min</button>
+      <button data-fahrzeit="25" class="zweit">25 min</button>
+      <button data-fahrzeit="30" class="zweit">30 min</button>
+      <button data-fahrzeit="45" class="zweit">45 min</button>
+    </div>
+    <button data-fahrzeit="0" class="zweit">Keine Fahrzeit</button>
     </div>
   </details>
 

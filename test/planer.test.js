@@ -168,3 +168,42 @@ test("26.11.: alte Rückfahrt mit Heimadresse als Ort wird übernommen, nicht ve
   const { loeschen } = vergleiche(planeTag(d, termine, einstellungen), termine);
   assert.deepEqual(kurz(loeschen), ["12:30-13:00 Rückfahrt - RehaSport / PUR-Senioren (Michael)"]);
 });
+
+test("Privater Termin mit Fahrzeit bekommt Hin- und Rückfahrt", () => {
+  const d = "2026-10-26";
+  const termine = [{ titel: "Podologie Bernhardt ", start: `${d}T10:20`, ende: `${d}T11:20`, kategorien: [], ort: "Salem", generiert: false, fahrzeit: 20 }];
+  assert.deepEqual(kurz(planeTag(d, termine, einstellungen)), [
+    "10:00-10:20 Anfahrt - Podologie Bernhardt",
+    "11:20-11:40 Rückfahrt - Podologie Bernhardt",
+  ]);
+});
+
+test("Von Hand angelegte private Fahrten: Fahrzeit wird erkannt und die Blöcke übernommen", () => {
+  const d = "2026-10-26";
+  const ort = "Podologie Bernhardt, Am Schlosssee 5, 88682 Salem";
+  const fahrt = ["90 🚗 Fahrzeit"];
+  const termine = [
+    { id: "1", titel: "Anfahrt - Podologie Bernhardt ", start: `${d}T10:00`, ende: `${d}T10:20`, kategorien: fahrt, ort, generiert: false },
+    { id: "2", titel: "Podologie Bernhardt ", start: `${d}T10:20`, ende: `${d}T11:20`, kategorien: [], ort, generiert: false },
+    { id: "3", titel: "Rückfahrt - Podologie Bernhardt ", start: `${d}T11:20`, ende: `${d}T11:40`, kategorien: fahrt, ort, generiert: false },
+    { id: "4", titel: "Rate überweisen", start: `${d}T18:00`, ende: `${d}T18:15`, kategorien: [], ort: "", generiert: false },
+  ];
+  const markiert = markiereAlteBloecke(termine, einstellungen);
+  assert.deepEqual(markiert.filter((t) => t.uebernommen).map((t) => t.id), ["1", "3"]);
+  assert.deepEqual(markiert.filter((t) => t.fahrzeitMerken).map((t) => [t.id, t.fahrzeit]), [["2", 20]]);
+  const { anlegen, loeschen } = vergleiche(planeTag(d, markiert, einstellungen), markiert);
+  assert.equal(anlegen.length, 0);
+  assert.equal(loeschen.length, 0);
+});
+
+test("Fahrzeit bewusst auf 0 gesetzt: keine Fahrten, auch wenn noch alte Blöcke da sind", () => {
+  const d = "2026-10-26";
+  const termine = [
+    { id: "1", titel: "Anfahrt - Arzt", start: `${d}T10:00`, ende: `${d}T10:20`, kategorien: ["90 🚗 Fahrzeit"], ort: "", generiert: true },
+    { id: "2", titel: "Arzt", start: `${d}T10:20`, ende: `${d}T11:00`, kategorien: [], ort: "", generiert: false, fahrzeit: 0 },
+  ];
+  const markiert = markiereAlteBloecke(termine, einstellungen);
+  const { anlegen, loeschen } = vergleiche(planeTag(d, markiert, einstellungen), markiert);
+  assert.equal(anlegen.length, 0);
+  assert.deepEqual(loeschen.map((t) => t.id), ["1"]);
+});
