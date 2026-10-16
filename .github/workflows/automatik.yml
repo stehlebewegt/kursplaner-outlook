@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: 22
       - run: |
-          if [ -z "$KURSPLANER_SECRET" ]; then echo "Noch nicht eingerichtet."; exit 0; fi
+          if [ -z "$KURSPLANER_SECRET" ] || [ -z "$KURSPLANER_POSTFACH" ]; then echo "Noch nicht eingerichtet."; exit 0; fi
           node automatik/lauf.js
         env:
           KURSPLANER_SECRET: ${{ secrets.KURSPLANER_SECRET }}
