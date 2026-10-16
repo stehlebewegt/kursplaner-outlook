@@ -15,8 +15,15 @@ import { MARKIERUNG } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 
+// Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
+// auf der Übersichtsseite des Laufs stehen.
+process.on("uncaughtException", (e) => {
+  console.log(`::error::${String(e.message).replace(/\n/g, " ")}`);
+  process.exit(1);
+});
+
 const { KURSPLANER_SECRET: secret, KURSPLANER_POSTFACH: postfach } = process.env;
-if (!secret || !postfach) throw new Error("KURSPLANER_SECRET oder KURSPLANER_POSTFACH fehlt.");
+if (!secret || !postfach) throw new Error(`Secret fehlt: ${[!secret && "KURSPLANER_SECRET", !postfach && "KURSPLANER_POSTFACH"].filter(Boolean).join(", ")}`);
 const schreiben = process.env.SCHREIBEN === "1";
 const anzahlTage = Number(process.env.TAGE) || 56;
 
@@ -33,13 +40,6 @@ async function holeToken() {
   if (!antwort.ok) throw new Error(`Anmeldung fehlgeschlagen: ${antwort.status} ${(await antwort.text()).slice(0, 300)}`);
   return (await antwort.json()).access_token;
 }
-
-// Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
-// auf der Übersichtsseite des Laufs stehen.
-process.on("uncaughtException", (e) => {
-  console.log(`::error::${String(e.message).replace(/\n/g, " ")}`);
-  process.exit(1);
-});
 
 const token = await holeToken();
 const basis = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(postfach)}`;
