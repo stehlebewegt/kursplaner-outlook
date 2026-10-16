@@ -2,7 +2,7 @@
 // Erwartet wird jeweils das, was er bisher von Hand angelegt hat.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { planeTag, vergleiche } from "../src/planer.js";
+import { planeTag, vergleiche, markiereAlteBloecke } from "../src/planer.js";
 import { einstellungen } from "../src/einstellungen.js";
 
 const SVE = "SVE Sport- & Gesundheitscenter\nEttenkircher Straße 17, 88048 Friedrichshafen, Deutschland";
@@ -109,4 +109,25 @@ test("Zwei Anbieter kurz hintereinander: direkte Fahrt statt Heimfahrt", () => {
     "11:15-11:30 Nachbereitung - RehaSport / PUR (Michael)",
     "11:30-11:45 Rückfahrt - RehaSport / PUR (Michael)",
   ]);
+});
+
+test("Erster Lauf: von Hand angelegte Blöcke werden übernommen, nichts doppelt", () => {
+  const d = "2026-10-14";
+  const ORT = "SVE Sport- & Gesundheitscenter, Ettenkircher Straße 17, 88048 Friedrichshafen, Deutschland";
+  const block = (titel, von, bis, kat) => ({ titel, start: `${d}T${von}`, ende: `${d}T${bis}`, kategorien: [kat], ort: ORT, generiert: false });
+  const termine = [
+    block("Anfahrt - RehaSport (Michael) ", "08:10", "08:30", "90 🚗 Fahrzeit"),
+    block("Vorbereitung - RehaSport (Michael) ", "08:30", "08:45", "Vor-/Nachbereitung"),
+    kurs("RehaSport (Michael) ", d, "08:45", "09:30", "10 SVE: RehaSport", SVE),
+    block("Nach-/Vorbereitung - RehaSport (Michael)", "09:30", "09:45", "Vor-/Nachbereitung"),
+    kurs("RehaSport (Michael)", d, "09:45", "10:30", "10 SVE: RehaSport", SVE),
+    block("Nachbereitung - RehaSport (Michael)", "10:30", "10:45", "Vor-/Nachbereitung"),
+    block("Rückfahrt - RehaSport (Michael)", "10:45", "11:05", "90 🚗 Fahrzeit"),
+    { titel: "Anfahrt - Dr. Kirsner (Blutabnahme)", start: `${d}T12:00`, ende: `${d}T12:20`, kategorien: ["90 🚗 Fahrzeit"], ort: "Praxis Dr. Med. Andreas Kirsner", generiert: false },
+  ];
+  const markiert = markiereAlteBloecke(termine, einstellungen);
+  const { anlegen, loeschen } = vergleiche(planeTag(d, markiert, einstellungen), markiert);
+  assert.equal(anlegen.length, 0);
+  assert.equal(loeschen.length, 0);
+  assert.equal(markiert[7].generiert, false, "private Anfahrt bleibt unberührt");
 });

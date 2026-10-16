@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kursplaner</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="web/vendor/msal-browser.min.js"></script>
+  <style>
+    :root { --gruen: #0f6e56; --text: #1f1f1f; --leise: #616161; --rand: #e0e0e0; --hinter: #ffffff; --rot: #b3261e; }
+    @media (prefers-color-scheme: dark) {
+      :root { --text: #f0f0f0; --leise: #b0b0b0; --rand: #3a3a3a; --hinter: #1f1f1f; --rot: #f2b8b5; }
+    }
+    body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--text); background: var(--hinter); margin: 0; padding: 12px; font-size: 14px; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    .leise { color: var(--leise); font-size: 12px; }
+    .karte { border: 1px solid var(--rand); border-radius: 8px; padding: 10px; margin: 12px 0; }
+    button { display: block; width: 100%; margin: 6px 0; padding: 8px; border-radius: 6px; border: 1px solid var(--gruen);
+             background: var(--gruen); color: #fff; font-size: 14px; cursor: pointer; }
+    button.zweit { background: transparent; color: var(--gruen); }
+    @media (prefers-color-scheme: dark) { button.zweit { color: #7fd3b8; border-color: #7fd3b8; } }
+    button:disabled { opacity: .5; cursor: default; }
+    .reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    ul { padding-left: 18px; margin: 6px 0; }
+    li { margin: 2px 0; }
+    .fehler { color: var(--rot); }
+    .neu::before { content: "+ "; color: var(--gruen); font-weight: 600; }
+    .weg::before { content: "− "; color: var(--rot); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1 id="titel">Kursplaner</h1>
+  <div id="info" class="leise">Wird geladen …</div>
+
+  <div id="bereich-anbieter" class="karte" hidden>
+    <div><strong>Diesen Kurs in meinen Kalender</strong></div>
+    <button id="ich-gebe">Ich gebe diesen Kurs</button>
+    <button id="ich-vertrete" class="zweit">Ich vertrete diesen Kurs (V)</button>
+  </div>
+
+  <div id="bereich-eigen" class="karte" hidden>
+    <div><strong>Kurs markieren</strong></div>
+    <div class="reihe">
+      <button data-kuerzel="U" class="zweit">Urlaub (U)</button>
+      <button data-kuerzel="A" class="zweit">Abgesagt (A)</button>
+      <button data-kuerzel="F" class="zweit">Ferien (F)</button>
+      <button data-kuerzel="" class="zweit">Findet statt</button>
+    </div>
+  </div>
+
+  <div class="karte">
+    <div><strong>Tag neu planen</strong></div>
+    <div class="leise">Fahrten, Vor- und Nachbereitung für den ganzen Tag neu berechnen.</div>
+    <button id="vorschau" class="zweit">Vorschau</button>
+    <button id="ausfuehren" hidden>Änderungen übernehmen</button>
+  </div>
+
+  <div id="ergebnis"></div>
+  <script type="module" src="web/taskpane.js"></script>
+</body>
+</html>

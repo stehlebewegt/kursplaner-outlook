@@ -139,11 +139,31 @@ export function planeTag(datum, termine, einstellungen) {
   return soll;
 }
 
+// Blöcke, die Michael vor dem Add-in von Hand angelegt hat: gleiche Titel-Muster
+// und Kategorie, Ort bei einem Anbieter. Die werden beim ersten Neuplanen
+// übernommen, sonst gäbe es alles doppelt. Private Fahrten (Arzt usw.) passen
+// nicht, weil ihr Ort keinem Anbieter gehört.
+const ALTE_BLOCK_TITEL = /^(Anfahrt|Vorbereitung|Nach-\/Vorbereitung|Nachbereitung|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - /;
+
+export function istAlterBlock(termin, einstellungen) {
+  if (termin.generiert) return false;
+  const kats = termin.kategorien || [];
+  const passendeKategorie =
+    kats.includes(einstellungen.kategorieFahrt) || kats.includes(einstellungen.kategoriePuffer);
+  const ort = termin.ort || "";
+  const beiAnbieter = einstellungen.anbieter.some((a) => a.ortErkennung.some((t) => ort.includes(t)));
+  return ALTE_BLOCK_TITEL.test(termin.titel.trim()) && passendeKategorie && beiAnbieter;
+}
+
+export function markiereAlteBloecke(termine, einstellungen) {
+  return termine.map((t) => (istAlterBlock(t, einstellungen) ? { ...t, generiert: true, uebernommen: true } : t));
+}
+
 // Vergleicht Soll mit den vorhandenen generierten Blöcken.
 // Ergebnis: was angelegt und was gelöscht werden muss. Unveränderte bleiben stehen.
 export function vergleiche(soll, termine) {
   const vorhanden = termine.filter((t) => t.generiert);
-  const gleich = (a, b) => a.titel === b.titel && a.start === b.start && a.ende === b.ende;
+  const gleich = (a, b) => a.titel.trim() === b.titel.trim() && a.start === b.start && a.ende === b.ende;
   return {
     anlegen: soll.filter((s) => !vorhanden.some((v) => gleich(s, v))),
     loeschen: vorhanden.filter((v) => !soll.some((s) => gleich(s, v))),
