@@ -1,8 +1,8 @@
 import * as api from "./graph.js";
 import { config } from "./config.js";
 import { einstellungen } from "../src/einstellungen.js";
-import { findeAnbieter } from "../src/planer.js";
-import { FELDER, leseProtokoll, schreibeProtokoll, gesamt } from "../src/protokoll.js";
+import { findeAnbieter, ohneKuerzel } from "../src/planer.js";
+import { FELDER, leseProtokoll, schreibeProtokoll, gesamt, auswertungVerlauf, teileMaterial } from "../src/protokoll.js";
 import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel } from "../src/aktionen.js";
 
 const $ = (id) => document.getElementById(id);
@@ -107,7 +107,24 @@ function terminText() {
 }
 
 function protokollAusFormular() {
-  return Object.fromEntries(FELDER.map(([k]) => [k, $(`p-${k}`)?.value ?? ""]));
+  const p = Object.fromEntries(FELDER.map(([k]) => [k, $(`p-${k}`)?.value ?? ""]));
+  p.material = [...document.querySelectorAll("#p-material-liste input:checked")].map((c) => c.value).join(", ");
+  p.vorkommnis = $("p-vorkommnis-ja").checked ? "ja" : "nein";
+  return p;
+}
+
+const html = (t) => String(t).replace(/[&<>"]/g, (z) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[z]);
+
+function zeigeMaterial(alle, gewaehlt) {
+  const liste = [...new Set([...alle, ...gewaehlt])].sort((a, b) => a.localeCompare(b, "de"));
+  $("p-material-liste").innerHTML = liste
+    .map((m) => `<label><input type="checkbox" value="${html(m)}"${gewaehlt.includes(m) ? " checked" : ""}> ${html(m)}</label>`)
+    .join("");
+}
+
+function setzeMaterial(gewaehlt) {
+  const alle = [...document.querySelectorAll("#p-material-liste input")].map((c) => c.value);
+  zeigeMaterial(alle, gewaehlt);
 }
 
 // Ist die ganze Serie offen statt nur ein Termin? Dann darf kein Protokoll
@@ -129,6 +146,43 @@ async function zeigeProtokoll() {
   }
   const p = leseProtokoll(await terminText());
   for (const [k] of FELDER) if ($(`p-${k}`)) $(`p-${k}`).value = p[k];
+  $("p-vorkommnis-ja").checked = p.vorkommnis.toLowerCase() === "ja";
+  zeigeMaterial(einstellungen.material, teileMaterial(p.material));
+
+  // Frühere Kurse der letzten 6 Monate: letzte Themen, Themenliste, Material.
+  try {
+    const datum = termin.start.slice(0, 10);
+    const von = new Date(Date.parse(datum) - 183 * 86400000).toISOString().slice(0, 10);
+    const kurse = (await api.holeVerlauf(von, datum)).filter((t) => findeAnbieter(t, einstellungen) && !t.generiert);
+    const v = auswertungVerlauf(kurse, ohneKuerzel(termin.titel), datum, einstellungen.material, ohneKuerzel);
+    $("p-themen").innerHTML = v.themen.map((t) => `<option value="${html(t)}">`).join("");
+    zeigeMaterial(v.material, teileMaterial(p.material));
+    if (v.letzte.length) {
+      const tag = (d) => d.slice(8, 10) + "." + d.slice(5, 7) + ".";
+      $("p-letzte").innerHTML =
+        "<strong>Letzte Themen</strong>" + v.letzte.map((x) => `<div>${tag(x.datum)} ${html(x.p.thema)}</div>`).join("");
+      $("p-letzte").hidden = false;
+      $("p-wie-letztes").hidden = false;
+      $("p-wie-letztes").onclick = () => {
+        const l = v.letzte[0].p;
+        $("p-thema").value = l.thema;
+        setzeMaterial(teileMaterial(l.material));
+        if (!$("p-erstvertretung").value) $("p-erstvertretung").value = l.erstvertretung;
+      };
+      if (!p.erstvertretung) $("p-erstvertretung").value = v.letzte[0].p.erstvertretung;
+    }
+  } catch (e) {
+    $("p-letzte").textContent = `Frühere Themen konnten nicht geladen werden: ${e.message}`;
+    $("p-letzte").hidden = false;
+  }
+
+  $("p-material-dazu").onclick = () => {
+    const neu = $("p-material-neu").value.trim();
+    if (!neu) return;
+    const alle = [...document.querySelectorAll("#p-material-liste input")].map((c) => c.value);
+    zeigeMaterial([...alle, neu], [...teileMaterial(protokollAusFormular().material), neu]);
+    $("p-material-neu").value = "";
+  };
   const zeigeGesamt = () => ($("p-gesamt").textContent = `Teilnehmer gesamt: ${gesamt(protokollAusFormular()) || "–"}`);
   ["p-anwesend", "p-entschuldigt", "p-unentschuldigt"].forEach((id) => ($(id).oninput = zeigeGesamt));
   zeigeGesamt();

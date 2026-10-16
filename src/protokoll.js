@@ -58,3 +58,27 @@ export function schreibeProtokoll(p) {
     z("besonderheiten"),
   ].join("\n");
 }
+
+// Material steht als "Matte, Stab" im Text.
+export const teileMaterial = (text) => (text || "").split(/[,;]/).map((m) => m.trim()).filter(Boolean);
+
+// Aus früheren Kursen: letzte Protokolle dieses Kurses, bekannte Themen und
+// bekanntes Material. "termine" sind Kurse mit Text, "kursTitel" ohne Kürzel.
+export function auswertungVerlauf(termine, kursTitel, vorDatum, standardMaterial = [], ohneKuerzel = (t) => t) {
+  const mitProtokoll = termine
+    .filter((t) => t.start.slice(0, 10) < vorDatum)
+    .map((t) => ({ datum: t.start.slice(0, 10), titel: ohneKuerzel(t.titel).trim(), p: leseProtokoll(t.text) }))
+    .filter((t) => t.p.thema)
+    .sort((a, b) => (a.datum < b.datum ? 1 : -1));
+  const letzte = mitProtokoll.filter((t) => t.titel === kursTitel.trim()).slice(0, 3);
+  const zaehle = (liste) => {
+    const n = new Map();
+    for (const x of liste) n.set(x, (n.get(x) || 0) + 1);
+    return [...n.keys()].sort((a, b) => n.get(b) - n.get(a) || a.localeCompare(b, "de"));
+  };
+  const themen = zaehle(mitProtokoll.map((t) => t.p.thema));
+  const material = [...new Set([...standardMaterial, ...mitProtokoll.flatMap((t) => teileMaterial(t.p.material))])].sort((a, b) =>
+    a.localeCompare(b, "de")
+  );
+  return { letzte, themen, material };
+}

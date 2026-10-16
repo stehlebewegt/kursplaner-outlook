@@ -36,6 +36,9 @@ export const einstellungen = {
   pauseHeimfahrtMin: 120,
   kategorieFahrt: "90 🚗 Fahrzeit",
   kategoriePuffer: "Vor-/Nachbereitung",
+  // Material zum Anhaken im Kursprotokoll. Was im Protokoll neu dazukommt,
+  // erscheint beim nächsten Mal automatisch mit.
+  material: ["Airpad", "Gymnastikball", "Hanteln", "Hocker", "Matte", "Pilatesball", "Stab", "Theraband"],
   // Kürzel vor dem Titel. aktiv = Kurs findet statt (bekommt Fahrt und Puffer).
   kuerzel: {
     "": { bedeutung: "regulär", aktiv: true },

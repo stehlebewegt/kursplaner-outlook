@@ -79,6 +79,20 @@ export async function holeTag(datum) {
   return termine;
 }
 
+// Kurse mit Termintext über einen Zeitraum, für "letzte Themen" im Protokoll.
+export async function holeVerlauf(von, bis) {
+  let url =
+    `/me/calendarView?startDateTime=${von}T00:00:00&endDateTime=${bis}T23:59:59&$top=200` +
+    `&$select=subject,start,end,categories,body`;
+  const termine = [];
+  while (url) {
+    const seite = await graph("GET", url);
+    termine.push(...seite.value.map((e) => ({ ...zuTermin(e), text: e.body?.content || "" })));
+    url = seite["@odata.nextLink"];
+  }
+  return termine;
+}
+
 export async function holeTermin(id) {
   const e = await graph("GET", `/me/events/${id}?${AUSWAHL.replace("showAs", "showAs,body")}`);
   const t = zuTermin(e);

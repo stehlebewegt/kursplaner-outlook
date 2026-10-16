@@ -29,3 +29,26 @@ test("schreiben rechnet Gesamt aus und lässt sich wieder lesen", () => {
   assert.equal(p.gesamt, "15");
   assert.equal(p.besonderheiten, "Zeile 1\nZeile 2");
 });
+
+import { auswertungVerlauf } from "../src/protokoll.js";
+
+test("Verlauf: letzte drei Themen des Kurses, Themen- und Materialliste", () => {
+  const t = (titel, datum, thema, material) => ({ titel, start: `${datum}T11:45`, text: `Thema: ${thema}\nMaterial: ${material}\nBesonderheiten:` });
+  const termine = [
+    t("RehaSport / PUR-Senioren (Michael)", "2026-09-17", "Koordination Zirkel", "Hocker"),
+    t("RehaSport / PUR-Senioren (Michael)", "2026-10-01", "Kräftigung mit Theraband", "Theraband, Matte"),
+    t("RehaSport / PUR-Senioren (Michael)", "2026-10-08", "Gleichgewicht mit Stab", "Stab"),
+    t("RehaSport / PUR-Senioren (Michael)", "2026-09-10", "Ältestes", "Ball"),
+    t("RehaSport (Eva)", "2026-09-29", "Beweglichkeit mit Pilates Ball", "Pilates Ball"),
+    t("RehaSport / PUR-Senioren (Michael)", "2026-10-15", "Heute", "Matte"),
+  ];
+  const v = auswertungVerlauf(termine, "RehaSport / PUR-Senioren (Michael)", "2026-10-15", ["Matte"]);
+  assert.deepEqual(v.letzte.map((x) => `${x.datum} ${x.p.thema}`), [
+    "2026-10-08 Gleichgewicht mit Stab",
+    "2026-10-01 Kräftigung mit Theraband",
+    "2026-09-17 Koordination Zirkel",
+  ]);
+  assert.ok(v.themen.includes("Beweglichkeit mit Pilates Ball"));
+  assert.ok(!v.themen.includes("Heute"));
+  assert.deepEqual(v.material, ["Ball", "Hocker", "Matte", "Pilates Ball", "Stab", "Theraband"]);
+});
