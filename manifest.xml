@@ -5,7 +5,7 @@
            xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
            xsi:type="MailApp">
   <Id>ddd0f0fb-1acd-40f0-8585-5d45455f2e6d</Id>
-  <Version>0.2.0.0</Version>
+  <Version>0.3.0.0</Version>
   <ProviderName>Michael Stehle</ProviderName>
   <DefaultLocale>de-DE</DefaultLocale>
   <DisplayName DefaultValue="Kursplaner"/>
@@ -137,5 +137,108 @@
         <bt:String id="Button.Tooltip" DefaultValue="Kurs übernehmen, Protokoll, Tag neu planen oder Monatsauswertung."/>
       </bt:LongStrings>
     </Resources>
+  
+    <!-- Gleiche Knöpfe, zusätzlich mit Stecknadel zum Anheften -->
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.8">
+          <bt:Set Name="Mailbox"/>
+        </bt:Sets>
+      </Requirements>
+      <Hosts>
+        <Host xsi:type="MailHost">
+          <DesktopFormFactor>
+            <!-- Termine, die Michael selbst angelegt hat (auch die in den Anbieter-Kalendern) -->
+            <ExtensionPoint xsi:type="AppointmentOrganizerCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="kursplaner.gruppe.organizer">
+                  <Label resid="Gruppe.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.oeffnen.organizer">
+                    <Label resid="Button.Label"/>
+                    <Supertip>
+                      <Title resid="Button.Label"/>
+                      <Description resid="Button.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Url"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+            <ExtensionPoint xsi:type="AppointmentAttendeeCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="kursplaner.gruppe.attendee">
+                  <Label resid="Gruppe.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.oeffnen.attendee">
+                    <Label resid="Button.Label"/>
+                    <Supertip>
+                      <Title resid="Button.Label"/>
+                      <Description resid="Button.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Url"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+            <!-- In einer E-Mail: Monatsauswertung ohne Termin -->
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="kursplaner.gruppe.mail">
+                  <Label resid="Gruppe.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.oeffnen.mail">
+                    <Label resid="Button.Label"/>
+                    <Supertip>
+                      <Title resid="Button.Label"/>
+                      <Description resid="Button.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Url"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+          </DesktopFormFactor>
+        </Host>
+      </Hosts>
+      <Resources>
+        <bt:Images>
+          <bt:Image id="Icon.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-16.png"/>
+          <bt:Image id="Icon.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-32.png"/>
+          <bt:Image id="Icon.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-80.png"/>
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="Taskpane.Url" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html"/>
+        </bt:Urls>
+        <bt:ShortStrings>
+          <bt:String id="Gruppe.Label" DefaultValue="Kursplaner"/>
+          <bt:String id="Button.Label" DefaultValue="Kursplaner"/>
+        </bt:ShortStrings>
+        <bt:LongStrings>
+          <bt:String id="Button.Tooltip" DefaultValue="Kurs übernehmen, Protokoll, Tag neu planen oder Monatsauswertung."/>
+        </bt:LongStrings>
+      </Resources>
+    </VersionOverrides>
   </VersionOverrides>
 </OfficeApp>

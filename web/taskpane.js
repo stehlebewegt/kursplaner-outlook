@@ -324,4 +324,13 @@ function uebernehme(vertretung) {
   });
 }
 
+// Angeheftet: Wählt Michael einen anderen Termin oder eine andere E-Mail,
+// lädt der Kursplaner einfach neu.
+Office.onReady(() => {
+  try {
+    Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, () => location.reload());
+  } catch {
+    /* ältere Outlook-Versionen: dann eben ohne */
+  }
+});
 Office.onReady(() => start().catch((e) => ($("info").innerHTML = `<span class="fehler">${e.message}</span>`)));
