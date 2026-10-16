@@ -2,6 +2,7 @@ import * as api from "./graph.js";
 import { config } from "./config.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { findeAnbieter } from "../src/planer.js";
+import { FELDER, leseProtokoll, schreibeProtokoll, gesamt } from "../src/protokoll.js";
 import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel } from "../src/aktionen.js";
 
 const $ = (id) => document.getElementById(id);
@@ -64,6 +65,8 @@ async function start() {
   $("bereich-anbieter").hidden = !(istAnbieterKalender && anbieter);
   $("bereich-eigen").hidden = !(termin.eigenerKalender && anbieter && !termin.generiert);
 
+  if (!$("bereich-eigen").hidden) await zeigeProtokoll();
+
   $("ich-gebe").onclick = () => uebernehme(false);
   $("ich-vertrete").onclick = () => uebernehme(true);
   document.querySelectorAll("[data-kuerzel]").forEach((b) => {
@@ -90,6 +93,46 @@ async function start() {
       const v = await planeTagNeu(api, datum, einstellungen);
       $("ausfuehren").hidden = true;
       zeigeAenderungen(v, "Erledigt");
+    });
+}
+
+// Text des offenen Termins: im Bearbeiten-Fenster der aktuelle Stand
+// (auch noch nicht gespeichert), sonst der aus Graph.
+function terminText() {
+  const item = Office.context.mailbox.item;
+  if (!item.body?.setAsync) return Promise.resolve(termin.text);
+  return new Promise((ok) =>
+    item.body.getAsync(Office.CoercionType.Text, (r) => ok(r.status === Office.AsyncResultStatus.Succeeded ? r.value : termin.text))
+  );
+}
+
+function protokollAusFormular() {
+  return Object.fromEntries(FELDER.map(([k]) => [k, $(`p-${k}`)?.value ?? ""]));
+}
+
+async function zeigeProtokoll() {
+  const p = leseProtokoll(await terminText());
+  for (const [k] of FELDER) if ($(`p-${k}`)) $(`p-${k}`).value = p[k];
+  const zeigeGesamt = () => ($("p-gesamt").textContent = `Teilnehmer gesamt: ${gesamt(protokollAusFormular()) || "–"}`);
+  ["p-anwesend", "p-entschuldigt", "p-unentschuldigt"].forEach((id) => ($(id).oninput = zeigeGesamt));
+  zeigeGesamt();
+  $("bereich-protokoll").hidden = false;
+  $("p-speichern").onclick = () =>
+    mitWarten($("p-speichern"), async () => {
+      const text = schreibeProtokoll(protokollAusFormular());
+      const item = Office.context.mailbox.item;
+      if (item.body?.setAsync) {
+        // Termin ist zum Bearbeiten offen: in das Fenster schreiben, Michael speichert.
+        await new Promise((ok, fehler) =>
+          item.body.setAsync(text, { coercionType: Office.CoercionType.Text }, (r) =>
+            r.status === Office.AsyncResultStatus.Succeeded ? ok() : fehler(new Error(r.error.message))
+          )
+        );
+        zeige(`<div class="karte"><strong>Protokoll eingetragen</strong><div class="leise">Jetzt noch oben auf „Speichern &amp; schließen“ klicken.</div></div>`);
+      } else {
+        await api.aendere(termin.id, { body: { contentType: "text", content: text } });
+        zeige(`<div class="karte"><strong>Protokoll gespeichert</strong></div>`);
+      }
     });
 }
 

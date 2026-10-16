@@ -25,6 +25,10 @@
     ul { padding-left: 18px; margin: 6px 0; }
     li { margin: 2px 0; }
     .fehler { color: var(--rot); }
+    label { display: block; font-size: 12px; color: var(--leise); margin: 8px 0 2px; }
+    input, select, textarea { width: 100%; box-sizing: border-box; padding: 6px; font: inherit; color: var(--text);
+             background: var(--hinter); border: 1px solid var(--rand); border-radius: 6px; }
+    .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
     .neu::before { content: "+ "; color: var(--gruen); font-weight: 600; }
     .weg::before { content: "− "; color: var(--rot); font-weight: 600; }
   </style>
@@ -47,6 +51,27 @@
       <button data-kuerzel="F" class="zweit">Ferien (F)</button>
       <button data-kuerzel="" class="zweit">Findet statt</button>
     </div>
+  </div>
+
+  <div id="bereich-protokoll" class="karte" hidden>
+    <div><strong>Kursprotokoll</strong></div>
+    <label for="p-erstvertretung">Offizielle Erstvertretung</label>
+    <input id="p-erstvertretung" placeholder="z. B. für Eva">
+    <label for="p-thema">Thema</label>
+    <input id="p-thema">
+    <label for="p-material">Material</label>
+    <input id="p-material">
+    <div class="drei">
+      <div><label for="p-anwesend">Anwesend</label><input id="p-anwesend" type="number" min="0" inputmode="numeric"></div>
+      <div><label for="p-entschuldigt">Entschuldigt</label><input id="p-entschuldigt" type="number" min="0" inputmode="numeric"></div>
+      <div><label for="p-unentschuldigt">Unentsch.</label><input id="p-unentschuldigt" type="number" min="0" inputmode="numeric"></div>
+    </div>
+    <div class="leise" id="p-gesamt">Teilnehmer gesamt: –</div>
+    <label for="p-vorkommnis">Vorkommnis</label>
+    <select id="p-vorkommnis"><option value="">–</option><option>nein</option><option>ja</option></select>
+    <label for="p-besonderheiten">Besonderheiten</label>
+    <textarea id="p-besonderheiten" rows="3"></textarea>
+    <button id="p-speichern">Protokoll speichern</button>
   </div>
 
   <div class="karte">
