@@ -77,8 +77,13 @@ export function auswertungVerlauf(termine, kursTitel, vorDatum, standardMaterial
     return [...n.keys()].sort((a, b) => n.get(b) - n.get(a) || a.localeCompare(b, "de"));
   };
   const themen = zaehle(mitProtokoll.map((t) => t.p.thema));
-  const material = [...new Set([...standardMaterial, ...mitProtokoll.flatMap((t) => teileMaterial(t.p.material))])].sort((a, b) =>
-    a.localeCompare(b, "de")
-  );
+  // "Gymnastik Ball" und "Gymnastikball" sind dasselbe: die Schreibweise aus
+  // der Grundliste gewinnt, sonst die zuerst gefundene.
+  const schluessel = (m) => m.toLowerCase().replace(/[\s-]/g, "");
+  const nachSchluessel = new Map();
+  for (const m of [...standardMaterial, ...mitProtokoll.flatMap((t) => teileMaterial(t.p.material))]) {
+    if (!nachSchluessel.has(schluessel(m))) nachSchluessel.set(schluessel(m), m);
+  }
+  const material = [...nachSchluessel.values()].sort((a, b) => a.localeCompare(b, "de"));
   return { letzte, themen, material };
 }

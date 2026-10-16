@@ -42,7 +42,7 @@ test("Verlauf: letzte drei Themen des Kurses, Themen- und Materialliste", () => 
     t("RehaSport (Eva)", "2026-09-29", "Beweglichkeit mit Pilates Ball", "Pilates Ball"),
     t("RehaSport / PUR-Senioren (Michael)", "2026-10-15", "Heute", "Matte"),
   ];
-  const v = auswertungVerlauf(termine, "RehaSport / PUR-Senioren (Michael)", "2026-10-15", ["Matte"]);
+  const v = auswertungVerlauf(termine, "RehaSport / PUR-Senioren (Michael)", "2026-10-15", ["Matte", "Pilatesball"]);
   assert.deepEqual(v.letzte.map((x) => `${x.datum} ${x.p.thema}`), [
     "2026-10-08 Gleichgewicht mit Stab",
     "2026-10-01 Kräftigung mit Theraband",
@@ -50,5 +50,5 @@ test("Verlauf: letzte drei Themen des Kurses, Themen- und Materialliste", () => 
   ]);
   assert.ok(v.themen.includes("Beweglichkeit mit Pilates Ball"));
   assert.ok(!v.themen.includes("Heute"));
-  assert.deepEqual(v.material, ["Ball", "Hocker", "Matte", "Pilates Ball", "Stab", "Theraband"]);
+  assert.deepEqual(v.material, ["Ball", "Hocker", "Matte", "Pilatesball", "Stab", "Theraband"]);
 });
