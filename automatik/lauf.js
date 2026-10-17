@@ -172,6 +172,24 @@ if (process.env.NACHBERECHNEN) {
   const [von, bis] = process.env.NACHBERECHNEN.split(":");
   const wirklich = schreiben && process.env.NACHBERECHNEN_SCHREIBEN === "ja";
   const bereich = naechsteTage(von, Math.round((Date.parse(bis) - Date.parse(von)) / 86400000) + 1);
+  // Erst private Termine mit Adresse ohne Fahrzeit berechnen (ohne Obergrenze),
+  // damit die Planung danach ihre Fahrt-Blöcke anlegen kann.
+  if (process.env.KURSPLANER_HEIMADRESSE) {
+    const rechnePrivat = routenRechner({ heimadresse: process.env.KURSPLANER_HEIMADRESSE });
+    const offen = ohneFahrzeit(await api.holeBereich(von, bis), einstellungen).filter((t) => hatAdresse(t.adresse));
+    let gefunden = 0;
+    for (const t of offen) {
+      let minuten;
+      try {
+        minuten = await rechnePrivat(t.adresse);
+      } catch {
+        continue;
+      }
+      if (minuten != null) gefunden++;
+      if (wirklich) await api.setzeFahrzeit(t.id, minuten ?? -1);
+    }
+    ausgabe(`Private Termine mit Adresse ohne Fahrzeit: ${offen.length}, davon Route gefunden ${gefunden}`);
+  }
   const monate = new Map();
   for (const monat of [...new Set(bereich.map((d) => d.slice(0, 7)))]) {
     const r = await planeZeitraum(api, bereich.filter((d) => d.startsWith(monat)), einstellungen, { schreiben: wirklich });
