@@ -8,6 +8,10 @@ on:
         description: "Probe-Monatsbericht für Monat JJJJ-MM (leer = normal)"
         required: false
         default: ""
+      abschluesse:
+        description: "Einmalig Monatsabschlüsse als PDF-Entwurf, Zeitraum JJJJ-MM:JJJJ-MM"
+        required: false
+        default: ""
       nachberechnen:
         description: "Einmalig Puffer neu berechnen, Zeitraum JJJJ-MM-TT:JJJJ-MM-TT (leer = normal)"
         required: false
@@ -49,4 +53,5 @@ jobs:
           SCHREIBEN: ${{ vars.SCHREIBEN }}
           MONATSBERICHT_PROBE: ${{ inputs.monatsbericht_probe }}
           NACHBERECHNEN: ${{ inputs.nachberechnen }}
+          ABSCHLUESSE: ${{ inputs.abschluesse }}
           NACHBERECHNEN_SCHREIBEN: ${{ inputs.nachberechnen_schreiben }}

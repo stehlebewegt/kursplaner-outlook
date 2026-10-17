@@ -166,3 +166,43 @@ export async function monatsberichte({ graph, holeBereich, rechne, einstellungen
     );
   }
 }
+
+// Einmalig: Monatsabschlüsse (ohne Nachtrag) für mehrere Monate, pro Anbieter
+// ein Entwurf ohne Empfänger mit einem PDF je Monat. bereich = "JJJJ-MM:JJJJ-MM".
+export async function abschluesse({ graph, holeBereich, rechne, einstellungen, jetzt, bereich, ausgabe }) {
+  const [von, bis] = bereich.split(":");
+  const monate = [];
+  for (let m = von; m <= bis; m = (([j, mm]) => (mm === 12 ? `${j + 1}-01` : `${j}-${String(mm + 1).padStart(2, "0")}`))(m.split("-").map(Number)))
+    monate.push(m);
+  const alle = await holeBereich(monatsZeitraum(von).von, monatsZeitraum(bis).bis);
+  for (const anbieter of einstellungen.anbieter) {
+    const anhaenge = [];
+    let kurse = 0;
+    for (const monat of monate) {
+      const z = monatsZeitraum(monat);
+      const termine = alle.filter((t) => t.start.slice(0, 10) >= z.von && t.start.slice(0, 10) <= z.bis);
+      const vorab = erstelleAuswertung(termine, anbieter, jetzt, einstellungen);
+      if (!vorab.zeilen.length) continue;
+      const strecken = await berechneStrecken(vorab.fahrten, rechne, einstellungen);
+      const a = erstelleAuswertung(termine, anbieter, jetzt, einstellungen, (v, n) => strecken.get(`${v} ${n}`));
+      const pdf = erstellePdf(a, anbieter, z, jetzt, { teilnehmer: einstellungen.monatsbericht.teilnehmer, jsPDF });
+      anhaenge.push({
+        "@odata.type": "#microsoft.graph.fileAttachment",
+        name: `Monatsauswertung ${anbieter.kuerzel} ${monat} ${z.name}.pdf`,
+        contentType: "application/pdf",
+        contentBytes: Buffer.from(pdf.output("arraybuffer")).toString("base64"),
+      });
+      kurse += a.zeilen.length;
+    }
+    if (!anhaenge.length) {
+      ausgabe(`Abschlüsse ${anbieter.kuerzel}: keine Kurse`);
+      continue;
+    }
+    await graph("POST", "/messages", {
+      subject: `ABSCHLÜSSE ${anbieter.kuerzel} ${von} bis ${bis} (nur zum Speichern)`,
+      body: { contentType: "text", content: `Monatsabschlüsse ${anbieter.name}, ${anhaenge.length} PDFs. Zum Abspeichern, nicht zum Versenden.` },
+      attachments: anhaenge,
+    });
+    ausgabe(`Abschlüsse ${anbieter.kuerzel}: Entwurf mit ${anhaenge.length} PDFs (${kurse} Kurse)`);
+  }
+}

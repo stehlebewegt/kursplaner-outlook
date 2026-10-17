@@ -18,7 +18,7 @@ import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
 import { ohneFahrzeit, kursAnbieter } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
-import { monatsberichte } from "./monatsbericht.js";
+import { monatsberichte, abschluesse } from "./monatsbericht.js";
 
 // Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
 // auf der Übersichtsseite des Laufs stehen.
@@ -241,6 +241,17 @@ for (const r of ergebnis) {
   );
 }
 // Monatsbericht als Entwurf (am eingestellten Tag oder als Probe per Hand).
+if (process.env.ABSCHLUESSE) {
+  await abschluesse({
+    graph,
+    holeBereich: api.holeBereich,
+    rechne,
+    einstellungen,
+    jetzt: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16),
+    bereich: process.env.ABSCHLUESSE,
+    ausgabe,
+  });
+}
 try {
   await monatsberichte({
     graph,
