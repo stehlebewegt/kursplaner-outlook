@@ -50,7 +50,10 @@ export const einstellungen = {
   // teilnehmer: true = Spalte mit Teilnehmerzahlen im Bericht.
   // {monat} und {anbieter} werden ersetzt.
   monatsbericht: {
+    // Am Tag X kommt der laufende Monat (bis dahin geleistet, danach geplant)
+    // plus Nachtrag zum Vormonat. {nachtrag} wird ersetzt, falls es einen gibt.
     tag: 15,
+    nachtragText: " Am Ende stehen außerdem die Nachträge für {vormonat}, also was sich seit der letzten Auswertung noch getan hat.",
     teilnehmer: false,
     betreff: "Monatsauswertung {monat} – Michael Stehle ({anbieter})",
     // Ansprechpartner: Outlook-Kontakt mit Kategorie "Monatsbericht <Kürzel>"
@@ -58,14 +61,14 @@ export const einstellungen = {
     text:
       "Hallo {anrede},\n\n" +
       "ich hoffe, bei dir ist alles gut! Im Anhang findest du meine Monatsauswertung für {monat}, " +
-      "mit allen Kursen, die ich bei euch gegeben oder vertreten habe, und den Fahrten dazu.\n\n" +
+      "mit den Kursen, die ich bei euch bisher gegeben habe und noch geben werde, und den Fahrten dazu.{nachtrag}\n\n" +
       "Wenn etwas nicht passt oder du Fragen hast, melde dich gern jederzeit bei mir.\n\n" +
       "Herzliche Grüße und bis bald\nMichael Stehle",
     // Für mehrere Ansprechpartner oder wenn keiner hinterlegt ist.
     textGruppe:
       "Hallo {anrede},\n\n" +
       "ich hoffe, bei euch ist alles gut! Im Anhang findet ihr meine Monatsauswertung für {monat}, " +
-      "mit allen Kursen, die ich bei euch gegeben oder vertreten habe, und den Fahrten dazu.\n\n" +
+      "mit den Kursen, die ich bei euch bisher gegeben habe und noch geben werde, und den Fahrten dazu.{nachtrag}\n\n" +
       "Wenn etwas nicht passt oder ihr Fragen habt, meldet euch gern jederzeit bei mir.\n\n" +
       "Herzliche Grüße und bis bald\nMichael Stehle",
   },

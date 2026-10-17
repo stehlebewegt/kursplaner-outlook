@@ -69,3 +69,18 @@ test("Fahrten-Tabelle: eine Zeile pro Tag, km und Minuten aus dem Routenplaner",
   });
   assert.equal(erstelleAuswertung(termine, PTM, "2026-10-16T10:00", einstellungen).fahrten.length, 0);
 });
+
+test("Nachtrag Vormonat gegen gemerkten Stand", async () => {
+  const { nachtrag, stand } = await import("../src/auswertung.js");
+  const z = (datum, von, kurs, status, art = "regulär") => ({ datum, von, bis: "10:00", kurs, art, status, minuten: 45 });
+  const alt = stand({ zeilen: [z("2026-09-10", "09:00", "PUR", "geleistet"), z("2026-09-20", "09:00", "PUR", "geplant"), z("2026-09-22", "09:00", "FLEX", "geplant")] }, "2026-09-15T05:00");
+  const jetzt = { zeilen: [z("2026-09-10", "09:00", "PUR", "geleistet"), z("2026-09-20", "09:00", "PUR", "geleistet"), z("2026-09-25", "09:00", "PUR", "geleistet", "Vertretung")], fahrten: [] };
+  const n = nachtrag(jetzt, alt, "2026-09-15");
+  assert.deepEqual(n.zeilen.map((x) => [x.datum, x.kurs, x.status, x.aenderung]), [
+    ["2026-09-20", "PUR", "geleistet", ""],
+    ["2026-09-22", "FLEX", "entfallen", "entfallen"],
+    ["2026-09-25", "PUR", "geleistet", "neu"],
+  ]);
+  assert.equal(n.summe.geleistet, 2);
+  assert.equal(nachtrag(jetzt, null, "2026-09-15").zeilen.length, 2);
+});

@@ -3,7 +3,7 @@ import { fahrtenTabelle, fahrtenSumme } from "../src/auswertung.js";
 const datumDe = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
 const zahl = (x) => String(Math.round(x * 100) / 100).replace(".", ",");
 
-export function erstellePdf({ zeilen, summe, fahrten = [] }, anbieter, zeitraum, stand, { teilnehmer = false, jsPDF = window.jspdf?.jsPDF } = {}) {
+export function erstellePdf({ zeilen, summe, fahrten = [] }, anbieter, zeitraum, stand, { teilnehmer = false, nachtrag = null, jsPDF = window.jspdf?.jsPDF } = {}) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = 20;
   doc.setFont("helvetica", "bold").setFontSize(15);
@@ -80,6 +80,40 @@ export function erstellePdf({ zeilen, summe, fahrten = [] }, anbieter, zeitraum,
     const { kopf, reihen } = fahrtenTabelle(fahrten);
     const x = [15, 40, 140, 160, 180];
     tabelle("Fahrten", kopf.map((k, i) => [k, x[i]]), reihen.map((r) => [datumDe(r[0]), ...r.slice(1)]));
+  }
+
+  // Nachtrag Vormonat: was beim letzten Bericht noch geplant war, jetzt mit Ergebnis.
+  if (nachtrag?.zeilen.length) {
+    if (y > 230) {
+      doc.addPage();
+      y = 20;
+    }
+    const n = nachtrag.summe;
+    doc.setFont("helvetica", "bold").setFontSize(13).text(`Nachtrag ${nachtrag.name}`, 15, y);
+    y += 6;
+    doc.setFont("helvetica", "normal").setFontSize(10);
+    const zeilenText = [
+      `Kurse ab ${datumDe(nachtrag.ab)}, die bei der letzten Auswertung noch geplant waren, und Änderungen seitdem.`,
+      `Geleistet: ${n.geleistet} Einheiten (${zahl(n.geleistetStunden)} Std.)` +
+        (n.neu ? `, davon ${n.neu} neu dazugekommen` : "") +
+        (n.entfallen ? ` · entfallen: ${n.entfallen}` : "") +
+        ` · ${fahrtenSumme(n)}`,
+    ];
+    for (const t of zeilenText) {
+      doc.text(t, 15, y);
+      y += 5;
+    }
+    y += 4;
+    tabelle(
+      `Kurse ${nachtrag.name}`,
+      [["Datum", 15], ["Kurszeit", 38], ["Kurs", 62], ["Art", 120], ["Status", 145], ["Änderung", 172]],
+      nachtrag.zeilen.map((z) => [datumDe(z.datum), `${z.von}–${z.bis}`, z.kurs, z.art, z.status, z.aenderung || ""])
+    );
+    if (nachtrag.fahrten.some((f) => f.status === "geleistet")) {
+      const { kopf, reihen } = fahrtenTabelle(nachtrag.fahrten);
+      const x = [15, 40, 140, 160, 180];
+      tabelle(`Fahrten ${nachtrag.name}`, kopf.map((k, i) => [k, x[i]]), reihen.map((r) => [datumDe(r[0]), ...r.slice(1)]));
+    }
   }
   return doc;
 }

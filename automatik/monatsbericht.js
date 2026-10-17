@@ -1,9 +1,12 @@
 // Monatsbericht: am eingestellten Tag (einstellungen.monatsbericht.tag) legt
-// die Automatik pro Anbieter einen E-Mail-Entwurf mit dem PDF des Vormonats
-// an. Verschickt wird nie, das macht Michael selbst.
+// die Automatik pro Anbieter einen E-Mail-Entwurf mit dem PDF des laufenden
+// Monats an (bis heute geleistet, danach geplant), dazu ein Nachtrag zum
+// Vormonat. Der Stand jedes Berichts wird am Entwurf gemerkt, damit der
+// Nachtrag zeigen kann, was sich seitdem geändert hat.
+// Verschickt wird nie, das macht Michael selbst.
 // Braucht die Anwendungsberechtigung Mail.ReadWrite in Entra.
 import { readFileSync } from "node:fs";
-import { erstelleAuswertung, monatsZeitraum } from "../src/auswertung.js";
+import { erstelleAuswertung, monatsZeitraum, stand, nachtrag } from "../src/auswertung.js";
 import { erstellePdf } from "../web/bericht.js";
 
 // jsPDF ist eine Browser-Datei (UMD); im Repo gilt .js als ES-Modul, darum von Hand laden.
@@ -15,6 +18,8 @@ export function ladeJsPdf() {
 const jsPDF = ladeJsPdf();
 // Merkt am Entwurf, für welchen Anbieter und Monat er ist, damit er nur einmal entsteht.
 export const BERICHT = "String {6f1c2a4e-3b7d-4c1a-9e55-8a2d9c0b7f31} Name KursplanerBericht";
+// Gemerkter Stand (JSON, siehe stand() in src/auswertung.js).
+export const STAND = "String {6f1c2a4e-3b7d-4c1a-9e55-8a2d9c0b7f31} Name KursplanerBerichtStand";
 
 export function vormonat(heute) {
   const [j, m] = heute.split("-").map(Number);
@@ -61,13 +66,55 @@ async function holeKontakte(graph, kuerzel, weitere = []) {
 
 const fuelle = (vorlage, werte) => vorlage.replace(/\{(\w+)\}/g, (_, k) => werte[k] ?? "");
 
+// Gemerkter Stand des letzten Berichts (auch gesendet oder im Papierkorb), sonst null.
+async function holeStand(graph, kennungen) {
+  for (const k of kennungen) {
+    const r = await graph(
+      "GET",
+      `/messages?$top=1&$select=id&$filter=singleValueExtendedProperties/any(ep: ep/id eq '${BERICHT}' and ep/value eq '${k}')` +
+        `&$expand=singleValueExtendedProperties($filter=id eq '${STAND}')`
+    );
+    const wert = r.value[0]?.singleValueExtendedProperties?.[0]?.value;
+    if (wert) {
+      try {
+        return JSON.parse(wert);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+// Strecken einmal pro Paar berechnen (Zuhause und Anbieter-Adressen).
+async function berechneStrecken(fahrten, rechne, einstellungen) {
+  const ortVon = (k) => (k === "heim" ? null : einstellungen.anbieter.find((a) => a.kuerzel === k)?.ort);
+  const strecken = new Map();
+  if (!rechne) return strecken;
+  for (const f of fahrten) {
+    const paar = `${f.von} ${f.nach}`;
+    if (strecken.has(paar) || ortVon(f.von) === undefined || ortVon(f.nach) === undefined) continue;
+    try {
+      strecken.set(paar, await rechne.strecke(ortVon(f.von), ortVon(f.nach)));
+    } catch {
+      strecken.set(paar, null);
+    }
+  }
+  return strecken;
+}
+
 // probe = "JJJJ-MM": sofort für diesen Monat, Betreff mit "PROBE", zählt nicht als erledigt.
 export async function monatsberichte({ graph, holeBereich, rechne, einstellungen, heute, jetzt, probe, ausgabe, kontaktPostfaecher = [] }) {
   const mb = einstellungen.monatsbericht;
   if (!probe && Number(heute.slice(8, 10)) !== mb.tag) return;
-  const monat = probe || vormonat(heute);
+  const monat = probe || heute.slice(0, 7);
+  const vm = vormonat(`${monat}-01`);
   const zeitraum = monatsZeitraum(monat);
-  const termine = await holeBereich(zeitraum.von, zeitraum.bis);
+  const vZeitraum = monatsZeitraum(vm);
+  const alle = await holeBereich(vZeitraum.von, zeitraum.bis);
+  const im = (z) => alle.filter((t) => t.start.slice(0, 10) >= z.von && t.start.slice(0, 10) <= z.bis);
+  const termine = im(zeitraum);
+  const vTermine = im(vZeitraum);
 
   for (const anbieter of einstellungen.anbieter) {
     const kennung = `${anbieter.kuerzel} ${monat}${probe ? " probe" : ""}`;
@@ -78,30 +125,22 @@ export async function monatsberichte({ graph, holeBereich, rechne, einstellungen
       );
       if (da.value.length) continue;
     }
-    // Strecken einmal pro Paar berechnen (Zuhause und Anbieter-Adressen).
-    const ortVon = (k) => (k === "heim" ? null : einstellungen.anbieter.find((a) => a.kuerzel === k)?.ort);
-    const vorab = erstelleAuswertung(termine, anbieter, jetzt, einstellungen);
-    const strecken = new Map();
-    if (rechne) {
-      for (const f of vorab.fahrten) {
-        const paar = `${f.von} ${f.nach}`;
-        if (strecken.has(paar) || ortVon(f.von) === undefined || ortVon(f.nach) === undefined) continue;
-        try {
-          strecken.set(paar, await rechne.strecke(ortVon(f.von), ortVon(f.nach)));
-        } catch {
-          strecken.set(paar, null);
-        }
-      }
-    }
-    const a = erstelleAuswertung(termine, anbieter, jetzt, einstellungen, (von, nach) => strecken.get(`${von} ${nach}`));
-    if (!a.zeilen.length) {
+    const vorab = [erstelleAuswertung(termine, anbieter, jetzt, einstellungen), erstelleAuswertung(vTermine, anbieter, jetzt, einstellungen)];
+    const strecken = await berechneStrecken(vorab.flatMap((x) => x.fahrten), rechne, einstellungen);
+    const strecke = (von, nach) => strecken.get(`${von} ${nach}`);
+    const a = erstelleAuswertung(termine, anbieter, jetzt, einstellungen, strecke);
+    const alt = await holeStand(graph, [`${anbieter.kuerzel} ${vm}`, ...(probe ? [`${anbieter.kuerzel} ${vm} probe`] : [])]);
+    const n = nachtrag(erstelleAuswertung(vTermine, anbieter, jetzt, einstellungen, strecke), alt, `${vm}-${String(mb.tag).padStart(2, "0")}`);
+    n.name = vZeitraum.name;
+    if (!a.zeilen.length && !n.zeilen.length) {
       ausgabe(`Monatsbericht ${kennung}: keine Kurse, kein Entwurf`);
       continue;
     }
-    const pdf = erstellePdf(a, anbieter, zeitraum, jetzt, { teilnehmer: mb.teilnehmer, jsPDF });
+    const pdf = erstellePdf(a, anbieter, zeitraum, jetzt, { teilnehmer: mb.teilnehmer, nachtrag: n, jsPDF });
     const kontakte = await holeKontakte(graph, anbieter.kuerzel, kontaktPostfaecher);
     const { an, anrede, vorlage } = anschreiben(kontakte || [], mb);
-    const werte = { monat: zeitraum.name, anbieter: anbieter.name, anrede };
+    const werte = { monat: zeitraum.name, vormonat: vZeitraum.name, anbieter: anbieter.name, anrede };
+    werte.nachtrag = n.zeilen.length ? fuelle(mb.nachtragText || "", werte) : "";
     await graph("POST", "/messages", {
       subject: (probe ? "PROBE: " : "") + fuelle(mb.betreff, werte),
       body: { contentType: "text", content: fuelle(vorlage, werte) },
@@ -114,10 +153,16 @@ export async function monatsberichte({ graph, holeBereich, rechne, einstellungen
           contentBytes: Buffer.from(pdf.output("arraybuffer")).toString("base64"),
         },
       ],
-      singleValueExtendedProperties: [{ id: BERICHT, value: kennung }],
+      singleValueExtendedProperties: [
+        { id: BERICHT, value: kennung },
+        { id: STAND, value: JSON.stringify(stand(a, jetzt)) },
+      ],
     });
     const ohneKm = [...strecken.values()].filter((s) => !s).length;
     const empf = kontakte === null ? "Kontakte-Berechtigung fehlt" : `${an.length} Empfänger`;
-    ausgabe(`Monatsbericht ${kennung}: Entwurf angelegt (${a.zeilen.length} Kurse, ${a.summe.fahrten} Fahrten, ${empf}${ohneKm ? `, ${ohneKm} Strecken ohne km` : ""})`);
+    const nt = n.zeilen.length ? `, Nachtrag ${n.zeilen.length} Kurse${alt ? ` (${n.summe.neu} neu, ${n.summe.entfallen} entfallen)` : " ohne alten Stand"}` : "";
+    ausgabe(
+      `Monatsbericht ${kennung}: Entwurf angelegt (${a.zeilen.length} Kurse, ${a.summe.geleistet} geleistet, ${a.summe.geplant} geplant, ${a.summe.fahrten} Fahrten${nt}, ${empf}${ohneKm ? `, ${ohneKm} Strecken ohne km` : ""})`
+    );
   }
 }

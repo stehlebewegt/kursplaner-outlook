@@ -133,3 +133,40 @@ export function monatsZeitraum(monat) {
   const letzter = new Date(Date.UTC(j, m, 0)).getUTCDate();
   return { von: `${monat}-01`, bis: `${monat}-${String(letzter).padStart(2, "0")}`, name: `${MONATE[m - 1]} ${j}` };
 }
+
+// Stand eines Berichts zum Merken (kompakt, landet am E-Mail-Entwurf).
+const schluessel = (z) => `${z.datum} ${z.von} ${z.kurs}`;
+export const stand = (a, jetzt) => ({ stand: jetzt, z: a.zeilen.map((z) => [z.datum, z.von, z.bis, z.kurs, z.art, z.status]) });
+
+// Nachtrag für den Vormonat: was beim letzten Bericht noch offen war (ab
+// dessen Stand) mit dem tatsächlichen Ergebnis, dazu neue, entfallene und
+// geänderte Kurse. alt = gemerkter Stand oder null (dann ab abDatum, ohne Vergleich).
+export function nachtrag(a, alt, abDatum) {
+  const ab = alt ? alt.stand.slice(0, 10) : abDatum;
+  const vorher = new Map((alt?.z || []).map(([datum, von, bis, kurs, art, status]) => [schluessel({ datum, von, kurs }), { datum, von, bis, kurs, art, status }]));
+  const zeilen = [];
+  for (const z of a.zeilen) {
+    const v = vorher.get(schluessel(z));
+    vorher.delete(schluessel(z));
+    const aenderung = !alt ? "" : !v ? "neu" : v.art !== z.art || v.bis !== z.bis || (v.status !== z.status && v.status !== "geplant") ? "geändert" : "";
+    if (z.datum >= ab || aenderung) zeilen.push({ ...z, aenderung });
+  }
+  for (const v of vorher.values()) zeilen.push({ ...v, status: "entfallen", aenderung: "entfallen" });
+  zeilen.sort((x, y) => (x.datum + x.von < y.datum + y.von ? -1 : 1));
+  const geleistet = zeilen.filter((z) => z.status === "geleistet");
+  const fahrten = a.fahrten.filter((f) => f.datum >= ab);
+  const gefahren = fahrten.filter((f) => f.status === "geleistet");
+  return {
+    ab,
+    zeilen,
+    fahrten,
+    summe: {
+      geleistet: geleistet.length,
+      geleistetStunden: geleistet.reduce((s, z) => s + z.minuten, 0) / 60,
+      neu: zeilen.filter((z) => z.aenderung === "neu").length,
+      entfallen: zeilen.filter((z) => z.aenderung === "entfallen").length,
+      fahrten: gefahren.length,
+      fahrtKm: gefahren.every((f) => f.km !== null) ? Math.round(gefahren.reduce((s, f) => s + f.km, 0) * 10) / 10 : null,
+    },
+  };
+}
