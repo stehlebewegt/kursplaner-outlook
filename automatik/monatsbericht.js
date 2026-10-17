@@ -21,6 +21,27 @@ export function vormonat(heute) {
   return m === 1 ? `${j - 1}-12` : `${j}-${String(m - 1).padStart(2, "0")}`;
 }
 
+// Ansprechpartner aus Outlook-Kontakten mit Kategorie "Monatsbericht <Kürzel>".
+// Ohne Berechtigung (Contacts.Read) oder Kontakt: kein Empfänger, "zusammen".
+export function anschreiben(kontakte, mb) {
+  const leute = kontakte
+    .map((k) => ({ name: (k.givenName || k.displayName || "").trim(), mail: k.emailAddresses?.[0]?.address }))
+    .filter((k) => k.mail);
+  const namen = leute.map((k) => k.name).filter(Boolean);
+  const anrede = namen.length ? namen.join(namen.length === 2 ? " und " : ", ").replace(/, ([^,]*)$/, " und $1") : "zusammen";
+  return { an: leute.map((k) => k.mail), anrede, vorlage: leute.length === 1 && namen.length === 1 ? mb.text : mb.textGruppe };
+}
+
+async function holeKontakte(graph, kuerzel) {
+  try {
+    const kat = `Monatsbericht ${kuerzel}`;
+    return (await graph("GET", `/contacts?$top=10&$select=givenName,displayName,emailAddresses&$filter=categories/any(c:c eq '${kat}')`)).value;
+  } catch (e) {
+    if (/ 403 /.test(e.message)) return null;
+    throw e;
+  }
+}
+
 const fuelle = (vorlage, werte) => vorlage.replace(/\{(\w+)\}/g, (_, k) => werte[k] ?? "");
 
 // probe = "JJJJ-MM": sofort für diesen Monat, Betreff mit "PROBE", zählt nicht als erledigt.
@@ -61,10 +82,13 @@ export async function monatsberichte({ graph, holeBereich, rechne, einstellungen
       continue;
     }
     const pdf = erstellePdf(a, anbieter, zeitraum, jetzt, { teilnehmer: mb.teilnehmer, jsPDF });
-    const werte = { monat: zeitraum.name, anbieter: anbieter.name };
+    const kontakte = await holeKontakte(graph, anbieter.kuerzel);
+    const { an, anrede, vorlage } = anschreiben(kontakte || [], mb);
+    const werte = { monat: zeitraum.name, anbieter: anbieter.name, anrede };
     await graph("POST", "/messages", {
       subject: (probe ? "PROBE: " : "") + fuelle(mb.betreff, werte),
-      body: { contentType: "text", content: fuelle(mb.text, werte) },
+      body: { contentType: "text", content: fuelle(vorlage, werte) },
+      toRecipients: an.map((address) => ({ emailAddress: { address } })),
       attachments: [
         {
           "@odata.type": "#microsoft.graph.fileAttachment",
@@ -76,6 +100,7 @@ export async function monatsberichte({ graph, holeBereich, rechne, einstellungen
       singleValueExtendedProperties: [{ id: BERICHT, value: kennung }],
     });
     const ohneKm = [...strecken.values()].filter((s) => !s).length;
-    ausgabe(`Monatsbericht ${kennung}: Entwurf angelegt (${a.zeilen.length} Kurse, ${a.summe.fahrten} Fahrten${ohneKm ? `, ${ohneKm} Strecken ohne km` : ""})`);
+    const empf = kontakte === null ? "Kontakte-Berechtigung fehlt" : `${an.length} Empfänger`;
+    ausgabe(`Monatsbericht ${kennung}: Entwurf angelegt (${a.zeilen.length} Kurse, ${a.summe.fahrten} Fahrten, ${empf}${ohneKm ? `, ${ohneKm} Strecken ohne km` : ""})`);
   }
 }

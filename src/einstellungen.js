@@ -53,8 +53,17 @@ export const einstellungen = {
     tag: 15,
     teilnehmer: false,
     betreff: "Monatsauswertung {monat} – Michael Stehle ({anbieter})",
+    // Ansprechpartner: Outlook-Kontakt mit Kategorie "Monatsbericht <Kürzel>"
+    // (Vorname und E-Mail). {anrede} = "Anna" bzw. "Anna und Ben".
     text:
-      "Hallo zusammen,\n\n" +
+      "Hallo {anrede},\n\n" +
+      "ich hoffe, bei dir ist alles gut! Im Anhang findest du meine Monatsauswertung für {monat}, " +
+      "mit allen Kursen, die ich bei euch gegeben oder vertreten habe, und den Fahrten dazu.\n\n" +
+      "Wenn etwas nicht passt oder du Fragen hast, melde dich gern jederzeit bei mir.\n\n" +
+      "Herzliche Grüße und bis bald\nMichael Stehle",
+    // Für mehrere Ansprechpartner oder wenn keiner hinterlegt ist.
+    textGruppe:
+      "Hallo {anrede},\n\n" +
       "ich hoffe, bei euch ist alles gut! Im Anhang findet ihr meine Monatsauswertung für {monat}, " +
       "mit allen Kursen, die ich bei euch gegeben oder vertreten habe, und den Fahrten dazu.\n\n" +
       "Wenn etwas nicht passt oder ihr Fragen habt, meldet euch gern jederzeit bei mir.\n\n" +
