@@ -156,6 +156,27 @@ const tagZeit = (t) => `${t.start.slice(8, 10)}.${t.start.slice(5, 7)}. ${t.star
 const zeilen = [];
 const ausgabe = (z) => (console.log(z), zeilen.push(z));
 
+// Einmalige Nachberechnung (per Hand gestartet): NACHBERECHNEN="JJJJ-MM-TT:JJJJ-MM-TT"
+// plant nur die Puffer-Blöcke dieser Tage neu, sonst nichts. Geschrieben wird
+// nur mit NACHBERECHNEN_SCHREIBEN=ja, sonst ist es ein Probelauf.
+if (process.env.NACHBERECHNEN) {
+  const [von, bis] = process.env.NACHBERECHNEN.split(":");
+  const wirklich = schreiben && process.env.NACHBERECHNEN_SCHREIBEN === "ja";
+  const bereich = naechsteTage(von, Math.round((Date.parse(bis) - Date.parse(von)) / 86400000) + 1);
+  const monate = new Map();
+  for (const monat of [...new Set(bereich.map((d) => d.slice(0, 7)))]) {
+    const r = await planeZeitraum(api, bereich.filter((d) => d.startsWith(monat)), einstellungen, { schreiben: wirklich });
+    monate.set(monat, r);
+  }
+  ausgabe(`Nachberechnung ${von} bis ${bis} (${wirklich ? "AUSGEFÜHRT" : "nur Probelauf, nichts geändert"}):`);
+  for (const [monat, r] of monate) {
+    const summe = (k) => r.reduce((s, x) => s + x[k].length, 0);
+    ausgabe(`${monat}: ${r.length} Tage mit Änderungen, Blöcke +${summe("anlegen")} −${summe("loeschen")}, übernommen ${summe("uebernehmen")}, freigegeben ${summe("freigeben")}`);
+  }
+  console.log(`::notice::${zeilen.join("%0A")}`);
+  process.exit(0);
+}
+
 // Erst Dauerkurse abgleichen, dann die Tage planen.
 const dauer = gleicheAb(
   await api.holeAnbieter(tage[0], tage[tage.length - 1]),

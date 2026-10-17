@@ -8,6 +8,14 @@ on:
         description: "Probe-Monatsbericht für Monat JJJJ-MM (leer = normal)"
         required: false
         default: ""
+      nachberechnen:
+        description: "Einmalig Puffer neu berechnen, Zeitraum JJJJ-MM-TT:JJJJ-MM-TT (leer = normal)"
+        required: false
+        default: ""
+      nachberechnen_schreiben:
+        description: "ja = Nachberechnung wirklich ausführen (sonst nur Probelauf)"
+        required: false
+        default: ""
 concurrency: automatik
 permissions:
   contents: read
@@ -15,7 +23,7 @@ permissions:
 jobs:
   planen:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     steps:
       # GitHub schaltet geplante Läufe in öffentlichen Repos nach 60 Tagen ohne
       # Aktivität ab. Einmal am Tag "einschalten" setzt diese Frist zurück.
@@ -40,3 +48,5 @@ jobs:
           KURSPLANER_KONTAKTE: ${{ secrets.KURSPLANER_KONTAKTE }}
           SCHREIBEN: ${{ vars.SCHREIBEN }}
           MONATSBERICHT_PROBE: ${{ inputs.monatsbericht_probe }}
+          NACHBERECHNEN: ${{ inputs.nachberechnen }}
+          NACHBERECHNEN_SCHREIBEN: ${{ inputs.nachberechnen_schreiben }}
