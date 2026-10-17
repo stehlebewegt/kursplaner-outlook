@@ -32,10 +32,18 @@ export function anschreiben(kontakte, mb) {
   return { an: leute.map((k) => k.mail), anrede, vorlage: leute.length === 1 && namen.length === 1 ? mb.text : mb.textGruppe };
 }
 
+// Sucht im Standard-Kontaktordner und in allen Unterordnern.
 async function holeKontakte(graph, kuerzel) {
+  const filter = `$top=10&$select=givenName,displayName,emailAddresses&$filter=categories/any(c:c eq 'Monatsbericht ${kuerzel}')`;
   try {
-    const kat = `Monatsbericht ${kuerzel}`;
-    return (await graph("GET", `/contacts?$top=10&$select=givenName,displayName,emailAddresses&$filter=categories/any(c:c eq '${kat}')`)).value;
+    const gefunden = (await graph("GET", `/contacts?${filter}`)).value;
+    const ordner = (await graph("GET", "/contactFolders?$top=50&$select=id")).value;
+    for (const o of ordner) gefunden.push(...(await graph("GET", `/contactFolders/${o.id}/contacts?${filter}`)).value);
+    const gesehen = new Set();
+    return gefunden.filter((k) => {
+      const m = k.emailAddresses?.[0]?.address?.toLowerCase();
+      return m && !gesehen.has(m) && gesehen.add(m);
+    });
   } catch (e) {
     if (/ 403 /.test(e.message)) return null;
     throw e;
