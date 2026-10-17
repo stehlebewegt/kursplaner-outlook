@@ -239,3 +239,10 @@ test("Lehrgangstag: viele private Einheiten am Stück sind eine Fahrt", () => {
   const termine = [p("Eröffnung", "13:45", "14:30"), p("World Cafe", "14:15", "15:00"), p("Abendessen", "18:00", "19:00"), p("Spiele", "19:45", "21:00")];
   assert.deepEqual(kurz(planeTag(d, termine, einstellungen)), ["12:00-13:45 Anfahrt - Eröffnung", "21:00-22:45 Rückfahrt - Spiele"]);
 });
+
+test("Mehrtägiger Termin: Anfahrt am ersten, Rückfahrt am letzten Tag", () => {
+  const event = { titel: "Event", start: "2026-09-24T12:00", ende: "2026-09-26T10:00", kategorien: [], ort: "Künzelsau", generiert: false, fahrzeit: 195 };
+  assert.deepEqual(kurz(planeTag("2026-09-24", [event], einstellungen)), ["08:45-12:00 Anfahrt - Event"]);
+  assert.deepEqual(kurz(planeTag("2026-09-25", [event], einstellungen)), []);
+  assert.deepEqual(kurz(planeTag("2026-09-26", [event], einstellungen)), ["10:00-13:15 Rückfahrt - Event"]);
+});

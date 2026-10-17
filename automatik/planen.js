@@ -9,7 +9,11 @@ export async function planeZeitraum(api, tage, einstellungen, { schreiben }) {
   const alle = await api.holeBereich(tage[0], tage[tage.length - 1]);
   const ergebnis = [];
   for (const datum of tage) {
-    const tagApi = { ...api, holeTag: async () => alle.filter((t) => t.start.startsWith(datum)) };
+    const tagApi = {
+      ...api,
+      // Auch mehrtägige Termine, die an diesem Tag noch laufen (für die Rückfahrt am letzten Tag).
+      holeTag: async () => alle.filter((t) => t.start.slice(0, 10) <= datum && t.ende.slice(0, 10) >= datum),
+    };
     const termine = await tagApi.holeTag();
     // Kurse mit (U), (A), (F) im Titel, die noch "beschäftigt" sind, freigeben.
     const freigeben = termine.filter(

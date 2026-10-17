@@ -114,20 +114,26 @@ export function planeTag(datum, termine, einstellungen) {
   // Termine kurz hintereinander (z. B. ein Lehrgangstag mit vielen Einheiten)
   // sind eine Fahrt: Anfahrt vor dem ersten, Rückfahrt nach dem letzten. Heim
   // geht es dazwischen nur, wenn sich die Pause lohnt (wie bei Kursen).
+  // Mehrtägige Termine (z. B. Event von Donnerstag bis Samstag): Anfahrt nur am
+  // ersten Tag, Rückfahrt nur am letzten, dazwischen keine Fahrt.
+  const beginn = (t) => (t.start.slice(0, 10) < datum ? 0 : zuMinuten(t.start));
+  const schluss = (t) => (t.ende.slice(0, 10) > datum ? 24 * 60 : zuMinuten(t.ende));
   const privat = privateMitFahrzeit(termine, e).sort((a, b) => (a.start < b.start ? -1 : 1));
   const gruppen = [];
   for (const t of privat) {
     const g = gruppen[gruppen.length - 1];
-    const lohnt = g && zuMinuten(t.start) - g.bis >= Math.max(g.letzter.fahrzeit + t.fahrzeit, e.pauseHeimfahrtMin ?? 0);
+    const lohnt = g && beginn(t) - g.bis >= Math.max(g.letzter.fahrzeit + t.fahrzeit, e.pauseHeimfahrtMin ?? 0);
     if (g && !lohnt) {
-      if (zuMinuten(t.ende) >= g.bis) g.letzter = t;
-      g.bis = Math.max(g.bis, zuMinuten(t.ende));
-    } else gruppen.push({ erster: t, letzter: t, bis: zuMinuten(t.ende) });
+      if (schluss(t) >= g.bis) g.letzter = t;
+      g.bis = Math.max(g.bis, schluss(t));
+    } else gruppen.push({ erster: t, letzter: t, bis: schluss(t) });
   }
   for (const { erster, letzter, bis } of gruppen) {
-    const von = zuMinuten(erster.start);
-    neu(`Anfahrt - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort });
-    neu(`Rückfahrt - ${letzter.titel.trim()}`, bis, bis + letzter.fahrzeit, e.kategorieFahrt, { ort: letzter.ort });
+    const von = beginn(erster);
+    if (erster.start.slice(0, 10) === datum)
+      neu(`Anfahrt - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort });
+    if (letzter.ende.slice(0, 10) === datum)
+      neu(`Rückfahrt - ${letzter.titel.trim()}`, bis, bis + letzter.fahrzeit, e.kategorieFahrt, { ort: letzter.ort });
   }
 
   bloecke.forEach((b, i) => {
