@@ -65,7 +65,7 @@ export function erstellePdf({ zeilen, summe, fahrten = [] }, anbieter, zeitraum,
     y += 6;
   };
 
-  const kursSpalten = [["Datum", 15], ["Zeit", 38], ["Kurs", 62], ["Art", 132], ["Status", 158]];
+  const kursSpalten = [["Datum", 15], ["Kurszeit", 38], ["Kurs", 62], ["Art", 132], ["Status", 158]];
   if (teilnehmer) kursSpalten.push(["TN", 190]);
   tabelle(
     "Kurse",

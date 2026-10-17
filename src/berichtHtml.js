@@ -15,7 +15,7 @@ function tabelle(kopf, reihen) {
 }
 
 export function berichtHtml({ zeilen, summe, fahrten = [] }, anbieter, zeitraum, { teilnehmer = false } = {}) {
-  const kursKopf = ["Datum", "Zeit", "Kurs", "Art", "Status"];
+  const kursKopf = ["Datum", "Kurszeit", "Kurs", "Art", "Status"];
   if (teilnehmer) kursKopf.push("TN");
   const kursReihen = zeilen.map((z) => {
     const r = [datumDe(z.datum), `${z.von}–${z.bis}`, z.kurs, z.art, z.status];
