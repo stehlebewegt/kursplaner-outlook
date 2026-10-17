@@ -111,13 +111,23 @@ export function planeTag(datum, termine, einstellungen) {
     });
 
   // Private Termine mit Fahrzeit (im Termin gespeichert): Hin- und Rückfahrt.
-  for (const t of privateMitFahrzeit(termine, e)) {
-    const titel = t.titel.trim();
-    const von = zuMinuten(t.start);
-    const bis = zuMinuten(t.ende);
-    const ort = { ort: t.ort };
-    neu(`Anfahrt - ${titel}`, von - t.fahrzeit, von, e.kategorieFahrt, ort);
-    neu(`Rückfahrt - ${titel}`, bis, bis + t.fahrzeit, e.kategorieFahrt, ort);
+  // Termine kurz hintereinander (z. B. ein Lehrgangstag mit vielen Einheiten)
+  // sind eine Fahrt: Anfahrt vor dem ersten, Rückfahrt nach dem letzten. Heim
+  // geht es dazwischen nur, wenn sich die Pause lohnt (wie bei Kursen).
+  const privat = privateMitFahrzeit(termine, e).sort((a, b) => (a.start < b.start ? -1 : 1));
+  const gruppen = [];
+  for (const t of privat) {
+    const g = gruppen[gruppen.length - 1];
+    const lohnt = g && zuMinuten(t.start) - g.bis >= Math.max(g.letzter.fahrzeit + t.fahrzeit, e.pauseHeimfahrtMin ?? 0);
+    if (g && !lohnt) {
+      if (zuMinuten(t.ende) >= g.bis) g.letzter = t;
+      g.bis = Math.max(g.bis, zuMinuten(t.ende));
+    } else gruppen.push({ erster: t, letzter: t, bis: zuMinuten(t.ende) });
+  }
+  for (const { erster, letzter, bis } of gruppen) {
+    const von = zuMinuten(erster.start);
+    neu(`Anfahrt - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort });
+    neu(`Rückfahrt - ${letzter.titel.trim()}`, bis, bis + letzter.fahrzeit, e.kategorieFahrt, { ort: letzter.ort });
   }
 
   bloecke.forEach((b, i) => {

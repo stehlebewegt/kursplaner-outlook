@@ -232,3 +232,10 @@ test("ohneFahrzeit: gleicher Titel an einem anderen Tag zählt nicht als Anfahrt
   ];
   assert.deepEqual(ohneFahrzeit(termine, einstellungen).map((x) => x.id), ["3"]);
 });
+
+test("Lehrgangstag: viele private Einheiten am Stück sind eine Fahrt", () => {
+  const d = "2026-10-02";
+  const p = (titel, von, bis) => ({ titel, start: `${d}T${von}`, ende: `${d}T${bis}`, kategorien: [], ort: "Albstadt", generiert: false, fahrzeit: 105 });
+  const termine = [p("Eröffnung", "13:45", "14:30"), p("World Cafe", "14:15", "15:00"), p("Abendessen", "18:00", "19:00"), p("Spiele", "19:45", "21:00")];
+  assert.deepEqual(kurz(planeTag(d, termine, einstellungen)), ["12:00-13:45 Anfahrt - Eröffnung", "21:00-22:45 Rückfahrt - Spiele"]);
+});
