@@ -52,7 +52,7 @@ export const einstellungen = {
   monatsbericht: {
     tag: 15,
     teilnehmer: false,
-    betreff: "Monatsauswertung {monat} – Michael Stehle",
+    betreff: "Monatsauswertung {monat} – Michael Stehle ({anbieter})",
     text:
       "Hallo zusammen,\n\n" +
       "ich hoffe, bei euch ist alles gut! Im Anhang findet ihr meine Monatsauswertung für {monat}, " +
