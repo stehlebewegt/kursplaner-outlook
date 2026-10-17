@@ -5,7 +5,7 @@
            xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
            xsi:type="MailApp">
   <Id>ddd0f0fb-1acd-40f0-8585-5d45455f2e6d</Id>
-  <Version>0.4.0.0</Version>
+  <Version>0.4.1.0</Version>
   <ProviderName>Michael Stehle</ProviderName>
   <DefaultLocale>de-DE</DefaultLocale>
   <DisplayName DefaultValue="Kursplaner"/>
@@ -148,6 +148,8 @@
       <Hosts>
         <Host xsi:type="MailHost">
           <DesktopFormFactor>
+            <!-- Auch in geteilten Postfächern (z. B. Zentrale) anzeigen; muss das erste Element sein -->
+            <SupportsSharedFolders>true</SupportsSharedFolders>
             <!-- Termine, die Michael selbst angelegt hat (auch die in den Anbieter-Kalendern) -->
             <ExtensionPoint xsi:type="AppointmentOrganizerCommandSurface">
               <OfficeTab id="TabDefault">
@@ -219,8 +221,6 @@
                 </Group>
               </OfficeTab>
             </ExtensionPoint>
-            <!-- Auch in geteilten Postfächern (z. B. Zentrale) anzeigen -->
-            <SupportsSharedFolders>true</SupportsSharedFolders>
           </DesktopFormFactor>
         </Host>
       </Hosts>
