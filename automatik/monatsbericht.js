@@ -33,12 +33,21 @@ export function anschreiben(kontakte, mb) {
 }
 
 // Sucht im Standard-Kontaktordner und in allen Unterordnern.
-async function holeKontakte(graph, kuerzel) {
+// weitere = zusätzliche Postfächer (z. B. gemeinsames Adressbuch), deren Kontakte mit durchsucht werden.
+async function holeKontakte(graph, kuerzel, weitere = []) {
   const filter = `$top=10&$select=givenName,displayName,emailAddresses&$filter=categories/any(c:c eq 'Monatsbericht ${kuerzel}')`;
+  const basen = ["", ...weitere.map((p) => `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(p)}`)];
   try {
-    const gefunden = (await graph("GET", `/contacts?${filter}`)).value;
-    const ordner = (await graph("GET", "/contactFolders?$top=50&$select=id")).value;
-    for (const o of ordner) gefunden.push(...(await graph("GET", `/contactFolders/${o.id}/contacts?${filter}`)).value);
+    const gefunden = [];
+    for (const b of basen) {
+      try {
+        gefunden.push(...(await graph("GET", `${b}/contacts?${filter}`)).value);
+        const ordner = (await graph("GET", `${b}/contactFolders?$top=50&$select=id`)).value;
+        for (const o of ordner) gefunden.push(...(await graph("GET", `${b}/contactFolders/${o.id}/contacts?${filter}`)).value);
+      } catch (e) {
+        if (!b || !/ 404 /.test(e.message)) throw e; // unbekanntes Zusatzpostfach überspringen
+      }
+    }
     const gesehen = new Set();
     return gefunden.filter((k) => {
       const m = k.emailAddresses?.[0]?.address?.toLowerCase();
@@ -53,7 +62,7 @@ async function holeKontakte(graph, kuerzel) {
 const fuelle = (vorlage, werte) => vorlage.replace(/\{(\w+)\}/g, (_, k) => werte[k] ?? "");
 
 // probe = "JJJJ-MM": sofort für diesen Monat, Betreff mit "PROBE", zählt nicht als erledigt.
-export async function monatsberichte({ graph, holeBereich, rechne, einstellungen, heute, jetzt, probe, ausgabe }) {
+export async function monatsberichte({ graph, holeBereich, rechne, einstellungen, heute, jetzt, probe, ausgabe, kontaktPostfaecher = [] }) {
   const mb = einstellungen.monatsbericht;
   if (!probe && Number(heute.slice(8, 10)) !== mb.tag) return;
   const monat = probe || vormonat(heute);
@@ -90,7 +99,7 @@ export async function monatsberichte({ graph, holeBereich, rechne, einstellungen
       continue;
     }
     const pdf = erstellePdf(a, anbieter, zeitraum, jetzt, { teilnehmer: mb.teilnehmer, jsPDF });
-    const kontakte = await holeKontakte(graph, anbieter.kuerzel);
+    const kontakte = await holeKontakte(graph, anbieter.kuerzel, kontaktPostfaecher);
     const { an, anrede, vorlage } = anschreiben(kontakte || [], mb);
     const werte = { monat: zeitraum.name, anbieter: anbieter.name, anrede };
     await graph("POST", "/messages", {

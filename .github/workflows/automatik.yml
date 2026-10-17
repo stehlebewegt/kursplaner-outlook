@@ -37,5 +37,6 @@ jobs:
           KURSPLANER_SECRET: ${{ secrets.KURSPLANER_SECRET }}
           KURSPLANER_POSTFACH: ${{ secrets.KURSPLANER_POSTFACH }}
           KURSPLANER_HEIMADRESSE: ${{ secrets.KURSPLANER_HEIMADRESSE }}
+          KURSPLANER_KONTAKTE: ${{ secrets.KURSPLANER_KONTAKTE }}
           SCHREIBEN: ${{ vars.SCHREIBEN }}
           MONATSBERICHT_PROBE: ${{ inputs.monatsbericht_probe }}

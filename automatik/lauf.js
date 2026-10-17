@@ -5,6 +5,7 @@
 // Umgebungsvariablen (als GitHub-Secrets hinterlegt, nie ins Repo):
 //   KURSPLANER_SECRET   Geheimer Clientschlüssel der Entra-App
 //   KURSPLANER_POSTFACH E-Mail-Adresse des Kalenders
+//   KURSPLANER_KONTAKTE weitere Postfächer mit Kontakten, kommagetrennt (optional)
 //   SCHREIBEN=1         Änderungen wirklich ausführen (sonst nur anzeigen)
 //   TAGE                wie viele Tage ab heute (Standard 56 = 8 Wochen)
 //
@@ -229,6 +230,7 @@ try {
     jetzt: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16),
     probe: process.env.MONATSBERICHT_PROBE || "",
     ausgabe,
+    kontaktPostfaecher: (process.env.KURSPLANER_KONTAKTE || "").split(",").map((p) => p.trim()).filter(Boolean),
   });
 } catch (e) {
   ausgabe(/ 403 /.test(e.message) ? "Monatsbericht: Mail-Berechtigung (Mail.ReadWrite) fehlt noch" : `Monatsbericht fehlgeschlagen: ${e.message.slice(0, 120)}`);
