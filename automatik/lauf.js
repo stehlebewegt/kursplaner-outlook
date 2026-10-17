@@ -68,6 +68,12 @@ async function graph(methode, pfad, body, versuch = 0) {
   return antwort.status === 204 ? null : antwort.json();
 }
 
+function adresseVon(l) {
+  const a = l?.address || {};
+  const teile = [a.street, [a.postalCode, a.city].filter(Boolean).join(" "), a.countryOrRegion].map((x) => (x || "").trim()).filter(Boolean);
+  return a.street || a.city ? teile.join(", ") : l?.displayName || "";
+}
+
 function zuTermin(e) {
   const props = e.singleValueExtendedProperties || [];
   const prop = props.find((p) => p.id === MARKIERUNG);
@@ -82,6 +88,9 @@ function zuTermin(e) {
     ende: e.end.dateTime.slice(0, 16),
     kategorien: e.categories || [],
     ort: e.location?.displayName || "",
+    // Für die Routenberechnung lieber die hinterlegte Adresse als den Anzeigenamen
+    // (z. B. "Parkplatz kostenloser Teil" mit Adresse Bleichestraße 15, Bad Waldsee).
+    adresse: adresseVon(e.location),
     showAs: e.showAs,
     generiert: prop?.value === "1",
     fahrzeit,
@@ -208,13 +217,13 @@ const heimadresse = process.env.KURSPLANER_HEIMADRESSE;
 const rechne = heimadresse ? routenRechner({ heimadresse }) : null;
 if (heimadresse) {
   const offen = ohneFahrzeit(await api.holeBereich(tage[0], tage[tage.length - 1]), einstellungen)
-    .filter((t) => hatAdresse(t.ort))
+    .filter((t) => hatAdresse(t.adresse))
     .slice(0, 20);
   const berechnet = [];
   for (const t of offen) {
     let minuten;
     try {
-      minuten = await rechne(t.ort);
+      minuten = await rechne(t.adresse);
     } catch {
       continue; // Netz-Problem: beim nächsten Lauf nochmal
     }
@@ -226,7 +235,7 @@ if (heimadresse) {
   ausgabe(`Fahrzeiten berechnet: ${berechnet.length} [${berechnet.join(", ")}]`);
   // Überblick: private Termine mit Adresse und ihr Fahrzeit-Stand (ohne Titel).
   const privat = (await api.holeBereich(tage[0], tage[6])).filter(
-    (t) => !t.generiert && hatAdresse(t.ort) && !kursAnbieter(t, einstellungen)
+    (t) => !t.generiert && hatAdresse(t.adresse) && !kursAnbieter(t, einstellungen)
   );
   ausgabe(`Private Termine (7 Tage): ${privat.map((t) => `${tagZeit(t)}=${t.fahrzeit}`).join(", ")}`);
 }
