@@ -48,7 +48,7 @@ export const einstellungen = {
   // Erinnerung (Minuten) vor Anfahrten und Fahrten zwischen Anbietern; 0 = aus.
   erinnerungVorFahrtMin: 10,
   // Ferien-Kürzel (F) automatisch setzen; false = nur anzeigen (Probelauf).
-  ferienAutomatisch: false,
+  ferienAutomatisch: true,
   // Entwürfe für Michael (nichts wird gesendet): morgens Hinweise zu fehlenden
   // Kursprotokollen und Überschneidungen, sonntags die Wochenvorschau.
   hinweise: { morgensAb: 6, protokollTage: 7, ueberschneidungTage: 14, wocheAb: 18 },
