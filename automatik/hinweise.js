@@ -2,7 +2,7 @@
 // sonntagabends die Wochenvorschau. Jeder Entwurf entsteht nur einmal (Kennung
 // am Entwurf). Gesendet wird nichts. Die öffentliche Ausgabe enthält nur Zahlen.
 import { BERICHT } from "./monatsbericht.js";
-import { fehlendeProtokolle, ueberschneidungen, hinweisText, wochenText, plusTage } from "../src/hinweise.js";
+import { fehlendeProtokolle, ueberschneidungen, hinweisHtml, wochenHtml, plusTage } from "../src/hinweise.js";
 
 async function schonDa(graph, kennung) {
   const da = await graph(
@@ -12,10 +12,10 @@ async function schonDa(graph, kennung) {
   return da.value.length > 0;
 }
 
-const entwurf = (graph, kennung, betreff, text) =>
+const entwurf = (graph, kennung, betreff, html) =>
   graph("POST", "/messages", {
     subject: betreff,
-    body: { contentType: "text", content: text },
+    body: { contentType: "html", content: html },
     singleValueExtendedProperties: [{ id: BERICHT, value: kennung }],
   });
 
@@ -47,7 +47,7 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
           graph,
           kennung,
           `${erzwingen ? "PROBE: " : ""}Kursplaner: ${protokolle.length + paare.length} Hinweise`,
-          `${hinweisText({ protokolle, paare })}\n\nDiese Mail ist nur ein Entwurf für dich und kann gelöscht werden.`
+          hinweisHtml({ protokolle, paare })
         );
       }
       ausgabe(`Hinweise ${heute}: ${protokolle.length} Protokolle fehlen, ${paare.length} Überschneidungen`);
@@ -65,7 +65,7 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
         graph,
         kennung,
         `${erzwingen ? "PROBE: " : ""}Kursplaner: Woche ab ${montag.slice(8, 10)}.${montag.slice(5, 7)}.`,
-        `${wochenText(termine, montag, einstellungen)}\n\nDiese Mail ist nur ein Entwurf für dich und kann gelöscht werden.`
+        wochenHtml(termine, montag, einstellungen)
       );
       ausgabe(`Wochenvorschau ab ${montag}: Entwurf angelegt`);
     }

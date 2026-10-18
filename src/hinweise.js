@@ -30,52 +30,91 @@ export function ueberschneidungen(termine, einstellungen) {
   return paare;
 }
 
-export function hinweisText({ protokolle, paare }) {
-  const teile = [];
+// --- Darstellung als HTML-Mail (Outlook braucht Tabellen und Inline-Styles) ---
+const esc = (x) => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const SCHRIFT = "font-family:Segoe UI,Arial,sans-serif;color:#263238;";
+const rahmen = (titel, unter, inhalt) =>
+  `<div style="${SCHRIFT}max-width:640px">` +
+  `<div style="background:#2f3d44;color:#fff;padding:14px 18px;border-radius:10px 10px 0 0">` +
+  `<div style="font-size:19px;font-weight:700">${esc(titel)}</div>` +
+  (unter ? `<div style="font-size:13px;opacity:.85;margin-top:2px">${esc(unter)}</div>` : "") +
+  `</div><div style="border:1px solid #dfe3e6;border-top:0;border-radius:0 0 10px 10px;padding:6px 18px 14px">${inhalt}</div>` +
+  `<div style="font-size:11px;color:#8a949a;margin-top:8px">Nur ein Entwurf für dich, wird nicht gesendet. Kann gelöscht werden.</div></div>`;
+const abschnitt = (titel, farbe) =>
+  `<div style="font-size:15px;font-weight:700;color:${farbe};border-bottom:2px solid ${farbe};padding:12px 0 4px;margin-bottom:6px">${esc(titel)}</div>`;
+const zeile = (links, mitte, rechts = "", grau = false) =>
+  `<tr style="${grau ? "color:#8a949a;" : ""}"><td style="padding:4px 12px 4px 0;width:120px;white-space:nowrap;font-size:13px;color:#5b6770;vertical-align:top">${links}</td>` +
+  `<td style="padding:4px 8px 4px 0;font-size:14px">${mitte}</td><td style="padding:4px 0;text-align:right;white-space:nowrap">${rechts}</td></tr>`;
+const tabelle = (zeilen) => `<table style="border-collapse:collapse;width:100%">${zeilen.join("")}</table>`;
+const marke = (text, hinter, vorne) =>
+  `<span style="display:inline-block;background:${hinter};color:${vorne};font-size:11px;font-weight:700;border-radius:9px;padding:1px 8px">${esc(text)}</span>`;
+const ANBIETER_FARBE = { SVE: ["#e6f0ec", "#2f6b56"], PTM: ["#e6eef6", "#2f5d7c"] };
+const tagDe = (d) => `${wochentag(d)} ${datumDe(d)}`;
+
+export function hinweisHtml({ protokolle, paare }) {
+  let inhalt = "";
   if (protokolle.length)
-    teile.push(
-      "Kursprotokoll fehlt noch (Anwesende nicht eingetragen):\n" +
-        protokolle.map((t) => `- ${wochentag(t.start.slice(0, 10))} ${datumDe(t.start)} ${zeit(t)}  ${t.titel.trim()}`).join("\n")
-    );
+    inhalt +=
+      abschnitt(`Kursprotokoll fehlt noch (${protokolle.length})`, "#a0612b") +
+      tabelle(protokolle.map((t) => zeile(`${tagDe(t.start.slice(0, 10))} ${t.start.slice(11, 16)}`, esc(t.titel.trim()), marke("Anwesende fehlen", "#faf0e1", "#8a5a1c"))));
   if (paare.length)
-    teile.push(
-      "Überschneidungen mit Kursen oder Fahrten:\n" +
-        paare
-          .map(([p, a]) => `- ${wochentag(p.start.slice(0, 10))} ${datumDe(p.start)}: ${p.titel.trim()} (${zeit(p)}) mit ${a.titel.trim()} (${zeit(a)})`)
-          .join("\n")
-    );
-  return teile.join("\n\n");
+    inhalt +=
+      abschnitt(`Überschneidungen (${paare.length})`, "#b23b3b") +
+      tabelle(paare.map(([p, a]) => zeile(tagDe(p.start.slice(0, 10)), `<b>${esc(p.titel.trim())}</b> ${zeit(p)}<br><span style="color:#5b6770">mit ${esc(a.titel.trim())} ${zeit(a)}</span>`)));
+  const anzahl = protokolle.length + paare.length;
+  return rahmen(`${anzahl} ${anzahl === 1 ? "Hinweis" : "Hinweise"} aus dem Kursplaner`, "", inhalt);
 }
 
-// Überblick über eine Woche (montag = "JJJJ-MM-TT").
-export function wochenText(termine, montag, einstellungen) {
+// Daten einer Woche (montag = "JJJJ-MM-TT"): pro Tag Kurse, Termine, Fahrzeit.
+export function wochenDaten(termine, montag, einstellungen) {
   const fahrt = einstellungen.kategorieFahrt;
-  const zeilen = [];
-  let kurseSumme = 0;
-  let fahrMin = 0;
+  const tage = [];
   for (let i = 0; i < 7; i++) {
     const d = plusTage(montag, i);
     const amTag = termine.filter((t) => t.start.slice(0, 10) === d).sort((a, b) => (a.start < b.start ? -1 : 1));
-    const kurse = amTag.filter((t) => !t.generiert && kursAnbieter(t, einstellungen));
-    const privat = amTag.filter((t) => !t.generiert && !kursAnbieter(t, einstellungen) && t.showAs !== "free");
     const fahrten = amTag.filter((t) => t.generiert && (t.kategorien || []).includes(fahrt));
-    const min = fahrten.reduce((s, t) => s + (Date.parse(t.ende) - Date.parse(t.start)) / 60000, 0);
-    fahrMin += min;
-    zeilen.push(`${wochentag(d)} ${datumDe(d)}`);
-    if (!kurse.length && !privat.length) {
-      zeilen.push("  frei");
+    tage.push({
+      datum: d,
+      kurse: amTag
+        .filter((t) => !t.generiert && kursAnbieter(t, einstellungen))
+        .map((t) => {
+          const kz = leseKuerzel(t.titel);
+          const bed = einstellungen.kuerzel[kz];
+          return { t, anbieter: kursAnbieter(t, einstellungen).kuerzel, aktiv: !!bed?.aktiv, zusatz: kz ? bed?.bedeutung || kz : "" };
+        }),
+      privat: amTag.filter((t) => !t.generiert && !kursAnbieter(t, einstellungen) && t.showAs !== "free"),
+      fahrten: fahrten.length,
+      fahrMin: fahrten.reduce((s, t) => s + (Date.parse(t.ende) - Date.parse(t.start)) / 60000, 0),
+    });
+  }
+  return {
+    tage,
+    kurse: tage.reduce((s, x) => s + x.kurse.filter((k) => k.aktiv).length, 0),
+    fahrStd: Math.round((tage.reduce((s, x) => s + x.fahrMin, 0) / 60) * 10) / 10,
+  };
+}
+
+export function wochenHtml(termine, montag, einstellungen) {
+  const w = wochenDaten(termine, montag, einstellungen);
+  let inhalt = "";
+  for (const tag of w.tage) {
+    const frei = !tag.kurse.length && !tag.privat.length;
+    inhalt += abschnitt(tagDe(tag.datum), frei ? "#9aa4a9" : "#35505a");
+    if (frei) {
+      inhalt += `<div style="font-size:13px;color:#8a949a;padding:2px 0 4px">frei</div>`;
       continue;
     }
-    for (const k of kurse) {
-      const kz = leseKuerzel(k.titel);
-      const bed = einstellungen.kuerzel[kz];
-      if (bed?.aktiv) kurseSumme++;
-      const zusatz = kz && kz !== "" ? ` [${bed?.bedeutung || kz}]` : "";
-      zeilen.push(`  ${zeit(k)}  ${ohneKuerzel(k.titel)} (${kursAnbieter(k, einstellungen).kuerzel})${zusatz}`);
-    }
-    for (const p of privat) zeilen.push(`  ${zeit(p)}  ${p.titel.trim()}`);
-    if (fahrten.length) zeilen.push(`  Fahrzeit: ${Math.round(min)} Min. (${fahrten.length} Fahrten)`);
+    const z = [
+      ...tag.kurse.map(({ t, anbieter, aktiv, zusatz }) => {
+        const [h, v] = ANBIETER_FARBE[anbieter] || ["#eceff1", "#37474f"];
+        const titel = aktiv ? esc(ohneKuerzel(t.titel)) : `<s>${esc(ohneKuerzel(t.titel))}</s>`;
+        return zeile(zeit(t), titel, marke(anbieter, h, v) + (zusatz ? " " + marke(zusatz, "#f3e7d3", "#8a5a1c") : ""), !aktiv);
+      }),
+      ...tag.privat.map((t) => zeile(zeit(t), esc(t.titel.trim()), marke("privat", "#eceff1", "#5b6770"))),
+    ];
+    if (tag.fahrten) z.push(zeile("", `<span style="color:#5b6770;font-size:13px">🚗 ${Math.round(tag.fahrMin)} Min. Fahrzeit (${tag.fahrten} ${tag.fahrten === 1 ? "Fahrt" : "Fahrten"})</span>`));
+    inhalt += tabelle(z);
   }
-  const kopf = `Diese Woche: ${kurseSumme} Kurse, ${Math.round((fahrMin / 60) * 10) / 10} Std. Fahrzeit.`;
-  return `${kopf}\n\n${zeilen.join("\n")}`;
+  const bis = plusTage(montag, 6);
+  return rahmen(`Deine Woche ab ${tagDe(montag)}`, `${w.kurse} Kurse · ${String(w.fahrStd).replace(".", ",")} Std. Fahrzeit · bis ${tagDe(bis)}`, inhalt);
 }

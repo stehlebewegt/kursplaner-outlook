@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fehlendeProtokolle, ueberschneidungen, hinweisText, wochenText } from "../src/hinweise.js";
+import { fehlendeProtokolle, ueberschneidungen, hinweisHtml, wochenDaten, wochenHtml } from "../src/hinweise.js";
 import { einstellungen } from "../src/einstellungen.js";
 
 const kurs = (titel, start, ende, text = "") => ({ id: titel, titel, start, ende, kategorien: ["10 SVE: RehaSport"], generiert: false, text });
@@ -26,7 +26,9 @@ test("Überschneidung: privater Termin mitten in Kurs oder Fahrt", () => {
   ];
   const paare = ueberschneidungen(termine, einstellungen);
   assert.deepEqual(paare.map(([p, a]) => `${p.titel}|${a.titel}`), ["Zahnarzt|Anfahrt - RehaSport (Michael)"]);
-  assert.match(hinweisText({ protokolle: [], paare }), /Di 20\.10\.: Zahnarzt \(08:00–08:20\) mit Anfahrt/);
+  const html = hinweisHtml({ protokolle: [], paare });
+  assert.match(html, /1 Hinweis aus dem Kursplaner/);
+  assert.match(html, /<b>Zahnarzt<\/b> 08:00–08:20<br><span[^>]*>mit Anfahrt - RehaSport \(Michael\) 08:10–08:30/);
 });
 
 test("Wochenvorschau listet Kurse, Termine und Fahrzeit", () => {
@@ -35,9 +37,13 @@ test("Wochenvorschau listet Kurse, Termine und Fahrzeit", () => {
     kurs("(U) RehaSport (Michael)", "2026-10-20T08:45", "2026-10-20T09:30"),
     { titel: "Anfahrt - RehaSport (Michael)", start: "2026-10-19T08:10", ende: "2026-10-19T08:30", kategorien: [einstellungen.kategorieFahrt], generiert: true },
   ];
-  const text = wochenText(termine, "2026-10-19", einstellungen);
-  assert.match(text, /^Diese Woche: 1 Kurse, 0.3 Std. Fahrzeit./);
-  assert.match(text, /Mo 19\.10\.\n  08:45–09:30  RehaSport \(Michael\) \(SVE\)\n  Fahrzeit: 20 Min\. \(1 Fahrten\)/);
-  assert.match(text, /Di 20\.10\.\n  08:45–09:30  RehaSport \(Michael\) \(SVE\) \[Urlaub\]/);
-  assert.match(text, /So 25\.10\.\n  frei/);
+  const w = wochenDaten(termine, "2026-10-19", einstellungen);
+  assert.equal(w.kurse, 1);
+  assert.equal(w.fahrStd, 0.3);
+  assert.deepEqual(w.tage[1].kurse.map((k) => [k.aktiv, k.zusatz]), [[false, "Urlaub"]]);
+  const html = wochenHtml(termine, "2026-10-19", einstellungen);
+  assert.match(html, /Deine Woche ab Mo 19\.10\./);
+  assert.match(html, /1 Kurse · 0,3 Std\. Fahrzeit/);
+  assert.match(html, /<s>RehaSport \(Michael\)<\/s>/);
+  assert.match(html, /🚗 20 Min\. Fahrzeit \(1 Fahrt\)/);
 });
