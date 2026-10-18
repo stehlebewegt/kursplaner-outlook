@@ -5,6 +5,7 @@ import { findeAnbieter, ohneKuerzel } from "../src/planer.js";
 import { FELDER, leseProtokoll, schreibeProtokoll, gesamt, auswertungVerlauf, teileMaterial } from "../src/protokoll.js";
 import { erstelleAuswertung, monatsZeitraum } from "../src/auswertung.js";
 import { erstellePdf } from "./bericht.js";
+import { pruefeKurs, kursEreignis, kursTitel, anzahlTermine } from "../src/neuerKurs.js";
 import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel, setzeFahrzeit } from "../src/aktionen.js";
 
 const $ = (id) => document.getElementById(id);
@@ -81,10 +82,11 @@ async function start() {
   const item = Office.context.mailbox.item;
   // Ohne Termin (z. B. aus einer E-Mail geöffnet): nur die Monatsauswertung.
   if (item?.itemType !== Office.MailboxEnums.ItemType.Appointment) {
-    $("info").textContent = "Für die Monatsauswertung brauchst du keinen Termin.";
+    $("info").textContent = "Für die Monatsauswertung und neue Kurse brauchst du keinen Termin.";
     $("bereich-auswertung").hidden = false;
     $("bereich-auswertung").open = true;
     richteAuswertungEin();
+    richteNeuerKursEin();
     return;
   }
   const ewsId = await eigeneId(item);
@@ -103,6 +105,7 @@ async function start() {
   $("bereich-planen").hidden = false;
   $("bereich-auswertung").hidden = false;
   richteAuswertungEin();
+  richteNeuerKursEin();
   if (!$("bereich-eigen").hidden) await zeigeProtokoll();
 
   $("ich-gebe").onclick = () => uebernehme(false);
@@ -310,6 +313,117 @@ function richteAuswertungEin() {
       } catch {
         /* dann eben aus den Entwürfen öffnen */
       }
+    });
+}
+
+// --- Neuer Kurs: im Anbieter-Kalender anlegen, einmalig oder jede Woche ---
+function richteNeuerKursEin() {
+  $("bereich-neu").hidden = false;
+  const heute = jetztLokal().slice(0, 10);
+  const anbieterVon = () => einstellungen.anbieter.find((a) => a.kuerzel === $("n-anbieter").value);
+  $("n-anbieter").innerHTML = einstellungen.anbieter.map((a) => `<option value="${a.kuerzel}">${html(a.name)}</option>`).join("");
+  const offen = termin && findeAnbieter(termin, einstellungen);
+  if (offen) $("n-anbieter").value = offen.kuerzel;
+  $("n-datum").value = heute;
+
+  // Vorschläge aus den nächsten Wochen im Anbieter-Kalender: Kursnamen,
+  // Kursleitungen und die übliche Dauer eines Kurses.
+  let dauer = {};
+  const ladeVorschlaege = async () => {
+    const a = anbieterVon();
+    $("n-kategorie").innerHTML = a.kategorien.map((k) => `<option>${html(k)}</option>`).join("");
+    $("n-ort").value = a.ort;
+    try {
+      const bis = new Date(Date.parse(`${heute}T12:00:00Z`) + 28 * 86400000).toISOString().slice(0, 10);
+      const kurse = await api.holeKursTitel(a.kalender, heute, bis);
+      const teile = kurse.map((k) => k.titel.match(/^(?:\([A-Z]\)\s*)?(.*?)\s*\(([^)]+)\)\s*$/)).filter(Boolean);
+      const sortiert = (liste) => [...new Set(liste)].sort((x, y) => x.localeCompare(y, "de"));
+      $("n-namen").innerHTML = sortiert(teile.map((m) => m[1])).map((n) => `<option value="${html(n)}">`).join("");
+      $("n-leitungen").innerHTML = sortiert(teile.map((m) => m[2])).map((n) => `<option value="${html(n)}">`).join("");
+      dauer = {};
+      kurse.forEach((k) => {
+        const m = k.titel.match(/^(?:\([A-Z]\)\s*)?(.*?)\s*\(/);
+        if (m) dauer[m[1]] ??= (Date.parse(k.ende) - Date.parse(k.start)) / 60000;
+      });
+    } catch {
+      /* ohne Vorschläge geht es auch */
+    }
+  };
+  ladeVorschlaege();
+  $("n-anbieter").onchange = () => {
+    ladeVorschlaege();
+    $("n-anlegen").hidden = true;
+  };
+  // Beginn gesetzt und Ende leer: übliche Dauer dieses Kurses (sonst 45 Min.) vorschlagen.
+  const endeVorschlagen = () => {
+    if (!$("n-beginn").value || $("n-ende").dataset.vonHand) return;
+    const [h, m] = $("n-beginn").value.split(":").map(Number);
+    const ende = h * 60 + m + (dauer[$("n-name").value.trim()] || 45);
+    $("n-ende").value = `${String(Math.floor(ende / 60) % 24).padStart(2, "0")}:${String(ende % 60).padStart(2, "0")}`;
+  };
+  $("n-beginn").oninput = endeVorschlagen;
+  $("n-name").onchange = endeVorschlagen;
+  $("n-ende").oninput = () => ($("n-ende").dataset.vonHand = "1");
+  $("n-serie").onchange = () => ($("n-bis-feld").hidden = !$("n-serie").checked);
+  document.querySelectorAll("#bereich-neu input, #bereich-neu select").forEach((f) =>
+    f.addEventListener("input", () => ($("n-anlegen").hidden = true))
+  );
+
+  const formular = () => ({
+    anbieter: anbieterVon(),
+    kategorie: $("n-kategorie").value,
+    name: $("n-name").value,
+    leitung: $("n-leitung").value,
+    datum: $("n-datum").value,
+    beginn: $("n-beginn").value,
+    ende: $("n-ende").value,
+    ort: $("n-ort").value,
+    serie: $("n-serie").checked,
+    bis: $("n-serie").checked ? $("n-bis").value : "",
+    zeitzone: config.zeitzone,
+  });
+  const tagDe = (d) => d.split("-").reverse().join(".");
+  const meiner = (f) => f.leitung.trim().toLowerCase() === einstellungen.dauerkurse.kursleitung.toLowerCase();
+
+  $("n-pruefen").onclick = () =>
+    mitWarten($("n-pruefen"), async () => {
+      const f = formular();
+      const fehler = pruefeKurs(f);
+      if (fehler.length) {
+        $("n-hinweis").innerHTML = `<span class="fehler">${fehler.map(html).join("<br>")}</span>`;
+        $("n-anlegen").hidden = true;
+        return;
+      }
+      // Gibt es den Kurs am ersten Tag schon?
+      const amTag = await api.holeKursTitel(f.anbieter.kalender, f.datum, f.datum);
+      const doppelt = amTag.find((k) => k.titel.trim() === kursTitel(f) && k.start === `${f.datum}T${f.beginn}`);
+      const n = anzahlTermine(f);
+      const wie = !f.serie
+        ? `einmalig am ${tagDe(f.datum)}`
+        : `jeden ${new Date(`${f.datum}T12:00:00Z`).toLocaleDateString("de-DE", { weekday: "long", timeZone: "UTC" })} ab ${tagDe(f.datum)}` +
+          (f.bis ? ` bis ${tagDe(f.bis)} (${n} Termine)` : ", ohne Ende");
+      $("n-hinweis").innerHTML =
+        `<strong>${html(kursTitel(f))}</strong><br>${f.beginn}–${f.ende} Uhr, ${html(wie)}<br>` +
+        `Kalender: ${html(f.anbieter.kalender)} · ${html(f.kategorie)}<br>` +
+        (meiner(f)
+          ? "Du bist Kursleitung: Die Termine kommen danach automatisch in deinen Kalender, mit Fahrten und Vor-/Nachbereitung."
+          : "Nur im Anbieter-Kalender. Mit „Ich gebe diesen Kurs“ holst du einzelne Termine später in deinen Kalender.") +
+        (doppelt ? `<br><span class="fehler">Achtung: Diesen Kurs gibt es am ${tagDe(f.datum)} um ${f.beginn} schon.</span>` : "");
+      $("n-anlegen").hidden = false;
+    });
+
+  $("n-anlegen").onclick = () =>
+    mitWarten($("n-anlegen"), async () => {
+      const f = formular();
+      if (pruefeKurs(f).length) return;
+      await api.legeKursAn(f.anbieter.kalender, kursEreignis(f));
+      $("n-anlegen").hidden = true;
+      $("n-hinweis").innerHTML = "";
+      zeige(
+        `<div class="karte"><strong>Kurs angelegt</strong><div>${html(kursTitel(f))} im Kalender „${html(f.anbieter.kalender)}“.</div>` +
+          (meiner(f) ? `<div class="leise">In ein paar Minuten steht er auch in deinem Kalender (die nächsten 8 Wochen, danach rollend).</div>` : "") +
+          `</div>`
+      );
     });
 }
 

@@ -147,6 +147,34 @@
     </div>
   </details>
 
+  <details id="bereich-neu" class="karte" hidden>
+    <summary>Neuer Kurs</summary>
+    <div class="inhalt">
+    <div class="reihe">
+      <div><label for="n-anbieter">Anbieter</label><select id="n-anbieter"></select></div>
+      <div><label for="n-kategorie">Kategorie</label><select id="n-kategorie"></select></div>
+    </div>
+    <label for="n-name">Kursname</label>
+    <input id="n-name" list="n-namen" placeholder="z. B. RehaSport / FLEX">
+    <datalist id="n-namen"></datalist>
+    <label for="n-leitung">Kursleitung</label>
+    <input id="n-leitung" list="n-leitungen" value="Michael">
+    <datalist id="n-leitungen"></datalist>
+    <label for="n-datum">Erster Termin</label>
+    <input id="n-datum" type="date">
+    <div class="reihe">
+      <div><label for="n-beginn">Beginn</label><input id="n-beginn" type="time" step="300"></div>
+      <div><label for="n-ende">Ende</label><input id="n-ende" type="time" step="300"></div>
+    </div>
+    <label for="n-ort">Ort</label>
+    <input id="n-ort">
+    <label class="haken-zeile"><input id="n-serie" type="checkbox"> Jede Woche (Serie)</label>
+    <div id="n-bis-feld" hidden><label for="n-bis">Bis (leer = ohne Ende)</label><input id="n-bis" type="date"></div>
+    <div id="n-hinweis" class="leise"></div>
+    <button id="n-pruefen" class="zweit">Prüfen</button>
+    <button id="n-anlegen" hidden>Kurs anlegen</button>
+    </div>
+  </details>
   <div id="ergebnis"></div>
   <script type="module" src="web/taskpane.js"></script>
 </body>

@@ -187,3 +187,26 @@ export async function aendere(id, felder) {
 export async function loesche(id) {
   await graph("DELETE", `/me/events/${id}`);
 }
+
+// --- Neuer Kurs im Anbieter-Kalender ---
+async function anbieterKalender(name) {
+  kalenderListe ??= (await graph("GET", "/me/calendars?$select=id,name,isDefaultCalendar&$top=50")).value;
+  const k = kalenderListe.find((k) => k.name === name);
+  if (!k) throw new Error(`Den Kalender „${name}“ gibt es nicht.`);
+  return k;
+}
+
+// Titel der nächsten Wochen im Anbieter-Kalender, als Vorschläge fürs Formular.
+export async function holeKursTitel(kalenderName, von, bis) {
+  const k = await anbieterKalender(kalenderName);
+  const { value } = await graph(
+    "GET",
+    `/me/calendars/${k.id}/calendarView?startDateTime=${von}T00:00:00&endDateTime=${bis}T23:59:59&$select=subject,start,end&$top=300`
+  );
+  return value.map((e) => ({ titel: e.subject || "", start: e.start.dateTime.slice(0, 16), ende: e.end.dateTime.slice(0, 16) }));
+}
+
+export async function legeKursAn(kalenderName, ereignis) {
+  const k = await anbieterKalender(kalenderName);
+  return graph("POST", `/me/calendars/${k.id}/events`, ereignis);
+}
