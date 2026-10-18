@@ -40,8 +40,9 @@ export const einstellungen = {
   // Michael bleibt über Nacht, also keine Rückfahrt abends, wenn am nächsten
   // Tag wieder so ein Termin ist, und keine Anfahrt morgens nach so einem Tag.
   kategorieUebernachtung: "Übernachtung",
-  // Schon vorhandene Fahrt-Blöcke bekommen den Google-Maps-Link nachträglich.
-  routenLinkNachtragen: false,
+  // Schon vorhandene Fahrt-Blöcke bekommen den Google-Maps-Link nachträglich
+  // (Michael hat am 18.10.2026 zugestimmt).
+  routenLinkNachtragen: true,
   // Fahrten mit dieser Kategorie kommen nicht in den Monatsbericht.
   kategorieNichtAbrechenbar: "Fahrtkosten nicht abrechenbar",
   // Material zum Anhaken im Kursprotokoll. Was im Protokoll neu dazukommt,
