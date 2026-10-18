@@ -381,7 +381,10 @@ function richteNeuerKursEin() {
     serie: $("n-serie").checked,
     bis: $("n-serie").checked ? $("n-bis").value : "",
     zeitzone: config.zeitzone,
+    nurEigen: $("n-wohin").value === "eigen",
   });
+  const zielKalender = (f) => (f.nurEigen ? null : f.anbieter.kalender);
+  const zielName = (f) => (f.nurEigen ? "deinem Kalender" : `„${f.anbieter.kalender}“`);
   const tagDe = (d) => d.split("-").reverse().join(".");
   const meiner = (f) => f.leitung.trim().toLowerCase() === einstellungen.dauerkurse.kursleitung.toLowerCase();
 
@@ -395,7 +398,7 @@ function richteNeuerKursEin() {
         return;
       }
       // Gibt es den Kurs am ersten Tag schon?
-      const amTag = await api.holeKursTitel(f.anbieter.kalender, f.datum, f.datum);
+      const amTag = await api.holeKursTitel(zielKalender(f), f.datum, f.datum);
       const doppelt = amTag.find((k) => k.titel.trim() === kursTitel(f) && k.start === `${f.datum}T${f.beginn}`);
       const n = anzahlTermine(f);
       const wie = !f.serie
@@ -404,8 +407,10 @@ function richteNeuerKursEin() {
           (f.bis ? ` bis ${tagDe(f.bis)} (${n} Termine)` : ", ohne Ende");
       $("n-hinweis").innerHTML =
         `<strong>${html(kursTitel(f))}</strong><br>${f.beginn}–${f.ende} Uhr, ${html(wie)}<br>` +
-        `Kalender: ${html(f.anbieter.kalender)} · ${html(f.kategorie)}<br>` +
-        (meiner(f)
+        `Kommt in ${html(zielName(f))} · ${html(f.kategorie)}<br>` +
+        (f.nurEigen
+          ? "Nur in deinem Kalender, der Anbieter-Kalender bleibt unverändert. Fahrten und Vor-/Nachbereitung kommen automatisch dazu."
+          : meiner(f)
           ? "Du bist Kursleitung: Die Termine kommen danach automatisch in deinen Kalender, mit Fahrten und Vor-/Nachbereitung."
           : "Nur im Anbieter-Kalender. Mit „Ich gebe diesen Kurs“ holst du einzelne Termine später in deinen Kalender.") +
         (doppelt ? `<br><span class="fehler">Achtung: Diesen Kurs gibt es am ${tagDe(f.datum)} um ${f.beginn} schon.</span>` : "");
@@ -416,12 +421,14 @@ function richteNeuerKursEin() {
     mitWarten($("n-anlegen"), async () => {
       const f = formular();
       if (pruefeKurs(f).length) return;
-      await api.legeKursAn(f.anbieter.kalender, kursEreignis(f));
+      await api.legeKursAn(zielKalender(f), kursEreignis(f));
       $("n-anlegen").hidden = true;
       $("n-hinweis").innerHTML = "";
       zeige(
-        `<div class="karte"><strong>Kurs angelegt</strong><div>${html(kursTitel(f))} im Kalender „${html(f.anbieter.kalender)}“.</div>` +
-          (meiner(f) ? `<div class="leise">In ein paar Minuten steht er auch in deinem Kalender (die nächsten 8 Wochen, danach rollend).</div>` : "") +
+        `<div class="karte"><strong>Kurs angelegt</strong><div>${html(kursTitel(f))} in ${html(zielName(f))}.</div>` +
+          (f.nurEigen
+            ? `<div class="leise">Fahrten und Vor-/Nachbereitung trägt die Automatik in ein paar Minuten ein.</div>`
+            : meiner(f) ? `<div class="leise">In ein paar Minuten steht er auch in deinem Kalender (die nächsten 8 Wochen, danach rollend).</div>` : "") +
           `</div>`
       );
     });

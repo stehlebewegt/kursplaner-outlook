@@ -189,9 +189,10 @@ export async function loesche(id) {
 }
 
 // --- Neuer Kurs im Anbieter-Kalender ---
+// name null = eigener Kalender.
 async function anbieterKalender(name) {
   kalenderListe ??= (await graph("GET", "/me/calendars?$select=id,name,isDefaultCalendar&$top=50")).value;
-  const k = kalenderListe.find((k) => k.name === name);
+  const k = kalenderListe.find((k) => (name ? k.name === name : k.isDefaultCalendar));
   if (!k) throw new Error(`Den Kalender „${name}“ gibt es nicht.`);
   return k;
 }
