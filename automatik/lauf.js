@@ -16,7 +16,7 @@ import { MARKIERUNG, FAHRZEIT } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
-import { ohneFahrzeit, kursAnbieter, ROUTEN_LINK, routenText } from "../src/planer.js";
+import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 
@@ -137,7 +137,7 @@ const api = {
     }
     return termine;
   },
-  async legeAn(t, { generiert = true, text } = { generiert: true }) {
+  async legeAn(t, { generiert = true, text, html } = { generiert: true }) {
     await graph("POST", "/events", {
       subject: t.titel,
       start: { dateTime: `${t.start}:00`, timeZone: config.zeitzone },
@@ -146,7 +146,7 @@ const api = {
       categories: t.kategorien || [],
       showAs: "busy",
       isReminderOn: false,
-      ...(text ? { body: { contentType: "text", content: text } } : {}),
+      ...(html ? { body: { contentType: "html", content: html } } : text ? { body: { contentType: "text", content: text } } : {}),
       ...(generiert ? { singleValueExtendedProperties: [{ id: MARKIERUNG, value: "1" }] } : {}),
     });
   },
@@ -177,13 +177,13 @@ if (process.env.ROUTENLINKS) {
   const [von, bis] = process.env.ROUTENLINKS.split(":");
   const wirklich = schreiben && process.env.NACHBERECHNEN_SCHREIBEN === "ja";
   const bloecke = (await api.holeBereich(von, bis)).filter(
-    (t) => t.generiert && t.kategorien.includes(einstellungen.kategorieFahrt) && !(t.vorschau || "").includes(ROUTEN_LINK)
+    (t) => t.generiert && t.kategorien.includes(einstellungen.kategorieFahrt) && !(t.vorschau || "").includes(ROUTEN_BESCHRIFTUNG)
   );
   let gesetzt = 0;
   for (const t of bloecke) {
     const ziel = t.titel.startsWith("Rückfahrt") ? einstellungen.heimadresse : t.adresse || t.ort;
     if (!ziel) continue;
-    if (wirklich) await api.aendere(t.id, { body: { contentType: "text", content: routenText(ziel) } });
+    if (wirklich) await api.aendere(t.id, { body: { contentType: "html", content: routenHtml(ziel) } });
     gesetzt++;
   }
   ausgabe(`Routen-Links ${wirklich ? "geschrieben" : "Probelauf"}: ${bloecke.length} Fahrt-Blöcke ohne Link, ${gesetzt} mit Ziel [${bloecke.map((t) => t.start.slice(5, 16).replace("T", " ")).join(", ")}]`);

@@ -155,7 +155,7 @@ export async function legeEntwurfAn({ an, betreff, text, dateiname, pdfBase64 })
   return m.id;
 }
 
-export async function legeAn(t, { generiert, text, frei } = {}) {
+export async function legeAn(t, { generiert, text, html, frei } = {}) {
   const body = {
     subject: t.titel,
     start: { dateTime: `${t.start}:00`, timeZone: config.zeitzone },
@@ -165,7 +165,8 @@ export async function legeAn(t, { generiert, text, frei } = {}) {
     showAs: frei ? "free" : "busy",
     isReminderOn: false,
   };
-  if (text) body.body = { contentType: "text", content: text };
+  if (html) body.body = { contentType: "html", content: html };
+  else if (text) body.body = { contentType: "text", content: text };
   if (generiert) body.singleValueExtendedProperties = [{ id: MARKIERUNG, value: "1" }];
   return zuTermin(await graph("POST", "/me/events", body));
 }

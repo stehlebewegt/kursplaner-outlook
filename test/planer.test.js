@@ -263,8 +263,8 @@ test("Fahrt-Blöcke haben einen Google-Maps-Link zum Ziel", () => {
   const e = { ...einstellungen, heimadresse: "Musterweg 1, 88000 Musterstadt" };
   const privat = { titel: "Fortbildung", start: `${d}T10:00`, ende: `${d}T12:00`, kategorien: [], ort: "Halle", adresse: "Vogelsangstraße 21, 72461 Albstadt", generiert: false, fahrzeit: 60 };
   const [hin, rueck] = planeTag(d, [privat], e);
-  assert.match(hin.text, /destination=Vogelsangstra%C3%9Fe%2021%2C%2072461%20Albstadt&travelmode=driving/);
-  assert.match(rueck.text, /destination=Musterweg%201/);
+  assert.match(hin.html, /destination=Vogelsangstra%C3%9Fe%2021%2C%2072461%20Albstadt&amp;travelmode=driving">🧭 Route in Google Maps starten</);
+  assert.match(rueck.html, /destination=Musterweg%201/);
   // Ohne Heimadresse (im Add-in) keine Rückfahrt-Link.
-  assert.equal(planeTag(d, [privat], einstellungen)[1].text, undefined);
+  assert.equal(planeTag(d, [privat], einstellungen)[1].html, undefined);
 });

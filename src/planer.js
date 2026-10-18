@@ -103,13 +103,15 @@ export function termineFuerTag(alle, datum, einstellungen) {
   return alle.filter((t) => laeuftAm(t, datum) || (nachbar(t) && mitUebernachtung(t, einstellungen)));
 }
 
-// Text für Fahrt-Blöcke: ein Link, der im Auto direkt die Navigation startet
+// Inhalt für Fahrt-Blöcke: ein kurzer Link, der im Auto direkt die Navigation startet
 // (auf dem iPhone in der Google-Maps-App, wenn sie installiert ist). Start ist
 // der aktuelle Standort. Die Heimadresse kennt nur die Automatik (Secret),
 // ohne sie bekommt die Rückfahrt keinen Link.
 export const ROUTEN_LINK = "https://www.google.com/maps/dir/?api=1";
-export const routenText = (ziel) =>
-  `Route starten:\n${ROUTEN_LINK}&destination=${encodeURIComponent(ziel)}&travelmode=driving`;
+// Woran ein Block mit Link erkannt wird (Outlook liefert als Vorschau nur den Text).
+export const ROUTEN_BESCHRIFTUNG = "Route in Google Maps starten";
+export const routenUrl = (ziel) => `${ROUTEN_LINK}&destination=${encodeURIComponent(ziel)}&travelmode=driving`;
+export const routenHtml = (ziel) => `<p><a href="${routenUrl(ziel).replace(/&/g, "&amp;")}">🧭 ${ROUTEN_BESCHRIFTUNG}</a></p>`;
 
 // Liefert die Soll-Liste aller generierten Blöcke für einen Tag.
 export function planeTag(datum, alleTermine, einstellungen) {
@@ -131,7 +133,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
       kategorien: [kategorie],
       ort: anbieter.ort,
       generiert: true,
-      ...(ziel ? { text: routenText(ziel) } : {}),
+      ...(ziel ? { html: routenHtml(ziel) } : {}),
     });
 
   // Private Termine mit Fahrzeit (im Termin gespeichert): Hin- und Rückfahrt.

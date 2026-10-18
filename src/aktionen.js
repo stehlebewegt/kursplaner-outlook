@@ -1,6 +1,6 @@
 // Die Aktionen hinter den Buttons. "api" ist der Kalender-Zugriff
 // (in Outlook: web/graph.js, in den Tests: ein Kalender im Speicher).
-import { planeTag, ROUTEN_LINK, vergleiche, markiereAlteBloecke, leseKuerzel, ohneKuerzel, findeAnbieter } from "./planer.js";
+import { planeTag, ROUTEN_BESCHRIFTUNG, vergleiche, markiereAlteBloecke, leseKuerzel, ohneKuerzel, findeAnbieter } from "./planer.js";
 
 const datumVon = (t) => t.start.slice(0, 10);
 
@@ -15,17 +15,17 @@ export async function vorschauTag(api, datum, einstellungen) {
   // wenn der Termin einen Text-Anfang mitbringt, sonst wissen wir es nicht).
   const linkFehlt = termine
     .filter((t) => t.generiert && typeof t.vorschau === "string" && !loeschen.includes(t))
-    .map((t) => ({ t, s: soll.find((s) => s.text && s.titel.trim() === t.titel.trim() && s.start === t.start && s.ende === t.ende) }))
-    .filter(({ t, s }) => s && !t.vorschau.includes(ROUTEN_LINK))
-    .map(({ t, s }) => ({ id: t.id, text: s.text }));
+    .map((t) => ({ t, s: soll.find((s) => s.html && s.titel.trim() === t.titel.trim() && s.start === t.start && s.ende === t.ende) }))
+    .filter(({ t, s }) => s && !t.vorschau.includes(ROUTEN_BESCHRIFTUNG))
+    .map(({ t, s }) => ({ id: t.id, html: s.html }));
   return { anlegen, loeschen, uebernehmen, fahrzeitMerken, linkFehlt };
 }
 
 export async function planeTagNeu(api, datum, einstellungen) {
   const v = await vorschauTag(api, datum, einstellungen);
   for (const t of v.loeschen) await api.loesche(t.id);
-  for (const t of v.anlegen) await api.legeAn(t, { generiert: true, text: t.text });
-  if (einstellungen.routenLinkNachtragen) for (const l of v.linkFehlt) await api.aendere(l.id, { body: { contentType: "text", content: l.text } });
+  for (const t of v.anlegen) await api.legeAn(t, { generiert: true, html: t.html });
+  if (einstellungen.routenLinkNachtragen) for (const l of v.linkFehlt) await api.aendere(l.id, { body: { contentType: "html", content: l.html } });
   // Von Hand angelegte Blöcke, die passen, bekommen die Markierung.
   for (const t of v.uebernehmen) await api.markiere(t.id);
   for (const t of v.fahrzeitMerken) await api.setzeFahrzeit(t.id, t.fahrzeit);
