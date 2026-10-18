@@ -20,6 +20,8 @@ import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerung
 import { routenRechner, hatAdresse } from "./route.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 import { hinweise } from "./hinweise.js";
+import { holeFerien } from "./ferien.js";
+import { ferienKurse } from "../src/ferien.js";
 
 // Ziel für den Routen-Link der Rückfahrten. Nur zur Laufzeit aus dem Secret,
 // nie im Repo und nie in der Ausgabe.
@@ -256,6 +258,20 @@ ausgabe(
     `, verschoben ${dauer.verschieben.length} [${dauer.verschieben.map((v) => `${tagZeit(v.termin)}→${v.start.slice(11)}`).join(", ")}]` +
     `, eigene ohne Gegenstück ${dauer.ohneGegenstueck.length} [${dauer.ohneGegenstueck.map(tagZeit).join(", ")}]`
 );
+
+// Schulferien: reguläre Kurse bei Anbietern ohne Ferienkurse bekommen (F) und
+// werden frei; die Planung danach nimmt dann ihre Puffer weg.
+try {
+  const ferien = await holeFerien(tage[0], tage[tage.length - 1]);
+  const betroffen = ferienKurse(await api.holeBereich(tage[0], tage[tage.length - 1]), ferien, einstellungen);
+  const setzen = schreiben && einstellungen.ferienAutomatisch;
+  if (setzen) for (const t of betroffen) await api.aendere(t.id, { subject: `(F) ${t.titel.trim()}`, showAs: "free" });
+  ausgabe(
+    `Ferien BW: ${ferien.map((f) => `${f.von}–${f.bis}`).join(", ") || "keine"}; Kurse auf (F) ${setzen ? "gesetzt" : "zu setzen (Probe)"}: ${betroffen.length} [${betroffen.map(tagZeit).join(", ")}]`
+  );
+} catch (e) {
+  ausgabe(`Ferien: ${e.message.slice(0, 100)}`);
+}
 
 // Private Termine mit Adresse: Fahrzeit ab zu Hause berechnen und im Termin
 // merken (einmal pro Termin). Heimadresse nur als Secret, nie im Code.

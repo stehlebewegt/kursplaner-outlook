@@ -22,6 +22,8 @@ export const einstellungen = {
       fahrzeitMin: 15,
       kategorien: ["01 PTM: PUR Kurs", "02 PTM: FLEX Kurs"],
       kategorieVertretung: "09 Vertretung Kurs PTM",
+      // In den Schulferien (BW) keine Kurse: reguläre Kurse bekommen automatisch (F).
+      ferienFrei: true,
       empfaenger: "", // wird in Outlook hinterlegt, nicht im öffentlichen Code
     },
   ],
@@ -45,6 +47,8 @@ export const einstellungen = {
   routenLinkNachtragen: true,
   // Erinnerung (Minuten) vor Anfahrten und Fahrten zwischen Anbietern; 0 = aus.
   erinnerungVorFahrtMin: 10,
+  // Ferien-Kürzel (F) automatisch setzen; false = nur anzeigen (Probelauf).
+  ferienAutomatisch: false,
   // Entwürfe für Michael (nichts wird gesendet): morgens Hinweise zu fehlenden
   // Kursprotokollen und Überschneidungen, sonntags die Wochenvorschau.
   hinweise: { morgensAb: 6, protokollTage: 7, ueberschneidungTage: 14, wocheAb: 18 },
