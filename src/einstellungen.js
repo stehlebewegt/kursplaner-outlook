@@ -43,6 +43,11 @@ export const einstellungen = {
   // Schon vorhandene Fahrt-Blöcke bekommen den Google-Maps-Link nachträglich
   // (Michael hat am 18.10.2026 zugestimmt).
   routenLinkNachtragen: true,
+  // Erinnerung (Minuten) vor Anfahrten und Fahrten zwischen Anbietern; 0 = aus.
+  erinnerungVorFahrtMin: 10,
+  // Entwürfe für Michael (nichts wird gesendet): morgens Hinweise zu fehlenden
+  // Kursprotokollen und Überschneidungen, sonntags die Wochenvorschau.
+  hinweise: { morgensAb: 6, protokollTage: 7, ueberschneidungTage: 14, wocheAb: 18 },
   // Fahrten mit dieser Kategorie kommen nicht in den Monatsbericht.
   kategorieNichtAbrechenbar: "Fahrtkosten nicht abrechenbar",
   // Material zum Anhaken im Kursprotokoll. Was im Protokoll neu dazukommt,

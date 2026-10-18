@@ -28,9 +28,9 @@ export async function planeZeitraum(api, tage, einstellungen, { schreiben }) {
     const v = schreiben ? await planeTagNeu(tagApi, datum, einstellungen) : await vorschauTag(tagApi, datum, einstellungen);
     if (schreiben) for (const t of freigeben) await api.aendere(t.id, { showAs: "free" });
     const fahrzeit = v.fahrzeitMerken || [];
-    const link = v.linkFehlt || [];
-    if (v.anlegen.length || v.loeschen.length || v.uebernehmen.length || freigeben.length || fahrzeit.length || link.length) {
-      ergebnis.push({ datum, anlegen: v.anlegen, loeschen: v.loeschen, uebernehmen: v.uebernehmen, freigeben, fahrzeit, link });
+    const nachbessern = v.nachbessern || [];
+    if (v.anlegen.length || v.loeschen.length || v.uebernehmen.length || freigeben.length || fahrzeit.length || nachbessern.length) {
+      ergebnis.push({ datum, anlegen: v.anlegen, loeschen: v.loeschen, uebernehmen: v.uebernehmen, freigeben, fahrzeit, nachbessern });
     }
   }
   return ergebnis;

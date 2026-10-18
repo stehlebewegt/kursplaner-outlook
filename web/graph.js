@@ -3,7 +3,7 @@
 // Anmeldung an das Add-in weiter, kein extra Login-Fenster nötig.
 import { config } from "./config.js";
 import { einstellungen } from "../src/einstellungen.js";
-import { termineFuerTag } from "../src/planer.js";
+import { termineFuerTag, erinnerungsFelder } from "../src/planer.js";
 
 const GRAPH = "https://graph.microsoft.com/v1.0";
 // Unsichtbare Markierung an jedem Block, den das Add-in anlegt.
@@ -163,7 +163,7 @@ export async function legeAn(t, { generiert, text, html, frei } = {}) {
     location: { displayName: t.ort || "" },
     categories: t.kategorien || [],
     showAs: frei ? "free" : "busy",
-    isReminderOn: false,
+    ...erinnerungsFelder(t.erinnerung),
   };
   if (html) body.body = { contentType: "html", content: html };
   else if (text) body.body = { contentType: "text", content: text };

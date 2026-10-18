@@ -108,6 +108,9 @@ export function termineFuerTag(alle, datum, einstellungen) {
 // der aktuelle Standort. Die Heimadresse kennt nur die Automatik (Secret),
 // ohne sie bekommt die Rückfahrt keinen Link.
 export const ROUTEN_LINK = "https://www.google.com/maps/dir/?api=1";
+// Outlook-Felder für die Erinnerung eines Blocks (0/leer = keine).
+export const erinnerungsFelder = (min) => (min ? { isReminderOn: true, reminderMinutesBeforeStart: min } : { isReminderOn: false });
+
 // Woran ein Block mit Link erkannt wird (Outlook liefert als Vorschau nur den Text).
 export const ROUTEN_BESCHRIFTUNG = "Route in Google Maps starten";
 export const routenUrl = (ziel) => `${ROUTEN_LINK}&destination=${encodeURIComponent(ziel)}&travelmode=driving`;
@@ -135,6 +138,11 @@ export function planeTag(datum, alleTermine, einstellungen) {
       generiert: true,
       ...(ziel ? { html: routenHtml(ziel) } : {}),
     });
+  // Hinfahrten bekommen eine Erinnerung, damit das Handy rechtzeitig meldet
+  // (in der Erinnerung steht der Routen-Link gleich mit drin).
+  const mitErinnerung = () => {
+    if (e.erinnerungVorFahrtMin) soll[soll.length - 1].erinnerung = e.erinnerungVorFahrtMin;
+  };
 
   // Private Termine mit Fahrzeit (im Termin gespeichert): Hin- und Rückfahrt.
   // Termine kurz hintereinander (z. B. ein Lehrgangstag mit vielen Einheiten)
@@ -158,7 +166,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
   for (const { erster, letzter, bis } of gruppen) {
     const von = beginn(erster);
     if (erster.start.slice(0, 10) === datum && !(uebernachtetDavor && mitUebernachtung(erster, e)))
-      neu(`Anfahrt - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort }, erster.adresse || erster.ort);
+      neu(`Anfahrt - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort }, erster.adresse || erster.ort) && mitErinnerung();
     if (letzter.ende.slice(0, 10) === datum && !(uebernachtetDanach && mitUebernachtung(letzter, e)))
       neu(`Rückfahrt - ${letzter.titel.trim()}`, bis, bis + letzter.fahrzeit, e.kategorieFahrt, { ort: letzter.ort }, e.heimadresse);
   }
@@ -177,10 +185,10 @@ export function planeTag(datum, alleTermine, einstellungen) {
     if (direktVomVorherigen && vor.anbieter === b.anbieter) {
       // Beim selben Anbieter geblieben: keine Fahrt.
     } else if (!direktVomVorherigen) {
-      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort);
+      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort) && mitErinnerung();
     } else {
       const dauer = fahrzeit(vor.anbieter, b.anbieter, e);
-      neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort);
+      neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort) && mitErinnerung();
     }
     neu(`Vorbereitung - ${erster.vollerTitel}`, vorStart, erster.start, e.kategoriePuffer, b.anbieter);
 

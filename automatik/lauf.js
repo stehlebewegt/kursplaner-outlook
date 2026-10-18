@@ -16,9 +16,10 @@ import { MARKIERUNG, FAHRZEIT } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
-import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml } from "../src/planer.js";
+import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerungsFelder } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
+import { hinweise } from "./hinweise.js";
 
 // Ziel für den Routen-Link der Rückfahrten. Nur zur Laufzeit aus dem Secret,
 // nie im Repo und nie in der Ausgabe.
@@ -97,6 +98,7 @@ function zuTermin(e) {
     adresse: adresseVon(e.location),
     showAs: e.showAs,
     ...(e.bodyPreview !== undefined ? { vorschau: e.bodyPreview } : {}),
+    ...(e.isReminderOn !== undefined ? { erinnerung: e.isReminderOn ? e.reminderMinutesBeforeStart : 0 } : {}),
     generiert: prop?.value === "1",
     fahrzeit,
   };
@@ -106,7 +108,7 @@ const api = {
   async holeBereich(von, bis) {
     let url =
       `/calendarView?startDateTime=${von}T00:00:00&endDateTime=${bis}T23:59:59&$top=200` +
-      `&$select=subject,start,end,categories,location,showAs,isAllDay,bodyPreview` +
+      `&$select=subject,start,end,categories,location,showAs,isAllDay,bodyPreview,isReminderOn,reminderMinutesBeforeStart` +
       `&$expand=singleValueExtendedProperties($filter=id eq '${MARKIERUNG}' or id eq '${FAHRZEIT}')`;
     const termine = [];
     while (url) {
@@ -145,7 +147,7 @@ const api = {
       location: { displayName: t.ort || "" },
       categories: t.kategorien || [],
       showAs: "busy",
-      isReminderOn: false,
+      ...erinnerungsFelder(t.erinnerung),
       ...(html ? { body: { contentType: "html", content: html } } : text ? { body: { contentType: "text", content: text } } : {}),
       ...(generiert ? { singleValueExtendedProperties: [{ id: MARKIERUNG, value: "1" }] } : {}),
     });
@@ -291,7 +293,7 @@ for (const r of ergebnis) {
     `${r.datum}: +${r.anlegen.length} [${r.anlegen.map(zeit).join(", ")}]` +
       ` −${r.loeschen.length} [${r.loeschen.map(zeit).join(", ")}]` +
       ` übernommen ${r.uebernehmen.length}, freigegeben ${r.freigeben.length}, Fahrzeit erkannt ${r.fahrzeit.length}` +
-      (r.link.length ? `, Routen-Link fehlt ${r.link.length}${einstellungen.routenLinkNachtragen ? " (nachgetragen)" : ""}` : "")
+      (r.nachbessern.length ? `, nachzubessern ${r.nachbessern.length}${einstellungen.routenLinkNachtragen ? " (erledigt)" : ""}` : "")
   );
 }
 // Monatsbericht als Entwurf (am eingestellten Tag oder als Probe per Hand).
@@ -305,6 +307,18 @@ if (process.env.ABSCHLUESSE) {
     bereich: process.env.ABSCHLUESSE,
     ausgabe,
   });
+}
+try {
+  await hinweise({
+    graph,
+    holeBereich: api.holeBereich,
+    einstellungen,
+    jetzt: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16),
+    ausgabe,
+    erzwingen: process.env.HINWEISE_PROBE === "ja",
+  });
+} catch (e) {
+  ausgabe(`Hinweise fehlgeschlagen: ${e.message.slice(0, 120)}`);
 }
 try {
   await monatsberichte({

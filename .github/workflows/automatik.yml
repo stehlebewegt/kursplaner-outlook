@@ -20,6 +20,10 @@ on:
         description: "Einmalig Routen-Links in Fahrt-Blöcke schreiben, Zeitraum JJJJ-MM-TT:JJJJ-MM-TT"
         required: false
         default: ""
+      hinweise_probe:
+        description: "ja = Hinweise und Wochenvorschau sofort als PROBE-Entwurf anlegen"
+        required: false
+        default: ""
       nachberechnen_schreiben:
         description: "ja = Nachberechnung wirklich ausführen (sonst nur Probelauf)"
         required: false
@@ -58,5 +62,6 @@ jobs:
           MONATSBERICHT_PROBE: ${{ inputs.monatsbericht_probe }}
           NACHBERECHNEN: ${{ inputs.nachberechnen }}
           ROUTENLINKS: ${{ inputs.routenlinks }}
+          HINWEISE_PROBE: ${{ inputs.hinweise_probe }}
           ABSCHLUESSE: ${{ inputs.abschluesse }}
           NACHBERECHNEN_SCHREIBEN: ${{ inputs.nachberechnen_schreiben }}
