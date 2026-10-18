@@ -16,6 +16,10 @@ on:
         description: "Einmalig Puffer neu berechnen, Zeitraum JJJJ-MM-TT:JJJJ-MM-TT (leer = normal)"
         required: false
         default: ""
+      routenlinks:
+        description: "Einmalig Routen-Links in Fahrt-Blöcke schreiben, Zeitraum JJJJ-MM-TT:JJJJ-MM-TT"
+        required: false
+        default: ""
       nachberechnen_schreiben:
         description: "ja = Nachberechnung wirklich ausführen (sonst nur Probelauf)"
         required: false
@@ -53,5 +57,6 @@ jobs:
           SCHREIBEN: ${{ vars.SCHREIBEN }}
           MONATSBERICHT_PROBE: ${{ inputs.monatsbericht_probe }}
           NACHBERECHNEN: ${{ inputs.nachberechnen }}
+          ROUTENLINKS: ${{ inputs.routenlinks }}
           ABSCHLUESSE: ${{ inputs.abschluesse }}
           NACHBERECHNEN_SCHREIBEN: ${{ inputs.nachberechnen_schreiben }}

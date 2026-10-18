@@ -16,7 +16,7 @@ import { MARKIERUNG, FAHRZEIT } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
-import { ohneFahrzeit, kursAnbieter } from "../src/planer.js";
+import { ohneFahrzeit, kursAnbieter, ROUTEN_LINK, routenText } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 
@@ -169,6 +169,27 @@ const zeit = (t) => `${t.start.slice(11)}–${t.ende.slice(11)}`;
 const tagZeit = (t) => `${t.start.slice(8, 10)}.${t.start.slice(5, 7)}. ${t.start.slice(11)}`;
 const zeilen = [];
 const ausgabe = (z) => (console.log(z), zeilen.push(z));
+
+// Einmalig Routen-Links in vorhandene Fahrt-Blöcke schreiben, ohne neu zu
+// planen: ROUTENLINKS="JJJJ-MM-TT:JJJJ-MM-TT". Ziel ist der Ort des Blocks,
+// bei Rückfahrten die Heimadresse. Schreiben nur mit NACHBERECHNEN_SCHREIBEN=ja.
+if (process.env.ROUTENLINKS) {
+  const [von, bis] = process.env.ROUTENLINKS.split(":");
+  const wirklich = schreiben && process.env.NACHBERECHNEN_SCHREIBEN === "ja";
+  const bloecke = (await api.holeBereich(von, bis)).filter(
+    (t) => t.generiert && t.kategorien.includes(einstellungen.kategorieFahrt) && !(t.vorschau || "").includes(ROUTEN_LINK)
+  );
+  let gesetzt = 0;
+  for (const t of bloecke) {
+    const ziel = t.titel.startsWith("Rückfahrt") ? einstellungen.heimadresse : t.adresse || t.ort;
+    if (!ziel) continue;
+    if (wirklich) await api.aendere(t.id, { body: { contentType: "text", content: routenText(ziel) } });
+    gesetzt++;
+  }
+  ausgabe(`Routen-Links ${wirklich ? "geschrieben" : "Probelauf"}: ${bloecke.length} Fahrt-Blöcke ohne Link, ${gesetzt} mit Ziel [${bloecke.map((t) => t.start.slice(5, 16).replace("T", " ")).join(", ")}]`);
+  console.log(`::notice::${zeilen.join("%0A")}`);
+  process.exit(0);
+}
 
 // Einmalige Nachberechnung (per Hand gestartet): NACHBERECHNEN="JJJJ-MM-TT:JJJJ-MM-TT"
 // plant nur die Puffer-Blöcke dieser Tage neu, sonst nichts. Geschrieben wird
