@@ -20,6 +20,10 @@ import { ohneFahrzeit, kursAnbieter } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 
+// Ziel für den Routen-Link der Rückfahrten. Nur zur Laufzeit aus dem Secret,
+// nie im Repo und nie in der Ausgabe.
+einstellungen.heimadresse = process.env.KURSPLANER_HEIMADRESSE || "";
+
 // Fehler und Ergebnis zusätzlich als GitHub-Hinweis ausgeben, damit sie
 // auf der Übersichtsseite des Laufs stehen.
 process.on("uncaughtException", (e) => {
@@ -92,6 +96,7 @@ function zuTermin(e) {
     // (z. B. "Parkplatz kostenloser Teil" mit Adresse Bleichestraße 15, Bad Waldsee).
     adresse: adresseVon(e.location),
     showAs: e.showAs,
+    ...(e.bodyPreview !== undefined ? { vorschau: e.bodyPreview } : {}),
     generiert: prop?.value === "1",
     fahrzeit,
   };
@@ -101,7 +106,7 @@ const api = {
   async holeBereich(von, bis) {
     let url =
       `/calendarView?startDateTime=${von}T00:00:00&endDateTime=${bis}T23:59:59&$top=200` +
-      `&$select=subject,start,end,categories,location,showAs,isAllDay` +
+      `&$select=subject,start,end,categories,location,showAs,isAllDay,bodyPreview` +
       `&$expand=singleValueExtendedProperties($filter=id eq '${MARKIERUNG}' or id eq '${FAHRZEIT}')`;
     const termine = [];
     while (url) {
@@ -264,7 +269,8 @@ for (const r of ergebnis) {
   ausgabe(
     `${r.datum}: +${r.anlegen.length} [${r.anlegen.map(zeit).join(", ")}]` +
       ` −${r.loeschen.length} [${r.loeschen.map(zeit).join(", ")}]` +
-      ` übernommen ${r.uebernehmen.length}, freigegeben ${r.freigeben.length}, Fahrzeit erkannt ${r.fahrzeit.length}`
+      ` übernommen ${r.uebernehmen.length}, freigegeben ${r.freigeben.length}, Fahrzeit erkannt ${r.fahrzeit.length}` +
+      (r.link.length ? `, Routen-Link fehlt ${r.link.length}${einstellungen.routenLinkNachtragen ? " (nachgetragen)" : ""}` : "")
   );
 }
 // Monatsbericht als Entwurf (am eingestellten Tag oder als Probe per Hand).

@@ -3,6 +3,7 @@
 // Anmeldung an das Add-in weiter, kein extra Login-Fenster nötig.
 import { config } from "./config.js";
 import { einstellungen } from "../src/einstellungen.js";
+import { termineFuerTag } from "../src/planer.js";
 
 const GRAPH = "https://graph.microsoft.com/v1.0";
 // Unsichtbare Markierung an jedem Block, den das Add-in anlegt.
@@ -75,16 +76,18 @@ const AUSWAHL =
   "$select=subject,start,end,categories,location,showAs" +
   `&$expand=singleValueExtendedProperties($filter=id eq '${MARKIERUNG}' or id eq '${FAHRZEIT}')`;
 
-// Alle Termine eines Tages im eigenen Kalender.
+// Alle Termine eines Tages im eigenen Kalender (plus Übernachtungs-Termine
+// vom Vortag und Folgetag, siehe termineFuerTag).
 export async function holeTag(datum) {
-  let url = `/me/calendarView?startDateTime=${datum}T00:00:00&endDateTime=${datum}T23:59:59&$top=100&${AUSWAHL}`;
+  const tag = (n) => new Date(Date.parse(`${datum}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+  let url = `/me/calendarView?startDateTime=${tag(-1)}T00:00:00&endDateTime=${tag(1)}T23:59:59&$top=100&${AUSWAHL}`;
   const termine = [];
   while (url) {
     const seite = await graph("GET", url);
     termine.push(...seite.value.map(zuTermin));
     url = seite["@odata.nextLink"];
   }
-  return termine;
+  return termineFuerTag(termine, datum, einstellungen);
 }
 
 // Kurse mit Termintext über einen Zeitraum, für "letzte Themen" im Protokoll.

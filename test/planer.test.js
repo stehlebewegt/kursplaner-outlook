@@ -2,7 +2,7 @@
 // Erwartet wird jeweils das, was er bisher von Hand angelegt hat.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { planeTag, vergleiche, markiereAlteBloecke } from "../src/planer.js";
+import { planeTag, termineFuerTag, vergleiche, markiereAlteBloecke } from "../src/planer.js";
 import { einstellungen } from "../src/einstellungen.js";
 
 const SVE = "SVE Sport- & Gesundheitscenter\nEttenkircher Straße 17, 88048 Friedrichshafen, Deutschland";
@@ -245,4 +245,26 @@ test("Mehrtägiger Termin: Anfahrt am ersten, Rückfahrt am letzten Tag", () => 
   assert.deepEqual(kurz(planeTag("2026-09-24", [event], einstellungen)), ["08:45-12:00 Anfahrt - Event"]);
   assert.deepEqual(kurz(planeTag("2026-09-25", [event], einstellungen)), []);
   assert.deepEqual(kurz(planeTag("2026-09-26", [event], einstellungen)), ["10:00-13:15 Rückfahrt - Event"]);
+});
+
+test("Übernachtung: Fortbildung über zwei Tage hat nur eine Anfahrt und eine Rückfahrt", () => {
+  const p = (d, titel, von, bis) => ({ titel, start: `${d}T${von}`, ende: `${d}T${bis}`, kategorien: ["Übernachtung"], ort: "Albstadt", generiert: false, fahrzeit: 90 });
+  const alle = [p("2026-10-16", "Eröffnung", "13:45", "14:15"), p("2026-10-16", "Praxis", "14:15", "20:30"), p("2026-10-17", "Faszien", "08:45", "13:00"), p("2026-10-17", "Abschluss", "14:00", "14:30")];
+  const plane = (d) => kurz(planeTag(d, termineFuerTag(alle, d, einstellungen), einstellungen));
+  assert.deepEqual(plane("2026-10-16"), ["12:15-13:45 Anfahrt - Eröffnung"]);
+  assert.deepEqual(plane("2026-10-17"), ["14:30-16:00 Rückfahrt - Abschluss"]);
+  // Ohne die Kategorie fährt er heim: An- und Rückfahrt an beiden Tagen.
+  const ohne = alle.map((t) => ({ ...t, kategorien: [] }));
+  assert.equal(planeTag("2026-10-16", termineFuerTag(ohne, "2026-10-16", einstellungen), einstellungen).length, 2);
+});
+
+test("Fahrt-Blöcke haben einen Google-Maps-Link zum Ziel", () => {
+  const d = "2026-10-20";
+  const e = { ...einstellungen, heimadresse: "Musterweg 1, 88000 Musterstadt" };
+  const privat = { titel: "Fortbildung", start: `${d}T10:00`, ende: `${d}T12:00`, kategorien: [], ort: "Halle", adresse: "Vogelsangstraße 21, 72461 Albstadt", generiert: false, fahrzeit: 60 };
+  const [hin, rueck] = planeTag(d, [privat], e);
+  assert.match(hin.text, /destination=Vogelsangstra%C3%9Fe%2021%2C%2072461%20Albstadt&travelmode=driving/);
+  assert.match(rueck.text, /destination=Musterweg%201/);
+  // Ohne Heimadresse (im Add-in) keine Rückfahrt-Link.
+  assert.equal(planeTag(d, [privat], einstellungen)[1].text, undefined);
 });

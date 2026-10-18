@@ -92,15 +92,38 @@ function fahrzeit(von, nach, einstellungen) {
   return einstellungen.fahrzeitZwischen[schluessel] ?? nach.fahrzeitMin;
 }
 
+const tagDavor = (datum, n) => new Date(Date.parse(`${datum}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+const laeuftAm = (t, datum) => t.start.slice(0, 10) <= datum && t.ende.slice(0, 10) >= datum;
+const mitUebernachtung = (t, e) => !t.generiert && (t.kategorien || []).includes(e.kategorieUebernachtung);
+
+// Termine, die für das Planen eines Tages nötig sind: alles, was an dem Tag
+// läuft, plus Übernachtungs-Termine vom Vortag und Folgetag.
+export function termineFuerTag(alle, datum, einstellungen) {
+  const nachbar = (t) => laeuftAm(t, tagDavor(datum, -1)) || laeuftAm(t, tagDavor(datum, 1));
+  return alle.filter((t) => laeuftAm(t, datum) || (nachbar(t) && mitUebernachtung(t, einstellungen)));
+}
+
+// Text für Fahrt-Blöcke: ein Link, der im Auto direkt die Navigation startet
+// (auf dem iPhone in der Google-Maps-App, wenn sie installiert ist). Start ist
+// der aktuelle Standort. Die Heimadresse kennt nur die Automatik (Secret),
+// ohne sie bekommt die Rückfahrt keinen Link.
+export const ROUTEN_LINK = "https://www.google.com/maps/dir/?api=1";
+export const routenText = (ziel) =>
+  `Route starten:\n${ROUTEN_LINK}&destination=${encodeURIComponent(ziel)}&travelmode=driving`;
+
 // Liefert die Soll-Liste aller generierten Blöcke für einen Tag.
-export function planeTag(datum, termine, einstellungen) {
+export function planeTag(datum, alleTermine, einstellungen) {
   const e = einstellungen;
+  const termine = alleTermine.filter((t) => laeuftAm(t, datum));
+  const nachbarn = alleTermine.filter((t) => !laeuftAm(t, datum) && mitUebernachtung(t, e));
+  const uebernachtetDavor = nachbarn.some((t) => t.ende.slice(0, 10) === tagDavor(datum, -1));
+  const uebernachtetDanach = nachbarn.some((t) => t.start.slice(0, 10) === tagDavor(datum, 1));
   const bloecke = bildeBloecke(aktiveKurse(termine, e), e);
   // Lohnt sich zwischen zwei Blöcken die Fahrt nach Hause?
   const heimfahrt = (von, nach, pause) =>
     pause >= Math.max(von.anbieter.fahrzeitMin + nach.anbieter.fahrzeitMin, e.pauseHeimfahrtMin ?? 0);
   const soll = [];
-  const neu = (titel, start, ende, kategorie, anbieter) =>
+  const neu = (titel, start, ende, kategorie, anbieter, ziel) =>
     soll.push({
       titel,
       start: zuZeit(datum, start),
@@ -108,6 +131,7 @@ export function planeTag(datum, termine, einstellungen) {
       kategorien: [kategorie],
       ort: anbieter.ort,
       generiert: true,
+      ...(ziel ? { text: routenText(ziel) } : {}),
     });
 
   // Private Termine mit Fahrzeit (im Termin gespeichert): Hin- und Rückfahrt.
@@ -115,7 +139,8 @@ export function planeTag(datum, termine, einstellungen) {
   // sind eine Fahrt: Anfahrt vor dem ersten, Rückfahrt nach dem letzten. Heim
   // geht es dazwischen nur, wenn sich die Pause lohnt (wie bei Kursen).
   // Mehrtägige Termine (z. B. Event von Donnerstag bis Samstag): Anfahrt nur am
-  // ersten Tag, Rückfahrt nur am letzten, dazwischen keine Fahrt.
+  // ersten Tag, Rückfahrt nur am letzten, dazwischen keine Fahrt. Genauso bei
+  // Terminen mit Kategorie "Übernachtung" an aufeinanderfolgenden Tagen.
   const beginn = (t) => (t.start.slice(0, 10) < datum ? 0 : zuMinuten(t.start));
   const schluss = (t) => (t.ende.slice(0, 10) > datum ? 24 * 60 : zuMinuten(t.ende));
   const privat = privateMitFahrzeit(termine, e).sort((a, b) => (a.start < b.start ? -1 : 1));
@@ -130,10 +155,10 @@ export function planeTag(datum, termine, einstellungen) {
   }
   for (const { erster, letzter, bis } of gruppen) {
     const von = beginn(erster);
-    if (erster.start.slice(0, 10) === datum)
-      neu(`Anfahrt - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort });
-    if (letzter.ende.slice(0, 10) === datum)
-      neu(`Rückfahrt - ${letzter.titel.trim()}`, bis, bis + letzter.fahrzeit, e.kategorieFahrt, { ort: letzter.ort });
+    if (erster.start.slice(0, 10) === datum && !(uebernachtetDavor && mitUebernachtung(erster, e)))
+      neu(`Anfahrt - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort }, erster.adresse || erster.ort);
+    if (letzter.ende.slice(0, 10) === datum && !(uebernachtetDanach && mitUebernachtung(letzter, e)))
+      neu(`Rückfahrt - ${letzter.titel.trim()}`, bis, bis + letzter.fahrzeit, e.kategorieFahrt, { ort: letzter.ort }, e.heimadresse);
   }
 
   bloecke.forEach((b, i) => {
@@ -150,10 +175,10 @@ export function planeTag(datum, termine, einstellungen) {
     if (direktVomVorherigen && vor.anbieter === b.anbieter) {
       // Beim selben Anbieter geblieben: keine Fahrt.
     } else if (!direktVomVorherigen) {
-      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter);
+      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort);
     } else {
       const dauer = fahrzeit(vor.anbieter, b.anbieter, e);
-      neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter);
+      neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort);
     }
     neu(`Vorbereitung - ${erster.vollerTitel}`, vorStart, erster.start, e.kategoriePuffer, b.anbieter);
 
@@ -170,7 +195,7 @@ export function planeTag(datum, termine, einstellungen) {
 
     const direktZumNaechsten = nach && !heimfahrt(b, nach, nach.kurse[0].start - e.vorbereitungMin - nachEnde);
     if (!direktZumNaechsten) {
-      neu(`Rückfahrt - ${letzter.vollerTitel}`, nachEnde, nachEnde + b.anbieter.fahrzeitMin, e.kategorieFahrt, b.anbieter);
+      neu(`Rückfahrt - ${letzter.vollerTitel}`, nachEnde, nachEnde + b.anbieter.fahrzeitMin, e.kategorieFahrt, b.anbieter, e.heimadresse);
     }
   });
   return soll;

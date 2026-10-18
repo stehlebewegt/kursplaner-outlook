@@ -1,7 +1,7 @@
 // Die Button-Aktionen gegen einen Kalender im Speicher.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { uebernehmeKurs, setzeKuerzel, planeTagNeu } from "../src/aktionen.js";
+import { uebernehmeKurs, setzeKuerzel, planeTagNeu, vorschauTag } from "../src/aktionen.js";
 import { einstellungen } from "../src/einstellungen.js";
 
 function speicherKalender(start = []) {
@@ -88,4 +88,14 @@ test("Urlaub setzen: (U) davor, Termin frei, Blöcke weg; Kürzel entfernen holt
   assert.equal(kurs.showAs, "free");
   await setzeKuerzel(api, kurs, "", einstellungen);
   assert.equal(api.termine.length, 5);
+});
+
+test("Vorhandene Fahrt-Blöcke ohne Routen-Link werden erkannt", async () => {
+  const d = "2026-10-20";
+  const privat = { id: "p", titel: "Fortbildung", start: `${d}T10:00`, ende: `${d}T12:00`, kategorien: [], ort: "Albstadt", generiert: false, fahrzeit: 60 };
+  const block = { id: "b", titel: "Anfahrt - Fortbildung", start: `${d}T09:00`, ende: `${d}T10:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, vorschau: "" };
+  const api = { holeTag: async () => [privat, block] };
+  const v = await vorschauTag(api, d, einstellungen);
+  assert.deepEqual(v.linkFehlt.map((l) => l.id), ["b"]);
+  assert.deepEqual(v.anlegen.map((t) => t.titel), ["Rückfahrt - Fortbildung"]);
 });
