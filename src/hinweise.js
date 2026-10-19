@@ -33,13 +33,16 @@ export function ueberschneidungen(termine, einstellungen) {
 // --- Darstellung als HTML-Mail (Outlook braucht Tabellen und Inline-Styles) ---
 const esc = (x) => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const SCHRIFT = "font-family:Segoe UI,Arial,sans-serif;color:#263238;";
+// Outlook am PC (Word-Darstellung) kennt bei <div> weder Innenabstand noch
+// Rundung, deshalb Kopf und Rahmen als Tabelle mit bgcolor und Zell-Abstand.
 const rahmen = (titel, unter, inhalt) =>
-  `<div style="${SCHRIFT}max-width:640px">` +
-  `<div style="background:#2f3d44;color:#fff;padding:14px 18px;border-radius:10px 10px 0 0">` +
-  `<div style="font-size:19px;font-weight:700">${esc(titel)}</div>` +
-  (unter ? `<div style="font-size:13px;opacity:.85;margin-top:2px">${esc(unter)}</div>` : "") +
-  `</div><div style="border:1px solid #dfe3e6;border-top:0;border-radius:0 0 10px 10px;padding:6px 18px 14px">${inhalt}</div>` +
-  `<div style="font-size:11px;color:#8a949a;margin-top:8px">Nur ein Entwurf für dich, wird nicht gesendet. Kann gelöscht werden.</div></div>`;
+  `<table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="${SCHRIFT}width:640px;max-width:100%;border-collapse:collapse">` +
+  `<tr><td bgcolor="#2f3d44" style="background:#2f3d44;color:#ffffff;padding:16px 20px">` +
+  `<div style="font-size:20px;font-weight:700;color:#ffffff;line-height:26px">${esc(titel)}</div>` +
+  (unter ? `<div style="font-size:13px;color:#d5dde1;line-height:20px;padding-top:4px">${esc(unter)}</div>` : "") +
+  `</td></tr>` +
+  `<tr><td style="border:1px solid #dfe3e6;border-top:0;padding:6px 20px 16px">${inhalt}</td></tr>` +
+  `<tr><td style="font-size:11px;color:#8a949a;padding-top:8px">Nur ein Entwurf für dich, wird nicht gesendet. Kann gelöscht werden.</td></tr></table>`;
 const abschnitt = (titel, farbe) =>
   `<div style="font-size:15px;font-weight:700;color:${farbe};border-bottom:2px solid ${farbe};padding:12px 0 4px;margin-bottom:6px">${esc(titel)}</div>`;
 const zeile = (links, mitte, rechts = "", grau = false) =>
