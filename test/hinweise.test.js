@@ -47,3 +47,16 @@ test("Wochenvorschau listet Kurse, Termine und Fahrzeit", () => {
   assert.match(html, /<s>RehaSport \(Michael\)<\/s>/);
   assert.match(html, /🚗 20 Min\. Fahrzeit \(1 Fahrt\)/);
 });
+
+test("Wochenvorschau als PDF entsteht", async () => {
+  const { wochenPdf } = await import("../src/wochenPdf.js");
+  const { ladeJsPdf } = await import("../automatik/monatsbericht.js");
+  const { einstellungen } = await import("../src/einstellungen.js");
+  const k = (titel, s, e, kat) => ({ titel, start: s, ende: e, kategorien: [kat], generiert: false, showAs: "busy" });
+  const doc = wochenPdf(
+    [k("RehaSport (Michael)", "2026-10-26T15:00", "2026-10-26T15:45", "10 SVE: RehaSport"), k("(U) RehaSport / PUR (Michael)", "2026-10-27T15:00", "2026-10-27T15:45", "01 PTM: PUR Kurs")],
+    "2026-10-26", einstellungen, ladeJsPdf()
+  );
+  const bytes = Buffer.from(doc.output("arraybuffer"));
+  assert.equal(bytes.subarray(0, 4).toString(), "%PDF");
+});

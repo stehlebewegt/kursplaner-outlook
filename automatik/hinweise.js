@@ -1,7 +1,8 @@
 // Entwürfe für Michael: morgens Hinweise (fehlende Protokolle, Überschneidungen),
 // sonntagabends die Wochenvorschau. Jeder Entwurf entsteht nur einmal (Kennung
 // am Entwurf). Gesendet wird nichts. Die öffentliche Ausgabe enthält nur Zahlen.
-import { BERICHT } from "./monatsbericht.js";
+import { BERICHT, ladeJsPdf } from "./monatsbericht.js";
+import { wochenPdf } from "../src/wochenPdf.js";
 import { fehlendeProtokolle, ueberschneidungen, hinweisHtml, wochenHtml, plusTage } from "../src/hinweise.js";
 
 async function schonDa(graph, kennung) {
@@ -12,12 +13,19 @@ async function schonDa(graph, kennung) {
   return da.value.length > 0;
 }
 
-const entwurf = (graph, kennung, betreff, html) =>
+const entwurf = (graph, kennung, betreff, html, anhaenge = []) =>
   graph("POST", "/messages", {
     subject: betreff,
     body: { contentType: "html", content: html },
     singleValueExtendedProperties: [{ id: BERICHT, value: kennung }],
+    attachments: anhaenge,
   });
+const pdfAnhang = (name, doc) => ({
+  "@odata.type": "#microsoft.graph.fileAttachment",
+  name,
+  contentType: "application/pdf",
+  contentBytes: Buffer.from(doc.output("arraybuffer")).toString("base64"),
+});
 
 // jetzt = "JJJJ-MM-TTTHH:MM" deutsche Zeit.
 export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausgabe, erzwingen = false }) {
@@ -65,7 +73,8 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
         graph,
         kennung,
         `${erzwingen ? "PROBE: " : ""}Kursplaner: Woche ab ${montag.slice(8, 10)}.${montag.slice(5, 7)}.`,
-        wochenHtml(termine, montag, einstellungen)
+        wochenHtml(termine, montag, einstellungen),
+        [pdfAnhang(`Woche ab ${montag.slice(8, 10)}.${montag.slice(5, 7)}.pdf`, wochenPdf(termine, montag, einstellungen, ladeJsPdf()))]
       );
       ausgabe(`Wochenvorschau ab ${montag}: Entwurf angelegt`);
     }
