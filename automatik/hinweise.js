@@ -28,7 +28,7 @@ const pdfAnhang = (name, doc) => ({
 });
 
 // jetzt = "JJJJ-MM-TTTHH:MM" deutsche Zeit.
-export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausgabe, erzwingen = false }) {
+export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausgabe, erzwingen = false, holeMails = async () => [] }) {
   const e = einstellungen.hinweise;
   if (!e) return;
   const heute = jetzt.slice(0, 10);
@@ -50,15 +50,17 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
       for (const t of ohne) t.text = t.text.replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div)>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ");
       const protokolle = fehlendeProtokolle(ohne, jetzt, einstellungen);
       const paare = ueberschneidungen(await holeBereich(heute, plusTage(heute, e.ueberschneidungTage)), einstellungen);
-      if (protokolle.length || paare.length) {
-        await entwurf(
-          graph,
-          kennung,
-          `${erzwingen ? "PROBE: " : ""}Kursplaner: ${protokolle.length + paare.length} Hinweise`,
-          hinweisHtml({ protokolle, paare })
-        );
+      let mails = [];
+      try {
+        mails = await holeMails();
+      } catch (err) {
+        ausgabe(`Hinweise: Mails nicht geprüft (${err.message.slice(0, 60)})`);
       }
-      ausgabe(`Hinweise ${heute}: ${protokolle.length} Protokolle fehlen, ${paare.length} Überschneidungen`);
+      const anzahl = protokolle.length + paare.length + mails.length;
+      if (anzahl) {
+        await entwurf(graph, kennung, `${erzwingen ? "PROBE: " : ""}Kursplaner: ${anzahl} Hinweise`, hinweisHtml({ protokolle, paare, mails }));
+      }
+      ausgabe(`Hinweise ${heute}: ${protokolle.length} Protokolle fehlen, ${paare.length} Überschneidungen, ${mails.length} Mails offen`);
     }
   }
 

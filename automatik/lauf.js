@@ -20,6 +20,7 @@ import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerung
 import { routenRechner, hatAdresse } from "./route.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 import { fahrtenbuch } from "./fahrtenbuch.js";
+import { ladeRegeln, sortiere, offeneMails } from "./mails.js";
 import { hinweise } from "./hinweise.js";
 import { holeFerien, holeFeiertage } from "./ferien.js";
 import { ferienKurse } from "../src/ferien.js";
@@ -327,6 +328,15 @@ if (process.env.ABSCHLUESSE) {
     ausgabe,
   });
 }
+// Mails von Anbietern: Regeln einmal pro Lauf aus den Kontakten.
+const kontaktPostfaecher = (process.env.KURSPLANER_KONTAKTE || "").split(",").map((p) => p.trim()).filter(Boolean);
+let mailRegeln = [];
+try {
+  mailRegeln = await ladeRegeln(graph, einstellungen, kontaktPostfaecher);
+  await sortiere({ graph, regeln: mailRegeln, einstellungen, ausgabe });
+} catch (e) {
+  ausgabe(`Posteingang: ${e.message.slice(0, 100)}`);
+}
 try {
   await hinweise({
     graph,
@@ -335,6 +345,7 @@ try {
     jetzt: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16),
     ausgabe,
     erzwingen: process.env.HINWEISE_PROBE === "ja",
+    holeMails: () => offeneMails({ graph, regeln: mailRegeln, jetztIso: new Date().toISOString(), einstellungen }),
   });
 } catch (e) {
   ausgabe(`Hinweise fehlgeschlagen: ${e.message.slice(0, 120)}`);

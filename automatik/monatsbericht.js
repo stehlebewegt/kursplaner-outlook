@@ -39,7 +39,7 @@ export function anschreiben(kontakte, mb) {
 
 // Sucht im Standard-Kontaktordner und in allen Unterordnern.
 // weitere = zusätzliche Postfächer (z. B. gemeinsames Adressbuch), deren Kontakte mit durchsucht werden.
-async function holeKontakte(graph, kuerzel, weitere = []) {
+export async function holeKontakte(graph, kuerzel, weitere = []) {
   const filter = `$top=10&$select=givenName,displayName,emailAddresses&$filter=categories/any(c:c eq 'Monatsbericht ${kuerzel}')`;
   const basen = ["", ...weitere.map((p) => `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(p)}`)];
   try {

@@ -56,7 +56,9 @@ export const einstellungen = {
   ferienAutomatisch: true,
   // Entwürfe für Michael (nichts wird gesendet): morgens Hinweise zu fehlenden
   // Kursprotokollen und Überschneidungen, sonntags die Wochenvorschau.
-  hinweise: { morgensAb: 6, protokollTage: 7, ueberschneidungTage: 14, wocheAb: 18 },
+  hinweise: { morgensAb: 6, protokollTage: 7, ueberschneidungTage: 14, wocheAb: 18, mailAbTage: 2, mailBisTage: 14 },
+  // Mails von Anbietern bekommen im Posteingang diese Kategorie (Farbe).
+  mailKategorien: { SVE: "SVE", PTM: "PTM" },
   // Fahrten mit dieser Kategorie kommen nicht in den Monatsbericht.
   kategorieNichtAbrechenbar: "Fahrtkosten nicht abrechenbar",
   // Material zum Anhaken im Kursprotokoll. Was im Protokoll neu dazukommt,

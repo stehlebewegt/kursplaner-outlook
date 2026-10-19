@@ -54,7 +54,7 @@ const marke = (text, hinter, vorne) =>
 const ANBIETER_FARBE = { SVE: ["#e6f0ec", "#2f6b56"], PTM: ["#e6eef6", "#2f5d7c"] };
 const tagDe = (d) => `${wochentag(d)} ${datumDe(d)}`;
 
-export function hinweisHtml({ protokolle, paare }) {
+export function hinweisHtml({ protokolle, paare, mails = [] }) {
   let inhalt = "";
   if (protokolle.length)
     inhalt +=
@@ -64,7 +64,17 @@ export function hinweisHtml({ protokolle, paare }) {
     inhalt +=
       abschnitt(`Überschneidungen (${paare.length})`, "#b23b3b") +
       tabelle(paare.map(([p, a]) => zeile(tagDe(p.start.slice(0, 10)), `<b>${esc(p.titel.trim())}</b> ${zeit(p)}<br><span style="color:#5b6770">mit ${esc(a.titel.trim())} ${zeit(a)}</span>`)));
-  const anzahl = protokolle.length + paare.length;
+  if (mails.length)
+    inhalt +=
+      abschnitt(`Noch nicht beantwortet (${mails.length})`, "#2f5d7c") +
+      tabelle(
+        mails.map((m) => {
+          const [h, v] = ANBIETER_FARBE[m.kuerzel] || ["#eceff1", "#37474f"];
+          const d = new Date(m.empfangen).toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+          return zeile(tagDe(d), `<b>${esc(m.name)}</b><br><span style="color:#5b6770">${esc(m.betreff)}</span>`, marke(m.kuerzel, h, v));
+        })
+      );
+  const anzahl = protokolle.length + paare.length + mails.length;
   return rahmen(`${anzahl} ${anzahl === 1 ? "Hinweis" : "Hinweise"} aus dem Kursplaner`, "", inhalt);
 }
 
