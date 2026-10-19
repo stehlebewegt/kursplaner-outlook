@@ -4,6 +4,7 @@
 import { config } from "./config.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { termineFuerTag, erinnerungsFelder } from "../src/planer.js";
+import { SIGNATUR_BETREFF, leseSignatur, htmlZuText, mitSignatur } from "../src/signatur.js";
 
 const GRAPH = "https://graph.microsoft.com/v1.0";
 // Unsichtbare Markierung an jedem Block, den das Add-in anlegt.
@@ -146,7 +147,7 @@ async function findeKalender(t) {
 export async function legeEntwurfAn({ an, betreff, text, dateiname, pdfBase64 }) {
   const m = await graph("POST", "/me/messages", {
     subject: betreff,
-    body: { contentType: "text", content: text },
+    body: mitSignatur(text, await holeSignatur()),
     toRecipients: an ? [{ emailAddress: { address: an } }] : [],
     attachments: [
       { "@odata.type": "#microsoft.graph.fileAttachment", name: dateiname, contentType: "application/pdf", contentBytes: pdfBase64 },
@@ -216,8 +217,26 @@ export async function legeKursAn(kalenderName, ereignis) {
 export async function legeMailEntwurfAn({ an, betreff, text }) {
   const m = await graph("POST", "/me/messages", {
     subject: betreff,
-    body: { contentType: "text", content: text },
+    body: mitSignatur(text, await holeSignatur()),
     toRecipients: an ? [{ emailAddress: { address: an } }] : [],
   });
   return m.id;
+}
+
+// Signatur aus dem Entwurf "Kursplaner-Signatur" (siehe src/signatur.js).
+// Fehlt er oder klappt das Lesen nicht, geht der Entwurf ohne Signatur raus.
+let signatur;
+async function holeSignatur() {
+  if (signatur !== undefined) return signatur;
+  try {
+    const { value } = await graph(
+      "GET",
+      `/me/mailFolders/drafts/messages?$filter=${encodeURIComponent(`subject eq '${SIGNATUR_BETREFF}'`)}&$select=body&$top=1`
+    );
+    const b = value[0]?.body;
+    signatur = b ? leseSignatur(b.contentType === "html" ? htmlZuText(b.content) : b.content) : null;
+  } catch {
+    signatur = null;
+  }
+  return signatur;
 }

@@ -8,6 +8,7 @@
 import { readFileSync } from "node:fs";
 import { erstelleAuswertung, monatsZeitraum, stand, nachtrag } from "../src/auswertung.js";
 import { erstellePdf } from "../web/bericht.js";
+import { SIGNATUR_BETREFF, leseSignatur, htmlZuText, mitSignatur } from "../src/signatur.js";
 
 // jsPDF ist eine Browser-Datei (UMD); im Repo gilt .js als ES-Modul, darum von Hand laden.
 export function ladeJsPdf() {
@@ -104,8 +105,23 @@ export async function berechneStrecken(fahrten, rechne, einstellungen) {
 }
 
 // probe = "JJJJ-MM": sofort für diesen Monat, Betreff mit "PROBE", zählt nicht als erledigt.
+// Signatur aus dem Entwurf "Kursplaner-Signatur" (siehe src/signatur.js); ohne: Text wie bisher.
+export async function holeSignatur(graph) {
+  try {
+    const { value } = await graph(
+      "GET",
+      `/mailFolders/drafts/messages?$filter=${encodeURIComponent(`subject eq '${SIGNATUR_BETREFF}'`)}&$select=body&$top=1`
+    );
+    const b = value[0]?.body;
+    return (b && leseSignatur(b.contentType === "html" ? htmlZuText(b.content) : b.content)) || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function monatsberichte({ graph, holeBereich, rechne, einstellungen, heute, jetzt, probe, ausgabe, kontaktPostfaecher = [] }) {
   const mb = einstellungen.monatsbericht;
+  let sig;
   if (!probe && Number(heute.slice(8, 10)) !== mb.tag) return;
   const monat = probe || heute.slice(0, 7);
   const vm = vormonat(`${monat}-01`);
@@ -143,7 +159,7 @@ export async function monatsberichte({ graph, holeBereich, rechne, einstellungen
     werte.nachtrag = n.zeilen.length ? fuelle(mb.nachtragText || "", werte) : "";
     await graph("POST", "/messages", {
       subject: (probe ? "PROBE: " : "") + fuelle(mb.betreff, werte),
-      body: { contentType: "text", content: fuelle(vorlage, werte) },
+      body: mitSignatur(fuelle(vorlage, werte), (sig ??= await holeSignatur(graph))),
       toRecipients: an.map((address) => ({ emailAddress: { address } })),
       attachments: [
         {
