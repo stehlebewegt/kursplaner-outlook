@@ -108,8 +108,11 @@ export function termineFuerTag(alle, datum, einstellungen) {
 // der aktuelle Standort. Die Heimadresse kennt nur die Automatik (Secret),
 // ohne sie bekommt die Rückfahrt keinen Link.
 export const ROUTEN_LINK = "https://www.google.com/maps/dir/?api=1";
-// Outlook-Felder für die Erinnerung eines Blocks (0/leer = keine).
-export const erinnerungsFelder = (min) => (min ? { isReminderOn: true, reminderMinutesBeforeStart: min } : { isReminderOn: false });
+// Outlook-Felder für die Erinnerung eines Blocks: Minuten vor Beginn (0 = zum
+// Beginn), leer oder -1 = keine.
+export const KEINE_ERINNERUNG = -1;
+export const erinnerungsFelder = (min) =>
+  min == null || min < 0 ? { isReminderOn: false } : { isReminderOn: true, reminderMinutesBeforeStart: min };
 
 // Woran ein Block mit Link erkannt wird (Outlook liefert als Vorschau nur den Text).
 export const ROUTEN_BESCHRIFTUNG = "Route in Google Maps starten";
@@ -142,6 +145,11 @@ export function planeTag(datum, alleTermine, einstellungen) {
   // (in der Erinnerung steht der Routen-Link gleich mit drin).
   const mitErinnerung = () => {
     if (e.erinnerungVorFahrtMin) soll[soll.length - 1].erinnerung = e.erinnerungVorFahrtMin;
+  };
+  // Nach dem Kurs: Erinnerung zum Beginn der Nachbereitung (= Kursende), damit
+  // das Protokoll gleich ausgefüllt wird.
+  const protokollErinnerung = () => {
+    if (e.erinnerungProtokoll) soll[soll.length - 1].erinnerung = 0;
   };
 
   // Private Termine mit Fahrzeit (im Termin gespeichert): Hin- und Rückfahrt.
@@ -197,10 +205,12 @@ export function planeTag(datum, alleTermine, einstellungen) {
       const k = b.kurse[j];
       if (k.start > a.ende) {
         neu(`Nach-/Vorbereitung - ${k.vollerTitel}`, a.ende, k.start, e.kategoriePuffer, b.anbieter);
+        protokollErinnerung();
       }
     }
 
     neu(`Nachbereitung - ${letzter.vollerTitel}`, letzter.ende, nachEnde, e.kategoriePuffer, b.anbieter);
+    protokollErinnerung();
     b.ende = nachEnde;
 
     const direktZumNaechsten = nach && !heimfahrt(b, nach, nach.kurse[0].start - e.vorbereitungMin - nachEnde);

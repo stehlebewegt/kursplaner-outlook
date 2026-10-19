@@ -16,7 +16,7 @@ import { MARKIERUNG, FAHRZEIT } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
-import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerungsFelder } from "../src/planer.js";
+import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerungsFelder, KEINE_ERINNERUNG } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 import { hinweise } from "./hinweise.js";
@@ -100,7 +100,7 @@ function zuTermin(e) {
     adresse: adresseVon(e.location),
     showAs: e.showAs,
     ...(e.bodyPreview !== undefined ? { vorschau: e.bodyPreview } : {}),
-    ...(e.isReminderOn !== undefined ? { erinnerung: e.isReminderOn ? e.reminderMinutesBeforeStart : 0 } : {}),
+    ...(e.isReminderOn !== undefined ? { erinnerung: e.isReminderOn ? e.reminderMinutesBeforeStart : KEINE_ERINNERUNG } : {}),
     generiert: prop?.value === "1",
     fahrzeit,
   };

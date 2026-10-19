@@ -47,6 +47,8 @@ export const einstellungen = {
   routenLinkNachtragen: true,
   // Erinnerung (Minuten) vor Anfahrten und Fahrten zwischen Anbietern; 0 = aus.
   erinnerungVorFahrtMin: 10,
+  // Erinnerung bei Kursende (an der Nachbereitung): Protokoll ausfüllen.
+  erinnerungProtokoll: true,
   // Ferien-Kürzel (F) automatisch setzen; false = nur anzeigen (Probelauf).
   ferienAutomatisch: true,
   // Entwürfe für Michael (nichts wird gesendet): morgens Hinweise zu fehlenden

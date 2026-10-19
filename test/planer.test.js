@@ -268,3 +268,12 @@ test("Fahrt-Blöcke haben einen Google-Maps-Link zum Ziel", () => {
   // Ohne Heimadresse (im Add-in) keine Rückfahrt-Link.
   assert.equal(planeTag(d, [privat], einstellungen)[1].html, undefined);
 });
+
+test("Nachbereitung erinnert bei Kursende ans Protokoll", () => {
+  const d = "2026-10-21";
+  const kurs = { titel: "RehaSport (Michael)", start: `${d}T08:45`, ende: `${d}T09:30`, kategorien: ["10 SVE: RehaSport"], generiert: false };
+  const soll = planeTag(d, [kurs], einstellungen);
+  const nach = soll.find((b) => b.titel.startsWith("Nachbereitung"));
+  assert.equal(nach.erinnerung, 0);
+  assert.equal(soll.find((b) => b.titel.startsWith("Vorbereitung")).erinnerung, undefined);
+});

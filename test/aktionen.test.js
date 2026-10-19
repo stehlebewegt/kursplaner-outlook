@@ -103,8 +103,8 @@ test("Vorhandene Fahrt-Blöcke ohne Routen-Link werden erkannt", async () => {
 test("Anfahrt bekommt eine Erinnerung, vorhandene Blöcke werden nachgebessert", async () => {
   const d = "2026-10-20";
   const privat = { id: "p", titel: "Fortbildung", start: `${d}T10:00`, ende: `${d}T12:00`, kategorien: [], ort: "Albstadt", generiert: false, fahrzeit: 60 };
-  const hin = { id: "h", titel: "Anfahrt - Fortbildung", start: `${d}T09:00`, ende: `${d}T10:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, vorschau: "🧭 Route in Google Maps starten", erinnerung: 0 };
-  const rueck = { id: "r", titel: "Rückfahrt - Fortbildung", start: `${d}T12:00`, ende: `${d}T13:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, erinnerung: 0 };
+  const hin = { id: "h", titel: "Anfahrt - Fortbildung", start: `${d}T09:00`, ende: `${d}T10:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, vorschau: "🧭 Route in Google Maps starten", erinnerung: -1 };
+  const rueck = { id: "r", titel: "Rückfahrt - Fortbildung", start: `${d}T12:00`, ende: `${d}T13:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, erinnerung: -1 };
   const v = await vorschauTag({ holeTag: async () => [privat, hin, rueck] }, d, einstellungen);
   assert.deepEqual(v.nachbessern, [{ id: "h", felder: { isReminderOn: true, reminderMinutesBeforeStart: 10 } }]);
 });
