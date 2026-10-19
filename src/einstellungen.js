@@ -11,6 +11,8 @@ export const einstellungen = {
       fahrzeitMin: 20,
       kategorien: ["10 SVE: RehaSport", "11 SVE: Vereinskurs"],
       kategorieVertretung: "19 Vertretung Kurs SVE",
+      // An gesetzlichen Feiertagen (BW) keine Kurse: reguläre Kurse bekommen (F).
+      feiertagFrei: true,
       empfaenger: "", // wird in Outlook hinterlegt, nicht im öffentlichen Code
     },
     {
@@ -24,6 +26,7 @@ export const einstellungen = {
       kategorieVertretung: "09 Vertretung Kurs PTM",
       // In den Schulferien (BW) keine Kurse: reguläre Kurse bekommen automatisch (F).
       ferienFrei: true,
+      feiertagFrei: true,
       empfaenger: "", // wird in Outlook hinterlegt, nicht im öffentlichen Code
     },
   ],
