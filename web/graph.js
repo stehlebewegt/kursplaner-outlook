@@ -211,3 +211,13 @@ export async function legeKursAn(kalenderName, ereignis) {
   const k = await anbieterKalender(kalenderName);
   return graph("POST", `/me/calendars/${k.id}/events`, ereignis);
 }
+
+// Einfacher E-Mail-Entwurf ohne Anhang (Vorlagen zum Kurs).
+export async function legeMailEntwurfAn({ an, betreff, text }) {
+  const m = await graph("POST", "/me/messages", {
+    subject: betreff,
+    body: { contentType: "text", content: text },
+    toRecipients: an ? [{ emailAddress: { address: an } }] : [],
+  });
+  return m.id;
+}

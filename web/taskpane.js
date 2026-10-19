@@ -5,6 +5,7 @@ import { findeAnbieter, ohneKuerzel } from "../src/planer.js";
 import { FELDER, leseProtokoll, schreibeProtokoll, gesamt, auswertungVerlauf, teileMaterial } from "../src/protokoll.js";
 import { erstelleAuswertung, monatsZeitraum } from "../src/auswertung.js";
 import { erstellePdf } from "./bericht.js";
+import { fuelleVorlage } from "../src/vorlagen.js";
 import { pruefeKurs, kursEreignis, kursTitel, anzahlTermine } from "../src/neuerKurs.js";
 import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel, setzeFahrzeit, setzeZeitraum } from "../src/aktionen.js";
 
@@ -108,6 +109,7 @@ async function start() {
   richteAuswertungEin();
   richteNeuerKursEin();
   richteUrlaubEin();
+  if (anbieter && !termin.generiert) richteMailEin(anbieter);
   if (!$("bereich-eigen").hidden) await zeigeProtokoll();
 
   $("ich-gebe").onclick = () => uebernehme(false);
@@ -434,6 +436,32 @@ function richteNeuerKursEin() {
           `</div>`
       );
     });
+}
+
+// --- E-Mail zum Kurs: Vorlagen mit Kurs, Datum und Uhrzeit ---
+function richteMailEin(anbieter) {
+  $("bereich-mail").hidden = false;
+  $("m-knoepfe").innerHTML = einstellungen.vorlagen
+    .map((v) => `<button class="zweit" data-vorlage="${v.id}">${html(v.knopf)}</button>`)
+    .join("");
+  document.querySelectorAll("[data-vorlage]").forEach((b) => {
+    b.onclick = () =>
+      mitWarten(b, async () => {
+        const v = einstellungen.vorlagen.find((x) => x.id === b.dataset.vorlage);
+        const { betreff, text } = fuelleVorlage(v, termin, anbieter);
+        // Empfänger des Anbieters: derselbe, der bei der Monatsauswertung gemerkt ist.
+        const an = v.an === "anbieter" ? Office.context.roamingSettings.get(`empfaenger-${anbieter.kuerzel}`) || "" : "";
+        const id = await api.legeMailEntwurfAn({ an, betreff, text });
+        zeige(
+          `<div class="karte"><strong>Entwurf erstellt</strong><div class="leise">${html(betreff)}${an ? "" : "<br>Empfänger bitte noch eintragen."}</div></div>`
+        );
+        try {
+          Office.context.mailbox.displayMessageForm(Office.context.mailbox.convertToEwsId(id, Office.MailboxEnums.RestVersion.v2_0));
+        } catch {
+          /* dann eben aus den Entwürfen öffnen */
+        }
+      });
+  });
 }
 
 // --- Urlaub für mehrere Tage: Kürzel für alle regulären Kurse im Zeitraum ---

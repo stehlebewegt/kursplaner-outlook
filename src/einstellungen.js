@@ -93,6 +93,43 @@ export const einstellungen = {
       "Wenn etwas nicht passt oder ihr Fragen habt, meldet euch gern jederzeit bei mir.\n\n" +
       "Herzliche Grüße und bis bald\nMichael Stehle",
   },
+  // E-Mail-Vorlagen im Kursplaner (Bereich „E-Mail zum Kurs“). an: "anbieter" =
+  // gemerkter Empfänger des Anbieters (wie bei der Monatsauswertung), "" = leer.
+  vorlagen: [
+    {
+      id: "vertretung",
+      knopf: "Vertretung anfragen",
+      an: "",
+      betreff: "Vertretung gesucht: {kurs} am {wochentag}, {kurzdatum}",
+      text:
+        "Hallo zusammen,\n\n" +
+        "ich suche eine Vertretung für meinen Kurs {kurs} am {wochentag}, {datum}, von {zeit} ({anbieter}).\n\n" +
+        "Hätte jemand von euch Zeit und Lust? Gebt mir gern kurz Bescheid.\n\n" +
+        "Vielen Dank und viele Grüße\nMichael",
+    },
+    {
+      id: "absage",
+      knopf: "Kurs absagen",
+      an: "anbieter",
+      betreff: "Absage: {kurs} am {wochentag}, {kurzdatum}",
+      text:
+        "Hallo,\n\n" +
+        "leider muss ich meinen Kurs {kurs} am {wochentag}, {datum}, von {zeit} absagen.\n\n" +
+        "Kannst du bitte die Teilnehmer informieren? Danke dir!\n\n" +
+        "Viele Grüße\nMichael",
+    },
+    {
+      id: "krank",
+      knopf: "Krank melden",
+      an: "anbieter",
+      betreff: "Krankmeldung: {kurs} am {wochentag}, {kurzdatum}",
+      text:
+        "Hallo,\n\n" +
+        "ich bin leider krank und kann meinen Kurs {kurs} am {wochentag}, {datum}, von {zeit} nicht geben.\n\n" +
+        "Ich melde mich, sobald ich wieder fit bin. Kannst du bitte die Teilnehmer informieren?\n\n" +
+        "Viele Grüße\nMichael",
+    },
+  ],
   // Kürzel vor dem Titel. aktiv = Kurs findet statt (bekommt Fahrt und Puffer).
   kuerzel: {
     "": { bedeutung: "regulär", aktiv: true },
