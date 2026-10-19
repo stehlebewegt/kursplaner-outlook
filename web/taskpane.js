@@ -6,7 +6,7 @@ import { FELDER, leseProtokoll, schreibeProtokoll, gesamt, auswertungVerlauf, te
 import { erstelleAuswertung, monatsZeitraum } from "../src/auswertung.js";
 import { erstellePdf } from "./bericht.js";
 import { pruefeKurs, kursEreignis, kursTitel, anzahlTermine } from "../src/neuerKurs.js";
-import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel, setzeFahrzeit } from "../src/aktionen.js";
+import { vorschauTag, planeTagNeu, uebernehmeKurs, setzeKuerzel, setzeFahrzeit, setzeZeitraum } from "../src/aktionen.js";
 
 const $ = (id) => document.getElementById(id);
 let termin;
@@ -87,6 +87,7 @@ async function start() {
     $("bereich-auswertung").open = true;
     richteAuswertungEin();
     richteNeuerKursEin();
+    richteUrlaubEin();
     return;
   }
   const ewsId = await eigeneId(item);
@@ -106,6 +107,7 @@ async function start() {
   $("bereich-auswertung").hidden = false;
   richteAuswertungEin();
   richteNeuerKursEin();
+  richteUrlaubEin();
   if (!$("bereich-eigen").hidden) await zeigeProtokoll();
 
   $("ich-gebe").onclick = () => uebernehme(false);
@@ -431,6 +433,42 @@ function richteNeuerKursEin() {
             : meiner(f) ? `<div class="leise">In ein paar Minuten steht er auch in deinem Kalender (die nächsten 8 Wochen, danach rollend).</div>` : "") +
           `</div>`
       );
+    });
+}
+
+// --- Urlaub für mehrere Tage: Kürzel für alle regulären Kurse im Zeitraum ---
+function richteUrlaubEin() {
+  $("bereich-urlaub").hidden = false;
+  const tagDe = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.`;
+  const liste = (kurse) => `<ul>${kurse.map((t) => `<li>${tagDe(t.start)} ${t.start.slice(11)} ${html(ohneKuerzel(t.titel))}</li>`).join("")}</ul>`;
+  const eingabe = () => ({ von: $("u-von").value, bis: $("u-bis").value || $("u-von").value, kuerzel: $("u-kuerzel").value });
+  ["u-von", "u-bis", "u-kuerzel"].forEach((id) => $(id).addEventListener("input", () => ($("u-ausfuehren").hidden = true)));
+  $("u-von").addEventListener("change", () => {
+    if (!$("u-bis").value || $("u-bis").value < $("u-von").value) $("u-bis").value = $("u-von").value;
+  });
+
+  $("u-vorschau").onclick = () =>
+    mitWarten($("u-vorschau"), async () => {
+      const { von, bis, kuerzel } = eingabe();
+      if (!von || bis < von) {
+        $("u-hinweis").innerHTML = `<span class="fehler">Bitte Von und Bis wählen.</span>`;
+        return;
+      }
+      const v = await setzeZeitraum(api, von, bis, kuerzel, einstellungen, { schreiben: false });
+      const was = kuerzel ? `bekommen (${kuerzel})` : "finden wieder statt";
+      $("u-hinweis").innerHTML =
+        (v.aendern.length ? `<strong>${v.aendern.length} Kurse ${was}:</strong>${liste(v.aendern)}` : "In dem Zeitraum gibt es dafür keine Kurse.") +
+        (v.bleiben.length ? `<strong>Bleiben so (Vertretung/Hospitation), bitte selbst klären:</strong>${liste(v.bleiben)}` : "");
+      $("u-ausfuehren").hidden = !v.aendern.length;
+    });
+
+  $("u-ausfuehren").onclick = () =>
+    mitWarten($("u-ausfuehren"), async () => {
+      const { von, bis, kuerzel } = eingabe();
+      const v = await setzeZeitraum(api, von, bis, kuerzel, einstellungen);
+      $("u-ausfuehren").hidden = true;
+      $("u-hinweis").innerHTML = "";
+      zeige(`<div class="karte"><strong>Erledigt</strong><div>${v.aendern.length} Kurse geändert, ${v.tage.length} Tage neu geplant (Fahrten und Vor-/Nachbereitung).</div></div>`);
     });
 }
 

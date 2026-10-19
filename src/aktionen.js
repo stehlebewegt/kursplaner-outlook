@@ -1,6 +1,6 @@
 // Die Aktionen hinter den Buttons. "api" ist der Kalender-Zugriff
 // (in Outlook: web/graph.js, in den Tests: ein Kalender im Speicher).
-import { planeTag, ROUTEN_BESCHRIFTUNG, erinnerungsFelder, KEINE_ERINNERUNG, vergleiche, markiereAlteBloecke, leseKuerzel, ohneKuerzel, findeAnbieter } from "./planer.js";
+import { planeTag, ROUTEN_BESCHRIFTUNG, erinnerungsFelder, KEINE_ERINNERUNG, vergleiche, markiereAlteBloecke, leseKuerzel, ohneKuerzel, findeAnbieter, kursAnbieter } from "./planer.js";
 
 const datumVon = (t) => t.start.slice(0, 10);
 
@@ -75,4 +75,28 @@ export async function setzeKuerzel(api, kurs, kuerzel, einstellungen) {
 export async function setzeFahrzeit(api, termin, minuten, einstellungen) {
   await api.setzeFahrzeit(termin.id, minuten);
   return planeTagNeu(api, datumVon(termin), einstellungen);
+}
+
+// Urlaub (oder Absage) für einen Zeitraum: alle regulären eigenen Kurse von
+// "von" bis "bis" bekommen das Kürzel, danach werden die Tage neu geplant.
+// kuerzel "" hebt (U)/(A) im Zeitraum wieder auf. Vertretungen (V) und
+// Hospitationen (H) bleiben, wie sie sind; sie werden nur zurückgegeben.
+export function kurseImZeitraum(termine, kuerzel, einstellungen) {
+  const kurse = termine.filter((t) => !t.generiert && kursAnbieter(t, einstellungen));
+  const alt = (t) => leseKuerzel(t.titel);
+  // Setzen nur bei regulären Kursen; Aufheben nimmt (U) und (A) wieder weg.
+  const aendern = kurse.filter((t) => (kuerzel ? alt(t) === "" : ["U", "A"].includes(alt(t))));
+  const bleiben = kurse.filter((t) => ["V", "H"].includes(alt(t)));
+  return { aendern, bleiben };
+}
+
+export async function setzeZeitraum(api, von, bis, kuerzel, einstellungen, { schreiben = true } = {}) {
+  const { aendern, bleiben } = kurseImZeitraum(await api.holeVerlauf(von, bis), kuerzel, einstellungen);
+  if (!schreiben) return { aendern, bleiben, tage: [] };
+  const aktiv = einstellungen.kuerzel[kuerzel]?.aktiv ?? true;
+  for (const t of aendern)
+    await api.aendere(t.id, { subject: (kuerzel ? `(${kuerzel}) ` : "") + ohneKuerzel(t.titel), showAs: aktiv ? "busy" : "free" });
+  const tage = [...new Set(aendern.map(datumVon))].sort();
+  for (const d of tage) await planeTagNeu(api, d, einstellungen);
+  return { aendern, bleiben, tage };
 }

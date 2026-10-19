@@ -180,6 +180,24 @@
     <button id="n-anlegen" hidden>Kurs anlegen</button>
     </div>
   </details>
+  <details id="bereich-urlaub" class="karte" hidden>
+    <summary>Urlaub für mehrere Tage</summary>
+    <div class="inhalt">
+    <div class="reihe">
+      <div><label for="u-von">Von</label><input id="u-von" type="date"></div>
+      <div><label for="u-bis">Bis</label><input id="u-bis" type="date"></div>
+    </div>
+    <label for="u-kuerzel">Was eintragen?</label>
+    <select id="u-kuerzel">
+      <option value="U">Urlaub (U)</option>
+      <option value="A">Abgesagt (A)</option>
+      <option value="">Wieder aufheben (findet statt)</option>
+    </select>
+    <div id="u-hinweis" class="leise"></div>
+    <button id="u-vorschau" class="zweit">Vorschau</button>
+    <button id="u-ausfuehren" hidden>Übernehmen</button>
+    </div>
+  </details>
   <div id="ergebnis"></div>
   <script type="module" src="web/taskpane.js"></script>
 </body>

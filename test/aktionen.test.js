@@ -108,3 +108,13 @@ test("Anfahrt bekommt eine Erinnerung, vorhandene Blöcke werden nachgebessert",
   const v = await vorschauTag({ holeTag: async () => [privat, hin, rueck] }, d, einstellungen);
   assert.deepEqual(v.nachbessern, [{ id: "h", felder: { isReminderOn: true, reminderMinutesBeforeStart: 10 } }]);
 });
+
+test("Urlaub im Zeitraum: nur reguläre Kurse bekommen (U), Vertretungen bleiben", async () => {
+  const { kurseImZeitraum } = await import("../src/aktionen.js");
+  const k = (id, titel, kat = "10 SVE: RehaSport") => ({ id, titel, start: "2026-11-03T15:00", ende: "2026-11-03T15:45", kategorien: [kat], generiert: false });
+  const termine = [k("a", "RehaSport (Michael)"), k("b", "(V) RehaSport (Eva)", "19 Vertretung Kurs SVE"), k("c", "(A) Yoga (Michael)"), k("d", "Zahnarzt", "privat")];
+  const u = kurseImZeitraum(termine, "U", einstellungen);
+  assert.deepEqual(u.aendern.map((t) => t.id), ["a"]);
+  assert.deepEqual(u.bleiben.map((t) => t.id), ["b"]);
+  assert.deepEqual(kurseImZeitraum(termine, "", einstellungen).aendern.map((t) => t.id), ["c"]);
+});
