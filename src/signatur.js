@@ -38,7 +38,7 @@ export function signaturHtml(f) {
   if (f.Slogan) zeilen.push(`<div style="font-size:13px;color:${TEAL};padding-bottom:6px">${esc(f.Slogan)}</div>`);
   const kontakt = [];
   if (f.Adresse) kontakt.push(esc(f.Adresse));
-  if (f.Telefon) kontakt.push(link(`tel:${f.Telefon.replace(/[^\d+]/g, "")}`, f.Telefon));
+  if (f.Telefon) kontakt.push(link(`tel:${f.Telefon.replace(/\(0\)/g, "").replace(/[^\d+]/g, "")}`, f.Telefon));
   if (kontakt.length) zeilen.push(`<div style="${grau}">${kontakt.join(" · ")}</div>`);
   const netz = [];
   if (f["E-Mail"]) netz.push(link(`mailto:${f["E-Mail"]}`, f["E-Mail"]));

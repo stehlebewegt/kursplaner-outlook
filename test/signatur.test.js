@@ -22,6 +22,7 @@ test("HTML escaped und verlinkt", () => {
   assert.match(h, /mailto:max@example.org/);
   assert.match(h, /https:\/\/www.example.org/);
   assert.match(h, /tel:0123456/);
+  assert.match(signaturHtml({ Name: "A", Telefon: "+49 (0)170 1" }), /tel:\+491701"/);
   assert.doesNotMatch(h, /<img/);
 });
 
