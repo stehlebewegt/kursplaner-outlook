@@ -20,6 +20,10 @@ on:
         description: "Einmalig Routen-Links in Fahrt-Blöcke schreiben, Zeitraum JJJJ-MM-TT:JJJJ-MM-TT"
         required: false
         default: ""
+      fahrten_probe:
+        description: "Fahrten-Liste fürs Finanzamt für Jahr JJJJ sofort als PROBE-Entwurf"
+        required: false
+        default: ""
       hinweise_probe:
         description: "ja = Hinweise und Wochenvorschau sofort als PROBE-Entwurf anlegen"
         required: false
@@ -63,5 +67,6 @@ jobs:
           NACHBERECHNEN: ${{ inputs.nachberechnen }}
           ROUTENLINKS: ${{ inputs.routenlinks }}
           HINWEISE_PROBE: ${{ inputs.hinweise_probe }}
+          FAHRTEN_PROBE: ${{ inputs.fahrten_probe }}
           ABSCHLUESSE: ${{ inputs.abschluesse }}
           NACHBERECHNEN_SCHREIBEN: ${{ inputs.nachberechnen_schreiben }}

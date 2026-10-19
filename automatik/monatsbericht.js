@@ -87,7 +87,7 @@ async function holeStand(graph, kennungen) {
 }
 
 // Strecken einmal pro Paar berechnen (Zuhause und Anbieter-Adressen).
-async function berechneStrecken(fahrten, rechne, einstellungen) {
+export async function berechneStrecken(fahrten, rechne, einstellungen) {
   const ortVon = (k) => (k === "heim" ? null : einstellungen.anbieter.find((a) => a.kuerzel === k)?.ort);
   const strecken = new Map();
   if (!rechne) return strecken;

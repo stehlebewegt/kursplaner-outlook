@@ -19,6 +19,7 @@ import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
 import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerungsFelder, KEINE_ERINNERUNG } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
+import { fahrtenbuch } from "./fahrtenbuch.js";
 import { hinweise } from "./hinweise.js";
 import { holeFerien, holeFeiertage } from "./ferien.js";
 import { ferienKurse } from "../src/ferien.js";
@@ -352,5 +353,19 @@ try {
   });
 } catch (e) {
   ausgabe(/ 403 /.test(e.message) ? "Monatsbericht: Mail-Berechtigung (Mail.ReadWrite) fehlt noch" : `Monatsbericht fehlgeschlagen: ${e.message.slice(0, 120)}`);
+}
+try {
+  await fahrtenbuch({
+    graph,
+    holeBereich: api.holeBereich,
+    rechne,
+    einstellungen,
+    heute,
+    jetzt: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16),
+    probe: process.env.FAHRTEN_PROBE || "",
+    ausgabe,
+  });
+} catch (e) {
+  ausgabe(`Fahrten-Liste fehlgeschlagen: ${e.message.slice(0, 120)}`);
 }
 console.log(`::notice::${zeilen.join("%0A")}`);
