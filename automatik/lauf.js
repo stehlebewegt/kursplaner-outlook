@@ -223,6 +223,11 @@ if (process.env.NACHBERECHNEN) {
     }
     ausgabe(`Private Termine mit Adresse ohne Fahrzeit: ${offen.length}, davon Route gefunden ${gefunden}`);
   }
+  // Kursfahrten bekommen auch hier die Strecke in die Notiz.
+  if (process.env.KURSPLANER_HEIMADRESSE && einstellungen.streckenNotiz) {
+    einstellungen.strecken = await kursStrecken(routenRechner({ heimadresse: process.env.KURSPLANER_HEIMADRESSE }), einstellungen);
+    ausgabe(`Kursstrecken: ${Object.keys(einstellungen.strecken).length} berechnet`);
+  }
   const monate = new Map();
   for (const monat of [...new Set(bereich.map((d) => d.slice(0, 7)))]) {
     const r = await planeZeitraum(api, bereich.filter((d) => d.startsWith(monat)), einstellungen, { schreiben: wirklich });
@@ -231,7 +236,7 @@ if (process.env.NACHBERECHNEN) {
   ausgabe(`Nachberechnung ${von} bis ${bis} (${wirklich ? "AUSGEFÜHRT" : "nur Probelauf, nichts geändert"}):`);
   for (const [monat, r] of monate) {
     const summe = (k) => r.reduce((s, x) => s + x[k].length, 0);
-    ausgabe(`${monat}: ${r.length} Tage mit Änderungen, Blöcke +${summe("anlegen")} −${summe("loeschen")}, übernommen ${summe("uebernehmen")}, freigegeben ${summe("freigeben")}`);
+    ausgabe(`${monat}: ${r.length} Tage mit Änderungen, Blöcke +${summe("anlegen")} −${summe("loeschen")}, übernommen ${summe("uebernehmen")}, freigegeben ${summe("freigeben")}, Notiz/Erinnerung nachgebessert ${summe("nachbessern")}`);
   }
   console.log(`::notice::${zeilen.join("%0A")}`);
   process.exit(0);
