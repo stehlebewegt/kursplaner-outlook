@@ -320,7 +320,7 @@ if (rechne && (einstellungen.streckenNotiz || process.env.STRECKEN_PROBE)) {
   if (offen.length || process.env.STRECKEN_PROBE) {
     einstellungen.strecken = await kursStrecken(rechne, einstellungen);
     const ab = abweichungen(einstellungen.strecken, einstellungen);
-    ausgabe(`Kursstrecken: ${Object.keys(einstellungen.strecken).length} berechnet, Fahrten ohne Strecke ${offen.length}; eingestellte Fahrzeit weicht ab: ${ab.join(", ") || "nein"}`);
+    ausgabe(`Kursstrecken: ${Object.keys(einstellungen.strecken).length} berechnet, Fahrten ohne Strecke ${offen.length} [${offen.map(tagZeit).join(", ")}]; eingestellte Fahrzeit weicht ab: ${ab.join(", ") || "nein"}`);
     if (process.env.STRECKEN_PROBE) {
       console.log(`::notice::${zeilen.join("%0A")}`);
       process.exit(0);
