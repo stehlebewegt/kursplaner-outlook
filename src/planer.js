@@ -119,6 +119,14 @@ export const ROUTEN_BESCHRIFTUNG = "Route in Google Maps starten";
 export const routenUrl = (ziel) => `${ROUTEN_LINK}&destination=${encodeURIComponent(ziel)}&travelmode=driving`;
 export const routenHtml = (ziel) => `<p><a href="${routenUrl(ziel).replace(/&/g, "&amp;")}">🧭 ${ROUTEN_BESCHRIFTUNG}</a></p>`;
 
+// Tatsächliche Strecke in der Notiz der Kursfahrten. Die Werte kennt nur die
+// Automatik (sie hängen an der Heimadresse); einstellungen.strecken hat
+// Schlüssel wie "heim-SVE", "SVE-heim", "SVE-PTM" mit { km, minuten }.
+export const STRECKEN_BESCHRIFTUNG = "Strecke laut OpenStreetMap";
+const zahl = (x) => String(x).replace(".", ",");
+export const streckenHtml = (s, eingeplant) =>
+  s ? `<p>📏 ${STRECKEN_BESCHRIFTUNG}: ${zahl(s.km)} km, ca. ${s.minuten} Min. (eingeplant ${eingeplant} Min.)</p>` : "";
+
 // Liefert die Soll-Liste aller generierten Blöcke für einen Tag.
 export function planeTag(datum, alleTermine, einstellungen) {
   const e = einstellungen;
@@ -131,7 +139,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
   const heimfahrt = (von, nach, pause) =>
     pause >= Math.max(von.anbieter.fahrzeitMin + nach.anbieter.fahrzeitMin, e.pauseHeimfahrtMin ?? 0);
   const soll = [];
-  const neu = (titel, start, ende, kategorie, anbieter, ziel) =>
+  const neu = (titel, start, ende, kategorie, anbieter, ziel, strecke) =>
     soll.push({
       titel,
       start: zuZeit(datum, start),
@@ -139,7 +147,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
       kategorien: [kategorie],
       ort: anbieter.ort,
       generiert: true,
-      ...(ziel ? { html: routenHtml(ziel) } : {}),
+      ...(ziel ? { html: routenHtml(ziel) + streckenHtml(e.strecken?.[strecke], ende - start) } : {}),
     });
   // Hinfahrten bekommen eine Erinnerung, damit das Handy rechtzeitig meldet
   // (in der Erinnerung steht der Routen-Link gleich mit drin).
@@ -193,10 +201,10 @@ export function planeTag(datum, alleTermine, einstellungen) {
     if (direktVomVorherigen && vor.anbieter === b.anbieter) {
       // Beim selben Anbieter geblieben: keine Fahrt.
     } else if (!direktVomVorherigen) {
-      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort) && mitErinnerung();
+      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort, `heim-${b.anbieter.kuerzel}`) && mitErinnerung();
     } else {
       const dauer = fahrzeit(vor.anbieter, b.anbieter, e);
-      neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort) && mitErinnerung();
+      neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort, `${vor.anbieter.kuerzel}-${b.anbieter.kuerzel}`) && mitErinnerung();
     }
     neu(`Vorbereitung - ${erster.vollerTitel}`, vorStart, erster.start, e.kategoriePuffer, b.anbieter);
 
@@ -215,7 +223,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
 
     const direktZumNaechsten = nach && !heimfahrt(b, nach, nach.kurse[0].start - e.vorbereitungMin - nachEnde);
     if (!direktZumNaechsten) {
-      neu(`Rückfahrt - ${letzter.vollerTitel}`, nachEnde, nachEnde + b.anbieter.fahrzeitMin, e.kategorieFahrt, b.anbieter, e.heimadresse);
+      neu(`Rückfahrt - ${letzter.vollerTitel}`, nachEnde, nachEnde + b.anbieter.fahrzeitMin, e.kategorieFahrt, b.anbieter, e.heimadresse, `${b.anbieter.kuerzel}-heim`);
     }
   });
   return soll;

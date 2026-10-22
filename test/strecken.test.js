@@ -1,0 +1,19 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { abweichungen, ohneStrecke, streckenPaare } from "../automatik/strecken.js";
+import { einstellungen } from "../src/einstellungen.js";
+
+test("Paare: heim hin/zurück je Anbieter plus Anbieter untereinander", () => {
+  assert.deepEqual(streckenPaare(einstellungen).map((p) => p[0]), ["heim-SVE", "SVE-heim", "heim-PTM", "PTM-heim", "SVE-PTM", "PTM-SVE"]);
+});
+
+test("Abweichung: aufgerundet auf Viertelstunde gegen eingestellt", () => {
+  const e = { ...einstellungen, anbieter: einstellungen.anbieter.map((a) => ({ ...a, fahrzeitMin: 15 })), fahrzeitZwischen: {} };
+  assert.deepEqual(abweichungen({ "heim-SVE": { km: 9, minuten: 8 }, "heim-PTM": { km: 20, minuten: 16 }, "SVE-PTM": { km: 15, minuten: 14 } }, e), ["PTM 15→30"]);
+});
+
+test("Nur Kursfahrten ohne Strecke zählen", () => {
+  const f = (ort, vorschau) => ({ generiert: true, kategorien: [einstellungen.kategorieFahrt], ort, vorschau });
+  const t = [f("SVE Sport", "🧭 Route"), f("SVE Sport", "📏 Strecke laut OpenStreetMap: 1 km"), f("Zahnarzt", "🧭 Route")];
+  assert.equal(ohneStrecke(t, einstellungen).length, 1);
+});

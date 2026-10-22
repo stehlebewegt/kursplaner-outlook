@@ -277,3 +277,19 @@ test("Nachbereitung erinnert bei Kursende ans Protokoll", () => {
   assert.equal(nach.erinnerung, 0);
   assert.equal(soll.find((b) => b.titel.startsWith("Vorbereitung")).erinnerung, undefined);
 });
+
+test("Kursfahrten: tatsächliche Strecke steht in der Notiz", () => {
+  const d = "2026-10-21";
+  const kurs = { titel: "RehaSport (Michael)", start: `${d}T08:45`, ende: `${d}T09:30`, kategorien: ["10 SVE: RehaSport"], generiert: false };
+  const e = {
+    ...einstellungen,
+    heimadresse: "Musterweg 1, 88000 Musterstadt",
+    strecken: { "heim-SVE": { km: 7.9, minuten: 9 }, "SVE-heim": { km: 8.1, minuten: 10 } },
+  };
+  const soll = planeTag(d, [kurs], e);
+  const min = einstellungen.anbieter[0].fahrzeitMin;
+  assert.match(soll[0].html, new RegExp(`Strecke laut OpenStreetMap: 7,9 km, ca\\. 9 Min\\. \\(eingeplant ${min} Min\\.\\)`));
+  assert.match(soll.at(-1).html, /8,1 km, ca\. 10 Min\./);
+  // Ohne Strecken (Add-in): nur der Link.
+  assert.doesNotMatch(planeTag(d, [kurs], { ...e, strecken: undefined })[0].html, /Strecke/);
+});

@@ -18,6 +18,7 @@ import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
 import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerungsFelder, KEINE_ERINNERUNG } from "../src/planer.js";
 import { routenRechner, hatAdresse } from "./route.js";
+import { kursStrecken, abweichungen, ohneStrecke } from "./strecken.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 import { fahrtenbuch } from "./fahrtenbuch.js";
 import { ladeRegeln, sortiere, offeneMails } from "./mails.js";
@@ -306,6 +307,20 @@ if (heimadresse) {
   ausgabe(`Private Termine (7 Tage): ${privat.map((t) => `${tagZeit(t)}=${t.fahrzeit}`).join(", ")}`);
 }
 
+// Kursfahrten: tatsächliche Strecke in die Notiz. Gerechnet wird nur, wenn
+// eine Fahrt sie noch nicht hat (neue Blöcke bekommen sie beim nächsten Lauf).
+if (rechne && (einstellungen.streckenNotiz || process.env.STRECKEN_PROBE)) {
+  const offen = ohneStrecke(await api.holeBereich(tage[0], tage[tage.length - 1]), einstellungen);
+  if (offen.length || process.env.STRECKEN_PROBE) {
+    einstellungen.strecken = await kursStrecken(rechne, einstellungen);
+    const ab = abweichungen(einstellungen.strecken, einstellungen);
+    ausgabe(`Kursstrecken: ${Object.keys(einstellungen.strecken).length} berechnet, Fahrten ohne Strecke ${offen.length}; eingestellte Fahrzeit weicht ab: ${ab.join(", ") || "nein"}`);
+    if (process.env.STRECKEN_PROBE) {
+      console.log(`::notice::${zeilen.join("%0A")}`);
+      process.exit(0);
+    }
+  }
+}
 const ergebnis = await planeZeitraum(api, tage, einstellungen, { schreiben });
 ausgabe(`${schreiben ? "Ausgeführt" : "Nur Vorschau"}: ${heute} + ${anzahlTage} Tage, ${ergebnis.length} Tage mit Änderungen`);
 for (const r of ergebnis) {

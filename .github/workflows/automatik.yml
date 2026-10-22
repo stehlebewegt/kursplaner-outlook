@@ -24,6 +24,10 @@ on:
         description: "Fahrten-Liste fürs Finanzamt für Jahr JJJJ sofort als PROBE-Entwurf"
         required: false
         default: ""
+      strecken_probe:
+        description: "ja = Kursstrecken berechnen und Abweichungen zeigen, sonst nichts"
+        required: false
+        default: ""
       hinweise_probe:
         description: "ja = Hinweise und Wochenvorschau sofort als PROBE-Entwurf anlegen"
         required: false
@@ -68,5 +72,6 @@ jobs:
           ROUTENLINKS: ${{ inputs.routenlinks }}
           HINWEISE_PROBE: ${{ inputs.hinweise_probe }}
           FAHRTEN_PROBE: ${{ inputs.fahrten_probe }}
+          STRECKEN_PROBE: ${{ inputs.strecken_probe }}
           ABSCHLUESSE: ${{ inputs.abschluesse }}
           NACHBERECHNEN_SCHREIBEN: ${{ inputs.nachberechnen_schreiben }}

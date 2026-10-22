@@ -1,6 +1,6 @@
 // Die Aktionen hinter den Buttons. "api" ist der Kalender-Zugriff
 // (in Outlook: web/graph.js, in den Tests: ein Kalender im Speicher).
-import { planeTag, ROUTEN_BESCHRIFTUNG, erinnerungsFelder, KEINE_ERINNERUNG, vergleiche, markiereAlteBloecke, leseKuerzel, ohneKuerzel, findeAnbieter, kursAnbieter } from "./planer.js";
+import { planeTag, ROUTEN_BESCHRIFTUNG, STRECKEN_BESCHRIFTUNG, erinnerungsFelder, KEINE_ERINNERUNG, vergleiche, markiereAlteBloecke, leseKuerzel, ohneKuerzel, findeAnbieter, kursAnbieter } from "./planer.js";
 
 const datumVon = (t) => t.start.slice(0, 10);
 
@@ -20,7 +20,10 @@ export async function vorschauTag(api, datum, einstellungen) {
     .filter(({ s }) => s)
     .map(({ t, s }) => {
       const felder = {};
-      if (s.html && typeof t.vorschau === "string" && !t.vorschau.includes(ROUTEN_BESCHRIFTUNG))
+      // Strecke fehlt in der Notiz: nur nachtragen, wenn sie diesmal bekannt ist
+      // (in der Automatik), das Add-in lässt vorhandene Notizen in Ruhe.
+      const fehlt = (text) => s.html.includes(text) && !t.vorschau.includes(text);
+      if (s.html && typeof t.vorschau === "string" && (fehlt(ROUTEN_BESCHRIFTUNG) || fehlt(STRECKEN_BESCHRIFTUNG)))
         felder.body = { contentType: "html", content: s.html };
       if (t.erinnerung !== undefined && (s.erinnerung ?? KEINE_ERINNERUNG) !== t.erinnerung) Object.assign(felder, erinnerungsFelder(s.erinnerung));
       return { id: t.id, felder };
