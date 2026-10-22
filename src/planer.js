@@ -151,13 +151,15 @@ export function planeTag(datum, alleTermine, einstellungen) {
     });
   // Hinfahrten bekommen eine Erinnerung, damit das Handy rechtzeitig meldet
   // (in der Erinnerung steht der Routen-Link gleich mit drin).
+  // Vergangene Tage nie mit Erinnerung, sonst meldet Outlook sie als überfällig.
+  const vergangen = e.heute && datum < e.heute;
   const mitErinnerung = () => {
-    if (e.erinnerungVorFahrtMin) soll[soll.length - 1].erinnerung = e.erinnerungVorFahrtMin;
+    if (e.erinnerungVorFahrtMin && !vergangen) soll[soll.length - 1].erinnerung = e.erinnerungVorFahrtMin;
   };
   // Nach dem Kurs: Erinnerung zum Beginn der Nachbereitung (= Kursende), damit
   // das Protokoll gleich ausgefüllt wird.
   const protokollErinnerung = () => {
-    if (e.erinnerungProtokoll) soll[soll.length - 1].erinnerung = 0;
+    if (e.erinnerungProtokoll && !vergangen) soll[soll.length - 1].erinnerung = 0;
   };
 
   // Private Termine mit Fahrzeit (im Termin gespeichert): Hin- und Rückfahrt.

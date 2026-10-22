@@ -171,6 +171,7 @@ function ortszeit(utc) {
 }
 
 const heute = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+einstellungen.heute = heute;
 const tage = naechsteTage(heute, anzahlTage);
 const zeit = (t) => `${t.start.slice(11)}–${t.ende.slice(11)}`;
 const tagZeit = (t) => `${t.start.slice(8, 10)}.${t.start.slice(5, 7)}. ${t.start.slice(11)}`;

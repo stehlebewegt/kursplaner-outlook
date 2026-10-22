@@ -293,3 +293,10 @@ test("Kursfahrten: tatsächliche Strecke steht in der Notiz", () => {
   // Ohne Strecken (Add-in): nur der Link.
   assert.doesNotMatch(planeTag(d, [kurs], { ...e, strecken: undefined })[0].html, /Strecke/);
 });
+
+test("Vergangene Tage bekommen keine Erinnerungen", () => {
+  const d = "2026-10-21";
+  const kurs = { titel: "RehaSport (Michael)", start: `${d}T08:45`, ende: `${d}T09:30`, kategorien: ["10 SVE: RehaSport"], generiert: false };
+  assert.ok(planeTag(d, [kurs], { ...einstellungen, heute: "2026-10-21" }).some((b) => b.erinnerung !== undefined));
+  assert.ok(planeTag(d, [kurs], { ...einstellungen, heute: "2026-10-22" }).every((b) => b.erinnerung === undefined));
+});
