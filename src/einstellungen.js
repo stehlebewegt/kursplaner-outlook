@@ -21,7 +21,7 @@ export const einstellungen = {
       kalender: "Alle PTM Kurse",
       ort: "Physio-Team Markdorf, Ravensburgerstraße 36, 88677 Markdorf, Deutschland",
       ortErkennung: ["Ravensburger", "Physio-Team"],
-      fahrzeitMin: 15,
+      fahrzeitMin: 10,
       kategorien: ["01 PTM: PUR Kurs", "02 PTM: FLEX Kurs"],
       kategorieVertretung: "09 Vertretung Kurs PTM",
       // In den Schulferien (BW) keine Kurse: reguläre Kurse bekommen automatisch (F).
@@ -31,7 +31,8 @@ export const einstellungen = {
     },
   ],
   // Fahrzeit direkt zwischen zwei Anbietern; fehlt ein Paar, gilt die Anfahrt zum Ziel.
-  fahrzeitZwischen: {},
+  // Werte aus OpenStreetMap, auf 5 Minuten aufgerundet (Probe strecken_probe).
+  fahrzeitZwischen: { "SVE-PTM": 20 },
   vorbereitungMin: 15,
   nachbereitungMin: 15,
   // Lücke bis zu dieser Länge: Kurse gelten als "am Stück".

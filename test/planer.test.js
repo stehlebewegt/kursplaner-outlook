@@ -35,10 +35,10 @@ test("15.10. PTM: zwei Kurse ohne Lücke, kein Puffer dazwischen", () => {
     kurs("RehaSport / PUR-Senioren (Michael)", d, "11:45", "12:30", "01 PTM: PUR Kurs", PTM),
   ];
   assert.deepEqual(kurz(planeTag(d, termine, einstellungen)), [
-    "10:30-10:45 Anfahrt - RehaSport / PUR (Michael)",
+    "10:35-10:45 Anfahrt - RehaSport / PUR (Michael)",
     "10:45-11:00 Vorbereitung - RehaSport / PUR (Michael)",
     "12:30-12:45 Nachbereitung - RehaSport / PUR-Senioren (Michael)",
-    "12:45-13:00 Rückfahrt - RehaSport / PUR-Senioren (Michael)",
+    "12:45-12:55 Rückfahrt - RehaSport / PUR-Senioren (Michael)",
   ]);
 });
 
@@ -104,10 +104,10 @@ test("Zwei Anbieter kurz hintereinander: direkte Fahrt statt Heimfahrt", () => {
     "08:10-08:30 Anfahrt - RehaSport (Michael)",
     "08:30-08:45 Vorbereitung - RehaSport (Michael)",
     "09:30-09:45 Nachbereitung - RehaSport (Michael)",
-    "10:00-10:15 Fahrt SVE → PTM - RehaSport / PUR (Michael)",
+    "09:55-10:15 Fahrt SVE → PTM - RehaSport / PUR (Michael)",
     "10:15-10:30 Vorbereitung - RehaSport / PUR (Michael)",
     "11:15-11:30 Nachbereitung - RehaSport / PUR (Michael)",
-    "11:30-11:45 Rückfahrt - RehaSport / PUR (Michael)",
+    "11:30-11:40 Rückfahrt - RehaSport / PUR (Michael)",
   ]);
 });
 
@@ -140,12 +140,12 @@ test("10.11. PTM: 75 min Pause beim selben Anbieter, Michael bleibt vor Ort", ()
     kurs("RehaSport / PUR (Michael)", d, "14:15", "15:00", "01 PTM: PUR Kurs", PTM),
   ];
   assert.deepEqual(kurz(planeTag(d, termine, einstellungen)), [
-    "10:30-10:45 Anfahrt - (V) RehaSport / PUR (Agne)",
+    "10:35-10:45 Anfahrt - (V) RehaSport / PUR (Agne)",
     "10:45-11:00 Vorbereitung - (V) RehaSport / PUR (Agne)",
     "12:30-12:45 Nachbereitung - (V) RehaSport / PUR-Senioren (Agne)",
     "14:00-14:15 Vorbereitung - RehaSport / PUR (Michael)",
     "15:00-15:15 Nachbereitung - RehaSport / PUR (Michael)",
-    "15:15-15:30 Rückfahrt - RehaSport / PUR (Michael)",
+    "15:15-15:25 Rückfahrt - RehaSport / PUR (Michael)",
   ]);
 });
 
