@@ -3,7 +3,7 @@
 // über die Heimadresse, darum nie ausgeben oder ins Repo schreiben, nur in
 // Michaels Kalender.
 import { aufRunden } from "./route.js";
-import { STRECKEN_BESCHRIFTUNG } from "../src/planer.js";
+import { STRECKEN_BESCHRIFTUNG, kursAnbieter } from "../src/planer.js";
 
 export function streckenPaare(e) {
   const paare = [];
@@ -39,14 +39,21 @@ export function abweichungen(strecken, e) {
   return liste;
 }
 
-// Kursfahrten (Ort beim Anbieter), deren Notiz noch keine Strecke hat.
+// Kursfahrten, deren Notiz noch keine Strecke hat. Fahrten zu privaten
+// Terminen am Ort eines Anbieters (z. B. Besprechung) zählen nicht: der Titel
+// muss einen Kurs des Tages nennen.
 export function ohneStrecke(termine, e) {
+  const kurse = new Set(termine.filter((t) => !t.generiert && kursAnbieter(t, e)).map((t) => `${t.start.slice(0, 10)} ${t.titel.trim()}`));
+  const nenntKurs = (t) => {
+    const m = t.titel.trim().match(/^(?:Anfahrt|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - (.+)$/);
+    return m && kurse.has(`${t.start.slice(0, 10)} ${m[1].trim()}`);
+  };
   return termine.filter(
     (t) =>
       t.generiert &&
       t.kategorien.includes(e.kategorieFahrt) &&
-      e.anbieter.some((a) => a.ortErkennung.some((x) => (t.ort || "").includes(x))) &&
       typeof t.vorschau === "string" &&
-      !t.vorschau.includes(STRECKEN_BESCHRIFTUNG)
+      !t.vorschau.includes(STRECKEN_BESCHRIFTUNG) &&
+      nenntKurs(t)
   );
 }
