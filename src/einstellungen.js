@@ -51,6 +51,9 @@ export const einstellungen = {
   // Kursfahrten: tatsächliche Strecke (km, Minuten) aus OpenStreetMap in die
   // Notiz der Fahrt-Blöcke schreiben (Michaels Wunsch 22.10.2026).
   streckenNotiz: true,
+  // Kursfahrten: berechnete Fahrzeit wird auf so viele Minuten aufgerundet
+  // (Michael 22.10.2026: 5 Minuten).
+  fahrzeitRundungMin: 5,
   // Erinnerung (Minuten) vor Anfahrten und Fahrten zwischen Anbietern; 0 = aus.
   erinnerungVorFahrtMin: 10,
   // Erinnerung bei Kursende (an der Nachbereitung): Protokoll ausfüllen.

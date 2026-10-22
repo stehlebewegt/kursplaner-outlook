@@ -8,7 +8,7 @@ test("Paare: heim hin/zurück je Anbieter plus Anbieter untereinander", () => {
 });
 
 test("Abweichung: aufgerundet auf Viertelstunde gegen eingestellt", () => {
-  const e = { ...einstellungen, anbieter: einstellungen.anbieter.map((a) => ({ ...a, fahrzeitMin: 15 })), fahrzeitZwischen: {} };
+  const e = { ...einstellungen, anbieter: einstellungen.anbieter.map((a) => ({ ...a, fahrzeitMin: 15 })), fahrzeitZwischen: {}, fahrzeitRundungMin: 15 };
   assert.deepEqual(abweichungen({ "heim-SVE": { km: 9, minuten: 8 }, "heim-PTM": { km: 20, minuten: 16 }, "SVE-PTM": { km: 15, minuten: 14 } }, e), ["PTM 15→30"]);
 });
 
@@ -16,4 +16,9 @@ test("Nur Kursfahrten ohne Strecke zählen", () => {
   const f = (ort, vorschau) => ({ generiert: true, kategorien: [einstellungen.kategorieFahrt], ort, vorschau });
   const t = [f("SVE Sport", "🧭 Route"), f("SVE Sport", "📏 Strecke laut OpenStreetMap: 1 km"), f("Zahnarzt", "🧭 Route")];
   assert.equal(ohneStrecke(t, einstellungen).length, 1);
+});
+
+test("Rundung auf 5 Minuten", () => {
+  const e = { ...einstellungen, anbieter: einstellungen.anbieter.map((a) => ({ ...a, fahrzeitMin: 15 })), fahrzeitZwischen: {}, fahrzeitRundungMin: 5 };
+  assert.deepEqual(abweichungen({ "heim-SVE": { km: 9, minuten: 17 }, "heim-PTM": { km: 9, minuten: 12 } }, e), ["SVE 15→20"]);
 });

@@ -9,7 +9,8 @@ export function adressVarianten(ort) {
   return teile.map((_, i) => teile.slice(i).join(", ")).filter((v) => /\d/.test(v) || v.split(" ").length > 1);
 }
 
-export const aufViertelstunde = (minuten) => Math.max(15, Math.ceil(minuten / 15) * 15);
+export const aufRunden = (minuten, schritt) => Math.max(schritt, Math.ceil(minuten / schritt) * schritt);
+export const aufViertelstunde = (minuten) => aufRunden(minuten, 15);
 
 // Nur echte Orte: keine Online-Termine und nichts Leeres.
 export function hatAdresse(ort) {

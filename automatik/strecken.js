@@ -2,7 +2,7 @@
 // OpenStreetMap, für die Notiz in den Fahrt-Blöcken. Die Werte verraten etwas
 // über die Heimadresse, darum nie ausgeben oder ins Repo schreiben, nur in
 // Michaels Kalender.
-import { aufViertelstunde } from "./route.js";
+import { aufRunden } from "./route.js";
 import { STRECKEN_BESCHRIFTUNG } from "../src/planer.js";
 
 export function streckenPaare(e) {
@@ -22,9 +22,9 @@ export async function kursStrecken(rechne, e) {
 }
 
 // Eingestellte Fahrzeiten, die nicht zur aufgerundeten Strecke passen
-// (nur Minuten auf die Viertelstunde, das ist unbedenklich für die Ausgabe).
+// (Rundung einstellungen.fahrzeitRundungMin, nur diese Minuten werden ausgegeben).
 export function abweichungen(strecken, e) {
-  const soll = (k) => (strecken[k] ? aufViertelstunde(strecken[k].minuten) : null);
+  const soll = (k) => (strecken[k] ? aufRunden(strecken[k].minuten, e.fahrzeitRundungMin ?? 15) : null);
   const liste = [];
   for (const a of e.anbieter) {
     const s = soll(`heim-${a.kuerzel}`);
