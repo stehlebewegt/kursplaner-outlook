@@ -105,8 +105,11 @@ test("Anfahrt bekommt eine Erinnerung, vorhandene Blöcke werden nachgebessert",
   const privat = { id: "p", titel: "Fortbildung", start: `${d}T10:00`, ende: `${d}T12:00`, kategorien: [], ort: "Albstadt", generiert: false, fahrzeit: 60 };
   const hin = { id: "h", titel: "Anfahrt - Fortbildung", start: `${d}T09:00`, ende: `${d}T10:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, vorschau: "🧭 Route in Google Maps starten", erinnerung: -1 };
   const rueck = { id: "r", titel: "Rückfahrt - Fortbildung", start: `${d}T12:00`, ende: `${d}T13:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, erinnerung: -1 };
-  const v = await vorschauTag({ holeTag: async () => [privat, hin, rueck] }, d, einstellungen);
+  const v = await vorschauTag({ holeTag: async () => [privat, hin, rueck] }, d, { ...einstellungen, heute: "2026-10-19" });
   assert.deepEqual(v.nachbessern, [{ id: "h", felder: { isReminderOn: true, reminderMinutesBeforeStart: 10 } }]);
+  // Am selben Tag weggeklickt: bleibt aus (sonst käme sie bei jedem Lauf wieder).
+  const heute = await vorschauTag({ holeTag: async () => [privat, hin, rueck] }, d, { ...einstellungen, heute: d });
+  assert.deepEqual(heute.nachbessern, []);
 });
 
 test("Urlaub im Zeitraum: nur reguläre Kurse bekommen (U), Vertretungen bleiben", async () => {

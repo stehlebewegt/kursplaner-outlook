@@ -11,6 +11,7 @@ export async function vorschauTag(api, datum, einstellungen) {
   const { anlegen, loeschen } = vergleiche(soll, termine);
   const uebernehmen = termine.filter((t) => t.uebernommen && !loeschen.includes(t));
   const fahrzeitMerken = termine.filter((t) => t.fahrzeitMerken);
+  const heute = einstellungen.heute || new Date().toLocaleDateString("sv-SE");
   // Vorhandene Blöcke, denen der Routen-Link fehlt oder deren Erinnerung nicht
   // stimmt, werden nachgebessert. Nur wenn der Abruf diese Angaben mitliefert
   // (vorschau / erinnerung), sonst wissen wir es nicht.
@@ -25,7 +26,12 @@ export async function vorschauTag(api, datum, einstellungen) {
       const fehlt = (text) => s.html.includes(text) && !t.vorschau.includes(text);
       if (s.html && typeof t.vorschau === "string" && (fehlt(ROUTEN_BESCHRIFTUNG) || fehlt(STRECKEN_BESCHRIFTUNG)))
         felder.body = { contentType: "html", content: s.html };
-      if (t.erinnerung !== undefined && (s.erinnerung ?? KEINE_ERINNERUNG) !== t.erinnerung) Object.assign(felder, erinnerungsFelder(s.erinnerung));
+      // Erinnerung nie wieder einschalten, wenn der Block heute oder früher ist:
+      // Wegklicken schaltet sie in Outlook aus, sonst käme sie alle 5 Minuten neu.
+      const sollAn = (s.erinnerung ?? KEINE_ERINNERUNG) !== KEINE_ERINNERUNG;
+      const weggeklickt = sollAn && t.erinnerung === KEINE_ERINNERUNG && datum <= heute;
+      if (t.erinnerung !== undefined && (s.erinnerung ?? KEINE_ERINNERUNG) !== t.erinnerung && !weggeklickt)
+        Object.assign(felder, erinnerungsFelder(s.erinnerung));
       return { id: t.id, felder };
     })
     .filter((n) => Object.keys(n.felder).length);
