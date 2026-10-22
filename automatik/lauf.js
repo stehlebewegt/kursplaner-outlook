@@ -327,6 +327,11 @@ if (rechne && (einstellungen.streckenNotiz || process.env.STRECKEN_PROBE)) {
     }
   }
 }
+// Fehlersuche (22.10.2026): Erinnerungs-Stand der heutigen Fahrt-Blöcke.
+{
+  const heuteBloecke = (await api.holeBereich(heute, heute)).filter((t) => t.kategorien.includes(einstellungen.kategorieFahrt));
+  ausgabe(`Erinnerungen heute: ${heuteBloecke.map((t) => `${t.start.slice(11)}=${t.erinnerung}${t.generiert ? "" : " (nicht markiert)"}`).join(", ") || "keine Fahrten"}`);
+}
 const ergebnis = await planeZeitraum(api, tage, einstellungen, { schreiben });
 ausgabe(`${schreiben ? "Ausgeführt" : "Nur Vorschau"}: ${heute} + ${anzahlTage} Tage, ${ergebnis.length} Tage mit Änderungen`);
 for (const r of ergebnis) {
