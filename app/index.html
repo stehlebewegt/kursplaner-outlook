@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kursplaner – stehle bewegt</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <meta name="theme-color" content="#3F575B">
+  <script src="../web/vendor/msal-browser.min.js"></script>
+  <script src="../web/vendor/jspdf.umd.min.js"></script>
+  <style>
+    @font-face { font-family: "Barlow Semi Condensed"; src: url(schriften/barlow-semi-condensed-latin-600-normal.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+    @font-face { font-family: "Source Sans 3"; src: url(schriften/source-sans-3-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Source Sans 3"; src: url(schriften/source-sans-3-latin-600-normal.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+    /* Farben wie auf stehle-bewegt.de (Theme „bewegt“). */
+    :root { --schrift: #2F3434; --leise: #5D6566; --akzent: #4A666B; --dunkel: #3F575B; --flaeche: #F6F4EF; --linie: #E4E0D7;
+            --warm: #C4A870; --warm-text: #6F4113; --hinter: #FFFFFF; --rot: #A3302A; --gruen: var(--akzent); --rand: var(--linie); --text: var(--schrift); }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; font: 16px/1.4 "Source Sans 3", "Segoe UI", sans-serif; color: var(--schrift); background: var(--hinter); min-height: 100vh; display: flex; flex-direction: column; }
+    h1, h2, .marke { font-family: "Barlow Semi Condensed", "Segoe UI", sans-serif; font-weight: 600; }
+    header { background: var(--dunkel); color: #fff; padding: 10px 22px; display: flex; align-items: center; gap: 14px; }
+    header .logo { width: 44px; height: 44px; background: #fff; border-radius: 10px; padding: 4px; }
+    header .marke { font-size: 22px; }
+    header .klein { opacity: .8; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+    header .rechts { margin-left: auto; font-size: 14px; opacity: .9; }
+    main { flex: 1; display: flex; min-height: 0; }
+    nav { width: 240px; flex-shrink: 0; background: var(--flaeche); border-right: 1px solid var(--linie); padding: 12px; }
+    nav h3 { font: 600 13px "Barlow Semi Condensed", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); margin: 16px 10px 6px; }
+    nav button { display: block; width: 100%; text-align: left; padding: 9px 12px; border-radius: 8px; color: var(--schrift); background: none; border: 1px solid transparent; font: inherit; cursor: pointer; margin: 2px 0; }
+    nav button:hover { background: #fff; }
+    nav button.an { background: #fff; border-color: var(--linie); font-weight: 600; color: var(--dunkel); }
+    section.ansicht { flex: 1; padding: 22px 28px; max-width: 900px; }
+    h1 { font-size: 28px; color: var(--dunkel); margin: 0 0 4px; }
+    .unter { color: var(--leise); margin-bottom: 16px; }
+    .leise { color: var(--leise); font-size: 14px; }
+    .fehler { color: var(--rot); }
+    footer { border-top: 1px solid var(--linie); padding: 8px 22px; font-size: 13px; color: var(--leise); display: flex; gap: 16px; }
+
+    /* Knöpfe und Formulare (auch für die Bereiche aus taskpane.html) */
+    button { font: 600 15px "Source Sans 3", sans-serif; border-radius: 8px; border: 1px solid var(--akzent); background: var(--akzent); color: #fff; padding: 8px 14px; cursor: pointer; }
+    button.zweit, .knopf { background: #fff; color: var(--akzent); }
+    button:disabled { opacity: .5; cursor: default; }
+    .ansicht button:not(.knopf):not(.pille) { display: block; width: 100%; margin: 8px 0; }
+    label { display: block; font-size: 14px; color: var(--leise); margin: 10px 0 3px; }
+    input, select, textarea { width: 100%; padding: 8px 10px; font: inherit; color: var(--schrift); background: #fff; border: 1px solid var(--linie); border-radius: 8px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--akzent); outline-offset: -1px; }
+    .reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .reihe button, .drei button { margin: 0 !important; }
+    .haken { max-height: 180px; overflow-y: auto; border: 1px solid var(--linie); border-radius: 8px; padding: 4px 8px; }
+    .haken label, .haken-zeile { display: flex; align-items: center; gap: 8px; color: var(--schrift); font-size: 15px; margin: 6px 0; }
+    .haken input, .haken-zeile input { width: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+    td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--linie); }
+    ul { padding-left: 20px; } .neu::before { content: "+ "; color: var(--akzent); font-weight: 600; } .weg::before { content: "− "; color: var(--rot); font-weight: 600; }
+    /* Bereiche aus dem Add-in: hier ohne Aufklapp-Kopf, die Überschrift steht oben. */
+    details.karte { border: 0; padding: 0; margin: 0; }
+    details.karte > summary { display: none; }
+    .karte { border: 1px solid var(--linie); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+
+    /* Meine Woche */
+    .pillen { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .pille { padding: 5px 14px; border: 1px solid var(--linie); border-radius: 20px; background: #fff; color: var(--schrift); font-weight: 400; }
+    .pille.an { background: var(--akzent); color: #fff; border-color: var(--akzent); }
+    .tag { font: 600 15px "Barlow Semi Condensed", sans-serif; color: var(--leise); margin: 18px 0 6px; letter-spacing: .04em; text-transform: uppercase; }
+    .kurs { display: flex; align-items: center; gap: 14px; border: 1px solid var(--linie); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; flex-wrap: wrap; }
+    .kurs.faellt-aus { background: var(--flaeche); color: var(--leise); }
+    .kurs .streifen { width: 6px; align-self: stretch; border-radius: 3px; }
+    .kurs .zeit { width: 100px; font-weight: 600; }
+    .kurs .was { flex: 1; min-width: 160px; }
+    .kurs .was small { display: block; color: var(--leise); font-size: 14px; }
+    .kurs .knoepfe { display: flex; gap: 8px; flex-wrap: wrap; }
+    .knopf { padding: 6px 12px; font-size: 14px; }
+    .marke-klein { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #EFE6D2; color: var(--warm-text); margin-left: 6px; font-weight: 600; }
+    .leer { padding: 24px; text-align: center; color: var(--leise); border: 1px dashed var(--linie); border-radius: 10px; }
+
+    /* Seitenleiste für Protokoll und E-Mail zu einem Kurs */
+    #leiste { position: fixed; inset: 0 0 0 auto; width: min(460px, 100vw); background: #fff; box-shadow: -8px 0 30px rgba(0,0,0,.15); padding: 18px 22px; overflow-y: auto; z-index: 10; }
+    #leiste .zu { position: absolute; right: 14px; top: 12px; width: auto; background: none; border: 0; color: var(--leise); font-size: 24px; padding: 4px 8px; }
+    #ergebnis { position: fixed; right: 18px; bottom: 18px; max-width: 420px; z-index: 20; }
+    #ergebnis .karte { background: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.15); margin: 0; }
+    #anmelden-seite { margin: 10vh auto; max-width: 420px; text-align: center; }
+    #anmelden-seite img { width: 120px; }
+
+    @media (max-width: 760px) {
+      main { flex-direction: column; }
+      nav { width: auto; border-right: 0; border-bottom: 1px solid var(--linie); display: flex; overflow-x: auto; gap: 4px; padding: 8px; }
+      nav h3 { display: none; }
+      nav button { white-space: nowrap; width: auto; }
+      section.ansicht { padding: 16px; }
+      .kurs .zeit { width: auto; }
+      header .rechts { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img class="logo" src="logo.png" alt="">
+    <div class="marke">stehle bewegt</div>
+    <div class="klein">Kursplaner</div>
+    <div class="rechts" id="wer"></div>
+  </header>
+
+  <div id="anmelden-seite" hidden>
+    <img src="logo.png" alt="">
+    <h1>Kursplaner</h1>
+    <p class="leise">Melde dich einmal mit deinem Microsoft-Konto an. Danach bleibst du angemeldet.</p>
+    <button id="anmelden">Anmelden</button>
+    <p id="anmelden-fehler" class="fehler"></p>
+  </div>
+
+  <main id="haupt" hidden>
+    <nav>
+      <h3>Kurse</h3>
+      <button data-ansicht="woche" class="an">📅 Meine Woche</button>
+      <button data-ansicht="neu">➕ Neuer Kurs</button>
+      <button data-ansicht="vertretung">🔁 Vertretung übernehmen</button>
+      <button data-ansicht="urlaub">🏖️ Urlaub</button>
+      <h3>Auswertungen</h3>
+      <button data-ansicht="auswertung">📊 Monatsauswertung</button>
+      <button data-ansicht="fahrten">🚗 Fahrten fürs Finanzamt</button>
+    </nav>
+
+    <section class="ansicht" id="ansicht-woche">
+      <h1>Meine Woche</h1>
+      <div class="unter" id="w-unter">Wird geladen …</div>
+      <div class="pillen">
+        <button class="pille" id="w-zurueck">‹ Vorige</button>
+        <button class="pille" id="w-heute">Diese Woche</button>
+        <button class="pille" id="w-vor">Nächste ›</button>
+      </div>
+      <div id="w-liste"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-neu" hidden>
+      <h1>Neuer Kurs</h1>
+      <div class="unter">Einmalig oder als Serie, bei SVE, PTM oder als Vertretung in einem anderen Verein.</div>
+      <div data-bereich="bereich-neu"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-vertretung" hidden>
+      <h1>Vertretung übernehmen</h1>
+      <div class="unter">Kurse der nächsten vier Wochen aus den Anbieter-Kalendern, die noch nicht in deinem Kalender stehen.</div>
+      <button class="zweit" id="v-extern">Vertretung in einem anderen Verein eintragen</button>
+      <div id="v-liste"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-urlaub" hidden>
+      <h1>Urlaub</h1>
+      <div class="unter">Alle regulären Kurse im Zeitraum bekommen das Kürzel, Fahrten werden neu geplant.</div>
+      <div data-bereich="bereich-urlaub"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-auswertung" hidden>
+      <h1>Monatsauswertung</h1>
+      <div class="unter">PDF für einen Anbieter, als Datei oder als E-Mail-Entwurf.</div>
+      <div data-bereich="bereich-auswertung"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-fahrten" hidden>
+      <h1>Fahrten fürs Finanzamt</h1>
+      <div class="unter">Alle tatsächlich gefahrenen Fahrten zu Kursen eines Jahres, eine Zeile pro Tag, mit km laut OpenStreetMap.</div>
+      <label for="fa-jahr">Jahr</label>
+      <select id="fa-jahr"></select>
+      <button id="fa-pdf">PDF erstellen</button>
+      <div id="fa-hinweis" class="leise"></div>
+    </section>
+  </main>
+
+  <aside id="leiste" hidden>
+    <button class="zu" id="leiste-zu" aria-label="Schließen">×</button>
+    <h2 id="leiste-titel"></h2>
+    <div class="leise" id="leiste-info"></div>
+    <div data-bereich="bereich-protokoll"></div>
+    <div data-bereich="bereich-mail"></div>
+  </aside>
+
+  <div id="ergebnis"></div>
+
+  <footer><span>© <span id="jahr"></span> stehle bewegt</span><span>Daten bleiben in deinem Outlook.</span></footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

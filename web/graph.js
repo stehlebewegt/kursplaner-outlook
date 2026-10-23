@@ -13,8 +13,13 @@ export const MARKIERUNG = "String {6f1c2a4e-3b7d-4c1a-9e55-8a2d9c0b7f31} Name Ku
 export const FAHRZEIT = "String {6f1c2a4e-3b7d-4c1a-9e55-8a2d9c0b7f31} Name KursplanerFahrzeit";
 
 let msalApp;
+// Das Kursplaner-Fenster (app/) meldet sich selbst an und setzt hier seine
+// Token-Quelle; im Add-in bleibt es bei NAA.
+let tokenQuelle = null;
+export const nutzeAnmeldung = (quelle) => (tokenQuelle = quelle);
 
 async function token() {
+  if (tokenQuelle) return tokenQuelle();
   if (!msalApp) {
     msalApp = await msal.createNestablePublicClientApplication({
       auth: { clientId: config.clientId, authority: `https://login.microsoftonline.com/${config.tenantId}` },
@@ -95,7 +100,7 @@ export async function holeTag(datum) {
 export async function holeVerlauf(von, bis) {
   let url =
     `/me/calendarView?startDateTime=${von}T00:00:00&endDateTime=${bis}T23:59:59&$top=200` +
-    `&$select=subject,start,end,categories,body`;
+    `&$select=subject,start,end,categories,location,body`;
   const termine = [];
   while (url) {
     const seite = await graph("GET", url);
@@ -187,6 +192,32 @@ export async function aendere(id, felder) {
 
 export async function loesche(id) {
   await graph("DELETE", `/me/events/${id}`);
+}
+
+// Kurse aller Anbieter-Kalender im Zeitraum (mit Text und Kalendername),
+// für „Vertretung übernehmen“ im Kursplaner-Fenster.
+export async function holeAnbieterKurse(von, bis) {
+  kalenderListe ??= (await graph("GET", "/me/calendars?$select=id,name,isDefaultCalendar&$top=50")).value;
+  const kurse = [];
+  for (const a of einstellungen.anbieter) {
+    const k = kalenderListe.find((k) => k.name === a.kalender);
+    if (!k) continue;
+    let url =
+      `/me/calendars/${k.id}/calendarView?startDateTime=${von}T00:00:00&endDateTime=${bis}T23:59:59&$top=200` +
+      `&$select=subject,start,end,categories,location,body,isAllDay`;
+    while (url) {
+      const seite = await graph("GET", url);
+      for (const e of seite.value.filter((e) => !e.isAllDay))
+        kurse.push({ ...zuTermin(e), text: e.body?.content || "", kalender: a.kalender });
+      url = seite["@odata.nextLink"];
+    }
+  }
+  return kurse.sort((a, b) => (a.start < b.start ? -1 : 1));
+}
+
+// Adresse aus dem Signatur-Entwurf (für km im Kursplaner-Fenster; bleibt im Browser).
+export async function heimAdresse() {
+  return (await holeSignatur())?.Adresse || null;
 }
 
 // --- Neuer Kurs im Anbieter-Kalender ---
