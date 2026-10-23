@@ -5,7 +5,7 @@
            xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
            xsi:type="MailApp">
   <Id>ddd0f0fb-1acd-40f0-8585-5d45455f2e6d</Id>
-  <Version>0.5.0.0</Version>
+  <Version>0.5.0.1</Version>
   <ProviderName>Michael Stehle</ProviderName>
   <DefaultLocale>de-DE</DefaultLocale>
   <DisplayName DefaultValue="Kursplaner"/>
@@ -52,7 +52,7 @@
           <!-- Termine, die Michael selbst angelegt hat (auch die in den Anbieter-Kalendern) -->
           <ExtensionPoint xsi:type="AppointmentOrganizerCommandSurface">
             <CustomTab id="kursplaner.tab.organizer">
-              <Group id="kursplaner.kurs.organizer">
+              <Group id="kursplaner.gruppe.kurs.organizer">
                 <Label resid="GruppeKurs.Label"/>
                 <Control xsi:type="Button" id="kursplaner.kurs.organizer">
                   <Label resid="Kurs.Label"/>
@@ -70,7 +70,7 @@
                   </Action>
                 </Control>
               </Group>
-              <Group id="kursplaner.planen.organizer">
+              <Group id="kursplaner.gruppe.planen.organizer">
                 <Label resid="GruppePlanen.Label"/>
                 <Control xsi:type="Button" id="kursplaner.neu.organizer">
                   <Label resid="Neu.Label"/>
@@ -103,7 +103,7 @@
                   </Action>
                 </Control>
               </Group>
-              <Group id="kursplaner.auswertung.organizer">
+              <Group id="kursplaner.gruppe.auswertung.organizer">
                 <Label resid="GruppeAuswertung.Label"/>
                 <Control xsi:type="Button" id="kursplaner.auswertung.organizer">
                   <Label resid="Auswertung.Label"/>
@@ -126,7 +126,7 @@
           </ExtensionPoint>
           <ExtensionPoint xsi:type="AppointmentAttendeeCommandSurface">
             <CustomTab id="kursplaner.tab.attendee">
-              <Group id="kursplaner.kurs.attendee">
+              <Group id="kursplaner.gruppe.kurs.attendee">
                 <Label resid="GruppeKurs.Label"/>
                 <Control xsi:type="Button" id="kursplaner.kurs.attendee">
                   <Label resid="Kurs.Label"/>
@@ -144,7 +144,7 @@
                   </Action>
                 </Control>
               </Group>
-              <Group id="kursplaner.planen.attendee">
+              <Group id="kursplaner.gruppe.planen.attendee">
                 <Label resid="GruppePlanen.Label"/>
                 <Control xsi:type="Button" id="kursplaner.neu.attendee">
                   <Label resid="Neu.Label"/>
@@ -177,7 +177,7 @@
                   </Action>
                 </Control>
               </Group>
-              <Group id="kursplaner.auswertung.attendee">
+              <Group id="kursplaner.gruppe.auswertung.attendee">
                 <Label resid="GruppeAuswertung.Label"/>
                 <Control xsi:type="Button" id="kursplaner.auswertung.attendee">
                   <Label resid="Auswertung.Label"/>
@@ -201,7 +201,7 @@
           <!-- In einer E-Mail: Monatsauswertung ohne Termin -->
           <ExtensionPoint xsi:type="MessageReadCommandSurface">
             <CustomTab id="kursplaner.tab.mail">
-              <Group id="kursplaner.planen.mail">
+              <Group id="kursplaner.gruppe.planen.mail">
                 <Label resid="GruppePlanen.Label"/>
                 <Control xsi:type="Button" id="kursplaner.neu.mail">
                   <Label resid="Neu.Label"/>
@@ -234,7 +234,7 @@
                   </Action>
                 </Control>
               </Group>
-              <Group id="kursplaner.auswertung.mail">
+              <Group id="kursplaner.gruppe.auswertung.mail">
                 <Label resid="GruppeAuswertung.Label"/>
                 <Control xsi:type="Button" id="kursplaner.auswertung.mail">
                   <Label resid="Auswertung.Label"/>
@@ -258,7 +258,7 @@
           <!-- Neue E-Mail: so ist der Kursplaner von überall erreichbar (Neue E-Mail öffnen) -->
           <ExtensionPoint xsi:type="MessageComposeCommandSurface">
             <CustomTab id="kursplaner.tab.neuemail">
-              <Group id="kursplaner.planen.neuemail">
+              <Group id="kursplaner.gruppe.planen.neuemail">
                 <Label resid="GruppePlanen.Label"/>
                 <Control xsi:type="Button" id="kursplaner.neu.neuemail">
                   <Label resid="Neu.Label"/>
@@ -291,7 +291,7 @@
                   </Action>
                 </Control>
               </Group>
-              <Group id="kursplaner.auswertung.neuemail">
+              <Group id="kursplaner.gruppe.auswertung.neuemail">
                 <Label resid="GruppeAuswertung.Label"/>
                 <Control xsi:type="Button" id="kursplaner.auswertung.neuemail">
                   <Label resid="Auswertung.Label"/>
@@ -360,7 +360,7 @@
             <!-- Termine, die Michael selbst angelegt hat (auch die in den Anbieter-Kalendern) -->
             <ExtensionPoint xsi:type="AppointmentOrganizerCommandSurface">
               <CustomTab id="kursplaner.tab.organizer">
-                <Group id="kursplaner.kurs.organizer">
+                <Group id="kursplaner.gruppe.kurs.organizer">
                   <Label resid="GruppeKurs.Label"/>
                   <Control xsi:type="Button" id="kursplaner.kurs.organizer">
                     <Label resid="Kurs.Label"/>
@@ -379,7 +379,7 @@
                     </Action>
                   </Control>
                 </Group>
-                <Group id="kursplaner.planen.organizer">
+                <Group id="kursplaner.gruppe.planen.organizer">
                   <Label resid="GruppePlanen.Label"/>
                   <Control xsi:type="Button" id="kursplaner.neu.organizer">
                     <Label resid="Neu.Label"/>
@@ -414,7 +414,7 @@
                     </Action>
                   </Control>
                 </Group>
-                <Group id="kursplaner.auswertung.organizer">
+                <Group id="kursplaner.gruppe.auswertung.organizer">
                   <Label resid="GruppeAuswertung.Label"/>
                   <Control xsi:type="Button" id="kursplaner.auswertung.organizer">
                     <Label resid="Auswertung.Label"/>
@@ -438,7 +438,7 @@
             </ExtensionPoint>
             <ExtensionPoint xsi:type="AppointmentAttendeeCommandSurface">
               <CustomTab id="kursplaner.tab.attendee">
-                <Group id="kursplaner.kurs.attendee">
+                <Group id="kursplaner.gruppe.kurs.attendee">
                   <Label resid="GruppeKurs.Label"/>
                   <Control xsi:type="Button" id="kursplaner.kurs.attendee">
                     <Label resid="Kurs.Label"/>
@@ -457,7 +457,7 @@
                     </Action>
                   </Control>
                 </Group>
-                <Group id="kursplaner.planen.attendee">
+                <Group id="kursplaner.gruppe.planen.attendee">
                   <Label resid="GruppePlanen.Label"/>
                   <Control xsi:type="Button" id="kursplaner.neu.attendee">
                     <Label resid="Neu.Label"/>
@@ -492,7 +492,7 @@
                     </Action>
                   </Control>
                 </Group>
-                <Group id="kursplaner.auswertung.attendee">
+                <Group id="kursplaner.gruppe.auswertung.attendee">
                   <Label resid="GruppeAuswertung.Label"/>
                   <Control xsi:type="Button" id="kursplaner.auswertung.attendee">
                     <Label resid="Auswertung.Label"/>
@@ -517,7 +517,7 @@
             <!-- In einer E-Mail: Monatsauswertung ohne Termin -->
             <ExtensionPoint xsi:type="MessageReadCommandSurface">
               <CustomTab id="kursplaner.tab.mail">
-                <Group id="kursplaner.planen.mail">
+                <Group id="kursplaner.gruppe.planen.mail">
                   <Label resid="GruppePlanen.Label"/>
                   <Control xsi:type="Button" id="kursplaner.neu.mail">
                     <Label resid="Neu.Label"/>
@@ -552,7 +552,7 @@
                     </Action>
                   </Control>
                 </Group>
-                <Group id="kursplaner.auswertung.mail">
+                <Group id="kursplaner.gruppe.auswertung.mail">
                   <Label resid="GruppeAuswertung.Label"/>
                   <Control xsi:type="Button" id="kursplaner.auswertung.mail">
                     <Label resid="Auswertung.Label"/>
@@ -577,7 +577,7 @@
             <!-- Neue E-Mail: so ist der Kursplaner von überall erreichbar (Neue E-Mail öffnen) -->
             <ExtensionPoint xsi:type="MessageComposeCommandSurface">
               <CustomTab id="kursplaner.tab.neuemail">
-                <Group id="kursplaner.planen.neuemail">
+                <Group id="kursplaner.gruppe.planen.neuemail">
                   <Label resid="GruppePlanen.Label"/>
                   <Control xsi:type="Button" id="kursplaner.neu.neuemail">
                     <Label resid="Neu.Label"/>
@@ -612,7 +612,7 @@
                     </Action>
                   </Control>
                 </Group>
-                <Group id="kursplaner.auswertung.neuemail">
+                <Group id="kursplaner.gruppe.auswertung.neuemail">
                   <Label resid="GruppeAuswertung.Label"/>
                   <Control xsi:type="Button" id="kursplaner.auswertung.neuemail">
                     <Label resid="Auswertung.Label"/>
