@@ -6,87 +6,98 @@
   <title>Kursplaner – stehle bewegt</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png">
-  <meta name="theme-color" content="#3F575B">
+  <meta name="theme-color" content="#33474B">
   <script src="../web/vendor/msal-browser.min.js"></script>
   <script src="../web/vendor/jspdf.umd.min.js"></script>
   <style>
     @font-face { font-family: "Barlow Semi Condensed"; src: url(schriften/barlow-semi-condensed-latin-600-normal.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+    @font-face { font-family: "Barlow Semi Condensed"; src: url(schriften/barlow-semi-condensed-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
     @font-face { font-family: "Source Sans 3"; src: url(schriften/source-sans-3-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
     @font-face { font-family: "Source Sans 3"; src: url(schriften/source-sans-3-latin-600-normal.woff2) format("woff2"); font-weight: 600; font-display: swap; }
-    /* Farben wie auf stehle-bewegt.de (Theme „bewegt“). */
-    :root { --schrift: #2F3434; --leise: #5D6566; --akzent: #4A666B; --dunkel: #3F575B; --flaeche: #F6F4EF; --linie: #E4E0D7;
-            --warm: #C4A870; --warm-text: #6F4113; --hinter: #FFFFFF; --rot: #A3302A; --gruen: var(--akzent); --rand: var(--linie); --text: var(--schrift); }
+    @font-face { font-family: "Source Sans 3"; src: url(schriften/source-sans-3-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+    @font-face { font-family: "Atkinson Hyperlegible"; src: url(schriften/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Atkinson Hyperlegible"; src: url(schriften/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+    /* Wie das Rehasport-Cockpit auf stehle-bewegt.de: Cockpit-Farben, weiße Karten
+       auf grauer Fläche, runde Knöpfe in Atkinson Hyperlegible, Band unter dem Kopf. */
+    :root { --schrift: #2F3434; --leise: #5D6566; --akzent: #33474B; --dunkel: #26363A; --band: #33474B; --flaeche: #EEF0F1; --linie: #DCE1E2;
+            --warm: #C4A870; --warm-hell: #F5EFE2; --warm-text: #6F4113; --hinter: #FFFFFF; --rot: #A3302A; --gruen: var(--akzent); --rand: var(--linie); --text: var(--schrift);
+            --rund: 14px; --schatten: 0 1px 2px rgba(31,82,82,.06), 0 2px 10px rgba(31,82,82,.04); --knopf-schrift: "Atkinson Hyperlegible", "Segoe UI", sans-serif; }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    body { margin: 0; font: 16px/1.4 "Source Sans 3", "Segoe UI", sans-serif; color: var(--schrift); background: var(--hinter); min-height: 100vh; display: flex; flex-direction: column; }
-    h1, h2, .marke { font-family: "Barlow Semi Condensed", "Segoe UI", sans-serif; font-weight: 600; }
-    header { background: var(--dunkel); color: #fff; padding: 10px 22px; display: flex; align-items: center; gap: 14px; }
-    header .logo { width: 44px; height: 44px; background: #fff; border-radius: 10px; padding: 4px; }
-    header .marke { font-size: 22px; }
-    header .klein { opacity: .8; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
-    header .rechts { margin-left: auto; font-size: 14px; opacity: .9; }
+    body { margin: 0; font: 17px/1.45 "Source Sans 3", "Segoe UI", sans-serif; color: var(--schrift); background: var(--flaeche); min-height: 100vh; display: flex; flex-direction: column; border-top: 5px solid var(--band); }
+    h1, h2, .marke { font-family: "Barlow Semi Condensed", "Segoe UI", sans-serif; font-weight: 700; line-height: 1.15; }
+    header { background: var(--hinter); border-bottom: 4px solid var(--band); padding: 12px 26px; display: flex; align-items: center; gap: 14px; }
+    header .logo { width: 52px; height: 52px; }
+    header .marke { font-size: 26px; color: var(--dunkel); }
+    header .klein { font: 700 12px var(--knopf-schrift); letter-spacing: .1em; text-transform: uppercase; color: #fff; background: var(--band); padding: 4px 10px; border-radius: 999px; }
+    header .rechts { margin-left: auto; font-size: 15px; color: var(--leise); display: flex; align-items: center; gap: 12px; }
     main { flex: 1; display: flex; min-height: 0; }
-    nav { width: 240px; flex-shrink: 0; background: var(--flaeche); border-right: 1px solid var(--linie); padding: 12px; }
-    nav h3 { font: 600 13px "Barlow Semi Condensed", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); margin: 16px 10px 6px; }
-    nav button { display: block; width: 100%; text-align: left; padding: 9px 12px; border-radius: 8px; color: var(--schrift); background: none; border: 1px solid transparent; font: inherit; cursor: pointer; margin: 2px 0; }
-    nav button:hover { background: #fff; }
-    nav button.an { background: #fff; border-color: var(--linie); font-weight: 600; color: var(--dunkel); }
-    section.ansicht { flex: 1; padding: 22px 28px; max-width: 900px; }
-    h1 { font-size: 28px; color: var(--dunkel); margin: 0 0 4px; }
-    .unter { color: var(--leise); margin-bottom: 16px; }
-    .leise { color: var(--leise); font-size: 14px; }
+    nav { width: 280px; flex-shrink: 0; padding: 16px 14px; }
+    nav h3 { font: 700 13px var(--knopf-schrift); letter-spacing: .1em; text-transform: uppercase; color: var(--leise); margin: 18px 12px 6px; }
+    nav button { display: block; width: 100%; text-align: left; padding: 10px 14px; border-radius: 999px; color: var(--schrift); background: none; border: 2px solid transparent; font: 700 16px var(--knopf-schrift); cursor: pointer; margin: 2px 0; }
+    nav button:hover:not(:disabled):not(.an) { background: var(--hinter); border-color: var(--hinter); color: var(--dunkel); }
+    nav button.an { background: var(--akzent); border-color: var(--akzent); color: #fff; }
+    nav button.an .zahl { background: #fff; color: var(--akzent); }
+    section.ansicht { flex: 1; padding: 26px 32px; max-width: 940px; }
+    h1 { font-size: 34px; color: var(--dunkel); margin: 0 0 4px; }
+    .unter { color: var(--leise); margin-bottom: 18px; }
+    .leise { color: var(--leise); font-size: 15px; }
     .fehler { color: var(--rot); }
-    footer { border-top: 1px solid var(--linie); padding: 8px 22px; font-size: 13px; color: var(--leise); display: flex; gap: 16px; }
+    footer { background: var(--band); color: rgba(255,255,255,.85); padding: 10px 26px; font-size: 14px; display: flex; gap: 16px; }
 
     /* Knöpfe und Formulare (auch für die Bereiche aus taskpane.html) */
-    button { font: 600 15px "Source Sans 3", sans-serif; border-radius: 8px; border: 1px solid var(--akzent); background: var(--akzent); color: #fff; padding: 8px 14px; cursor: pointer; }
-    button.zweit, .knopf { background: #fff; color: var(--akzent); }
+    button { font: 700 15px/1.3 var(--knopf-schrift); border-radius: 999px; border: 2px solid var(--akzent); background: var(--akzent); color: #fff; padding: 10px 22px; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+    button:hover:not(:disabled) { background: var(--dunkel); border-color: var(--dunkel); color: #fff; }
+    button:focus-visible { outline: 3px solid var(--warm); outline-offset: 2px; }
+    button.zweit, .knopf { background: transparent; color: var(--akzent); }
     button:disabled { opacity: .5; cursor: default; }
-    .ansicht button:not(.knopf):not(.pille) { display: block; width: 100%; margin: 8px 0; }
-    label { display: block; font-size: 14px; color: var(--leise); margin: 10px 0 3px; }
-    input, select, textarea { width: 100%; padding: 8px 10px; font: inherit; color: var(--schrift); background: #fff; border: 1px solid var(--linie); border-radius: 8px; }
-    input:focus, select:focus, textarea:focus { outline: 2px solid var(--akzent); outline-offset: -1px; }
-    .reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .ansicht button:not(.knopf):not(.pille) { display: block; width: 100%; margin: 10px 0; }
+    label { display: block; font-size: 15px; font-weight: 600; color: var(--schrift); margin: 12px 0 4px; }
+    input, select, textarea { width: 100%; min-height: 44px; padding: 9px 12px; font: inherit; color: var(--schrift); background: #fff; border: 1px solid rgba(0,0,0,.25); border-radius: 10px; }
+    textarea { min-height: 0; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--dunkel); box-shadow: 0 0 0 3px rgba(51,71,75,.15); }
+    .reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .reihe button, .drei button { margin: 0 !important; }
-    .haken { max-height: 180px; overflow-y: auto; border: 1px solid var(--linie); border-radius: 8px; padding: 4px 8px; }
-    .haken label, .haken-zeile { display: flex; align-items: center; gap: 8px; color: var(--schrift); font-size: 15px; margin: 6px 0; }
-    .haken input, .haken-zeile input { width: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
-    td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--linie); }
+    .haken { max-height: 200px; overflow-y: auto; border: 1px solid var(--linie); border-radius: 10px; padding: 4px 10px; background: #fff; }
+    .haken label, .haken-zeile { display: flex; align-items: center; gap: 8px; color: var(--schrift); font-size: 16px; font-weight: 400; margin: 6px 0; }
+    .haken input, .haken-zeile input { width: auto; min-height: 0; accent-color: var(--akzent); }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 8px; }
+    td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--linie); }
     ul { padding-left: 20px; } .neu::before { content: "+ "; color: var(--akzent); font-weight: 600; } .weg::before { content: "− "; color: var(--rot); font-weight: 600; }
     /* Bereiche aus dem Add-in: hier ohne Aufklapp-Kopf, die Überschrift steht oben. */
-    details.karte { border: 0; padding: 0; margin: 0; }
+    details.karte { border: 0; padding: 0; margin: 0; background: none; box-shadow: none; }
     details.karte > summary { display: none; }
-    .karte { border: 1px solid var(--linie); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+    .karte, .e-block { background: var(--hinter); border: 1px solid var(--linie); border-radius: var(--rund); padding: 18px 20px; margin: 14px 0; box-shadow: var(--schatten); }
 
     /* Meine Woche */
-    .pillen { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-    .pille { padding: 5px 14px; border: 1px solid var(--linie); border-radius: 20px; background: #fff; color: var(--schrift); font-weight: 400; }
-    .pille.an { background: var(--akzent); color: #fff; border-color: var(--akzent); }
-    .tag { font: 600 15px "Barlow Semi Condensed", sans-serif; color: var(--leise); margin: 18px 0 6px; letter-spacing: .04em; text-transform: uppercase; }
-    .kurs { display: flex; align-items: center; gap: 14px; border: 1px solid var(--linie); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; flex-wrap: wrap; }
-    .kurs.faellt-aus { background: var(--flaeche); color: var(--leise); }
+    .pillen { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .pille { padding: 7px 18px; border: 2px solid var(--akzent); border-radius: 999px; background: transparent; color: var(--akzent); }
+    .pille.an { background: var(--akzent); color: #fff; }
+    .tag { font: 700 16px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); margin: 22px 0 8px; letter-spacing: .05em; text-transform: uppercase; }
+    .kurs { display: flex; align-items: center; gap: 16px; background: var(--hinter); border: 1px solid var(--linie); border-radius: var(--rund); padding: 14px 18px; margin-bottom: 10px; flex-wrap: wrap; box-shadow: var(--schatten); }
+    .kurs.faellt-aus { background: transparent; box-shadow: none; color: var(--leise); }
     .kurs .streifen { width: 6px; align-self: stretch; border-radius: 3px; }
-    .kurs .zeit { width: 100px; font-weight: 600; }
-    .kurs .was { flex: 1; min-width: 160px; }
-    .kurs .was small { display: block; color: var(--leise); font-size: 14px; }
+    .kurs .zeit { width: 108px; font: 700 19px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); }
+    .kurs .was { flex: 1; min-width: 160px; font-weight: 600; }
+    .kurs .was small { display: block; color: var(--leise); font-size: 15px; font-weight: 400; }
     .kurs .knoepfe { display: flex; gap: 8px; flex-wrap: wrap; }
-    .knopf { padding: 6px 12px; font-size: 14px; }
-    .marke-klein { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #EFE6D2; color: var(--warm-text); margin-left: 6px; font-weight: 600; }
-    .zahl { display: inline-block; min-width: 22px; padding: 0 7px; margin-left: 4px; border-radius: 11px; background: var(--warm); color: #fff; font-size: 13px; font-weight: 600; text-align: center; }
-    .fahrt { background: var(--flaeche); border-color: var(--linie); }
-    .fahrt .gross { font: 600 34px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); }
-    .knopf-link { display: inline-block; margin-top: 10px; padding: 10px 18px; border-radius: 8px; background: var(--akzent); color: #fff; font-weight: 600; text-decoration: none; }
-    .e-block { border: 1px solid var(--linie); border-radius: 10px; padding: 12px 14px; margin: 14px 0; }
-    .e-block h2 { font-size: 20px; color: var(--dunkel); margin: 0 0 4px; }
-    .e-karte { background: var(--flaeche); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
-    .e-karte .weg-knopf { width: auto !important; display: inline-block !important; color: var(--rot); border-color: var(--rot); background: #fff; }
-    #e-speichern { position: sticky; bottom: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
-    .leer { padding: 24px; text-align: center; color: var(--leise); border: 1px dashed var(--linie); border-radius: 10px; }
+    .knopf { padding: 6px 14px; font-size: 14px; }
+    .marke-klein { font: 700 12px var(--knopf-schrift); padding: 3px 9px; border-radius: 999px; background: var(--warm-hell); color: var(--warm-text); margin-left: 6px; }
+    .zahl { display: inline-block; min-width: 22px; padding: 0 7px; margin-left: 4px; border-radius: 11px; background: var(--warm); color: var(--schrift); font: 700 13px/20px var(--knopf-schrift); text-align: center; }
+    .fahrt { border-left: 5px solid var(--warm); }
+    .fahrt .gross { font: 700 40px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); }
+    .knopf-link { display: inline-block; margin-top: 12px; padding: 11px 24px; border-radius: 999px; background: var(--akzent); color: #fff; font: 700 15px var(--knopf-schrift); text-decoration: none; }
+    .knopf-link:hover { background: var(--dunkel); }
+    .e-block h2 { font-size: 22px; color: var(--dunkel); margin: 0 0 4px; }
+    .e-karte { background: var(--flaeche); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+    .e-karte .weg-knopf { width: auto !important; display: inline-block !important; color: var(--rot); border-color: var(--rot); background: transparent; }
+    .e-karte .weg-knopf:hover { background: var(--rot) !important; color: #fff !important; }
+    #e-speichern { position: sticky; bottom: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+    .leer { padding: 28px; text-align: center; color: var(--leise); border: 2px dashed var(--linie); border-radius: var(--rund); background: rgba(255,255,255,.5); }
 
     /* Seitenleiste für Protokoll und E-Mail zu einem Kurs */
-    #leiste { position: fixed; inset: 0 0 0 auto; width: min(460px, 100vw); background: #fff; box-shadow: -8px 0 30px rgba(0,0,0,.15); padding: 18px 22px; overflow-y: auto; z-index: 10; }
+    #leiste { position: fixed; inset: 0 0 0 auto; width: min(480px, 100vw); background: #fff; border-left: 4px solid var(--band); box-shadow: -8px 0 30px rgba(0,0,0,.15); padding: 22px 26px; overflow-y: auto; z-index: 10; }
     #leiste button:not(.zu):not(.knopf) { display: block; width: 100%; margin: 8px 0; }
     #leiste .reihe button { margin: 0; }
     #leiste .zu { position: absolute; right: 14px; top: 12px; width: auto; background: none; border: 0; color: var(--leise); font-size: 24px; padding: 4px 8px; }
@@ -95,23 +106,26 @@
     #anmelden-seite { margin: 10vh auto; max-width: 420px; text-align: center; }
     #anmelden-seite img { width: 120px; }
 
-    .link-weiss { background: none; border: 1px solid rgba(255,255,255,.5); color: #fff; padding: 3px 10px; font-size: 13px; margin-left: 10px; }
+    .link-weiss { background: transparent; color: var(--akzent); padding: 6px 16px; font-size: 14px; }
     #unten { display: none; }
     @media (max-width: 760px) {
       main { flex-direction: column; }
       /* Menü als ausklappbare Liste über „Mehr“, unten eine feste Leiste */
-      nav { display: none; position: fixed; inset: 0 0 64px 0; z-index: 15; width: auto; overflow-y: auto; border: 0; padding: 16px; }
+      nav { display: none; position: fixed; inset: 0 0 64px 0; z-index: 15; width: auto; overflow-y: auto; border: 0; padding: 16px; background: var(--flaeche); }
       nav.offen { display: block; }
       nav button { font-size: 17px; padding: 12px; }
       #unten:not([hidden]) { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 16; background: #fff; border-top: 1px solid var(--linie);
                              padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
       #unten button { flex: 1; background: none; border: 0; color: var(--leise); font-size: 12px; font-weight: 600; padding: 6px 0; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
       #unten button span { font-size: 22px; line-height: 1; }
-      #unten button.an { color: var(--dunkel); }
+      #unten button:hover:not(:disabled) { background: none; color: var(--akzent); }
+      #unten button.an { color: var(--akzent); } #unten button.an span { transform: scale(1.1); }
       #unten .zahl { position: absolute; top: 0; left: 55%; font-size: 11px; min-width: 18px; }
       body { padding-bottom: 72px; }
       footer { display: none; }
-      section.ansicht { padding: 16px; }
+      section.ansicht { padding: 18px 16px; }
+      header { padding: 10px 16px; } header .logo { width: 42px; height: 42px; } header .marke { font-size: 22px; }
+      h1 { font-size: 28px; }
       .kurs .zeit { width: auto; }
       header .rechts { display: none; }
     }
