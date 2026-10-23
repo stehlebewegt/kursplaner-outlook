@@ -2,11 +2,14 @@
 // Kursen, eine Zeile pro Tag, mit km laut Routenplaner. Ohne Geldbeträge.
 import { erstelleAuswertung, fahrtenTabelle, MONATE } from "./auswertung.js";
 
+// Feste Anbieter plus Vertretungen in anderen Vereinen (Ort je Fahrt).
+export const alleZiele = (e) => [...e.anbieter, ...(e.vertretungExtern ? [e.vertretungExtern] : [])];
+
 // strecke(von, nach) wie bei der Monatsauswertung.
 export function fahrtenJahr(termine, jahr, jetzt, einstellungen, strecke = () => null) {
   const imJahr = termine.filter((t) => t.start.startsWith(`${jahr}-`));
   const reihen = [];
-  for (const anbieter of einstellungen.anbieter) {
+  for (const anbieter of alleZiele(einstellungen)) {
     const a = erstelleAuswertung(imJahr, anbieter, jetzt, einstellungen, strecke);
     const tab = fahrtenTabelle(a.fahrten);
     const mitKm = tab.kopf.includes("km");
@@ -41,6 +44,10 @@ export function fahrtenPdf(f, jahr, einstellungen, jsPDF, stand) {
   doc.setFont("helvetica", "normal").setFontSize(9);
   for (const a of einstellungen.anbieter) {
     doc.text(`${a.kuerzel} = ${a.name}, ${a.ort.replace(/\n/g, ", ")}`, 15, y);
+    y += 5;
+  }
+  if (einstellungen.vertretungExtern && f.reihen.some((r) => r.anbieter === einstellungen.vertretungExtern.kuerzel)) {
+    doc.text(`${einstellungen.vertretungExtern.kuerzel} = ${einstellungen.vertretungExtern.name} (Ort steht bei der Strecke)`, 15, y);
     y += 5;
   }
   doc.text("Start und Ziel „Zuhause“ = Wohnadresse. km laut Routenplaner (OpenStreetMap), einfache Strecke je Fahrt.", 15, y);

@@ -30,6 +30,17 @@ export const einstellungen = {
       empfaenger: "", // wird in Outlook hinterlegt, nicht im öffentlichen Code
     },
   ],
+  // Vertretungen in anderen Vereinen (wechselnd, Michael 23.10.2026): kein
+  // fester Ort und kein Anbieter-Kalender. Der Ort steht im Termin, die
+  // Fahrzeit rechnet die Automatik aus der Adresse (sonst fahrzeitMin).
+  vertretungExtern: {
+    kuerzel: "VTR",
+    name: "Vertretung in anderen Vereinen",
+    kategorien: ["20 Vertretung andere Vereine"],
+    fahrzeitMin: 30,
+    ort: "",
+    ortErkennung: [],
+  },
   // Fahrzeit direkt zwischen zwei Anbietern; fehlt ein Paar, gilt die Anfahrt zum Ziel.
   // Werte aus OpenStreetMap, auf 5 Minuten aufgerundet (Probe strecken_probe).
   fahrzeitZwischen: { "SVE-PTM": 20 },

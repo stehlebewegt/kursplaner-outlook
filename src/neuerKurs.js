@@ -7,13 +7,15 @@ import { schreibeProtokoll } from "./protokoll.js";
 const TAGE = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 export const wochentagVon = (datum) => TAGE[new Date(`${datum}T12:00:00Z`).getUTCDay()];
 
-// f: { anbieter, kategorie, name, leitung, datum, beginn, ende, serie, bis, ort, zeitzone }
+// f: { anbieter, kategorie, name, leitung, datum, beginn, ende, serie, bis, ort, zeitzone, extern }
+// extern = Vertretung in einem anderen Verein: leitung ist dann der Verein.
 // Gibt Fehlertexte zurück (leer = alles ok).
 export function pruefeKurs(f) {
   const fehler = [];
   if (!f.anbieter) fehler.push("Anbieter fehlt.");
   if (!f.name?.trim()) fehler.push("Kursname fehlt.");
-  if (!f.leitung?.trim()) fehler.push("Kursleitung fehlt.");
+  if (!f.leitung?.trim()) fehler.push(f.extern ? "Verein fehlt." : "Kursleitung fehlt.");
+  if (f.extern && !f.ort?.trim()) fehler.push("Adresse fehlt (für Fahrzeit und Navigation).");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(f.datum || "")) fehler.push("Datum fehlt.");
   if (!/^\d{2}:\d{2}$/.test(f.beginn || "") || !/^\d{2}:\d{2}$/.test(f.ende || "")) fehler.push("Uhrzeit fehlt.");
   else if (f.ende <= f.beginn) fehler.push("Das Ende muss nach dem Beginn liegen.");
@@ -21,7 +23,8 @@ export function pruefeKurs(f) {
   return fehler;
 }
 
-export const kursTitel = (f) => `${f.name.trim()} (${f.leitung.trim()})`;
+// Vertretung in einem anderen Verein: "(V) Kursname (Verein)".
+export const kursTitel = (f) => `${f.extern ? "(V) " : ""}${f.name.trim()} (${f.leitung.trim()})`;
 
 // Termin für Graph (POST /calendars/{id}/events).
 export function kursEreignis(f) {

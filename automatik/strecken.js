@@ -3,18 +3,29 @@
 // über die Heimadresse, darum nie ausgeben oder ins Repo schreiben, nur in
 // Michaels Kalender.
 import { aufRunden } from "./route.js";
-import { STRECKEN_BESCHRIFTUNG, kursAnbieter } from "../src/planer.js";
+import { STRECKEN_BESCHRIFTUNG, kursAnbieter, istExtern, streckenSchluessel } from "../src/planer.js";
 
-export function streckenPaare(e) {
+// termine: Vertretungen in anderen Vereinen darunter bekommen ihre eigenen
+// Strecken (zu Hause und zu den festen Anbietern), Schlüssel "VTR@<Adresse>".
+export function streckenPaare(e, termine = []) {
   const paare = [];
   for (const a of e.anbieter) paare.push([`heim-${a.kuerzel}`, null, a.ort], [`${a.kuerzel}-heim`, a.ort, null]);
   for (const a of e.anbieter) for (const b of e.anbieter) if (a !== b) paare.push([`${a.kuerzel}-${b.kuerzel}`, a.ort, b.ort]);
+  const extern = new Map();
+  for (const t of termine.filter((t) => !t.generiert && istExtern(t, e))) {
+    const x = kursAnbieter(t, e);
+    if (x.adresse) extern.set(streckenSchluessel(x), x.adresse);
+  }
+  for (const [k, ort] of extern) {
+    paare.push([`heim-${k}`, null, ort], [`${k}-heim`, ort, null]);
+    for (const a of e.anbieter) paare.push([`${a.kuerzel}-${k}`, a.ort, ort], [`${k}-${a.kuerzel}`, ort, a.ort]);
+  }
   return paare;
 }
 
-export async function kursStrecken(rechne, e) {
+export async function kursStrecken(rechne, e, termine = []) {
   const strecken = {};
-  for (const [schluessel, von, nach] of streckenPaare(e)) {
+  for (const [schluessel, von, nach] of streckenPaare(e, termine)) {
     const s = await rechne.strecke(von, nach).catch(() => null);
     if (s) strecken[schluessel] = s;
   }

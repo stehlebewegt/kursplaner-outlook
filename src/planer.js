@@ -31,20 +31,40 @@ function zuZeit(datum, minuten) {
 }
 
 export function findeAnbieter(termin, einstellungen) {
-  const kats = termin.kategorien || [];
-  for (const a of einstellungen.anbieter) {
-    if (kats.some((k) => a.kategorien.includes(k) || k === a.kategorieVertretung)) return a;
-  }
+  const kurs = kursAnbieter(termin, einstellungen);
+  if (kurs) return kurs;
   const ort = termin.ort || "";
   return einstellungen.anbieter.find((a) => a.ortErkennung.some((t) => ort.includes(t))) || null;
 }
+
+// Vertretung in einem anderen Verein (Kategorie aus einstellungen.vertretungExtern).
+export const istExtern = (termin, e) =>
+  !!e.vertretungExtern && (termin.kategorien || []).some((k) => e.vertretungExtern.kategorien.includes(k));
+
+// Für Vertretungen in anderen Vereinen gibt es keinen festen Anbieter: Ort und
+// Fahrzeit kommen aus dem Termin. schluessel unterscheidet die Orte (für Strecken).
+function externAnbieter(termin, e) {
+  const x = e.vertretungExtern;
+  const adresse = (termin.adresse || termin.ort || "").trim();
+  return {
+    ...x,
+    ort: termin.ort || "",
+    adresse,
+    fahrzeitMin: termin.fahrzeit > 0 ? termin.fahrzeit : x.fahrzeitMin,
+    schluessel: `${x.kuerzel}@${adresse}`,
+    extern: true,
+  };
+}
+export const streckenSchluessel = (a) => a.schluessel || a.kuerzel;
+export const gleicherAnbieter = (a, b) => a === b || (!!a && !!b && a.kuerzel === b.kuerzel && a.ort === b.ort);
 
 // Anbieter nur über die Kategorie. Ein Termin, der bloß am Ort eines Anbieters
 // liegt (z. B. "Besprechung PTM"), ist kein Kurs.
 export function kursAnbieter(termin, einstellungen) {
   const kats = termin.kategorien || [];
   return (
-    einstellungen.anbieter.find((a) => kats.some((k) => a.kategorien.includes(k) || k === a.kategorieVertretung)) || null
+    einstellungen.anbieter.find((a) => kats.some((k) => a.kategorien.includes(k) || k === a.kategorieVertretung)) ||
+    (istExtern(termin, einstellungen) ? externAnbieter(termin, einstellungen) : null)
   );
 }
 
@@ -76,7 +96,7 @@ export function bildeBloecke(kurse, einstellungen) {
     const vorher = letzter && letzter.kurse[letzter.kurse.length - 1];
     if (
       vorher &&
-      vorher.anbieter === k.anbieter &&
+      gleicherAnbieter(vorher.anbieter, k.anbieter) &&
       k.start - vorher.ende <= einstellungen.maxLueckeAmStueckMin
     ) {
       letzter.kurse.push(k);
@@ -200,13 +220,13 @@ export function planeTag(datum, alleTermine, einstellungen) {
     // Anfahrt: von zu Hause, oder direkt vom vorherigen Anbieter, wenn
     // die Zeit dazwischen für Heimfahrt und erneute Anfahrt nicht reicht.
     const direktVomVorherigen = vor && !heimfahrt(vor, b, vorStart - vor.ende);
-    if (direktVomVorherigen && vor.anbieter === b.anbieter) {
+    if (direktVomVorherigen && gleicherAnbieter(vor.anbieter, b.anbieter)) {
       // Beim selben Anbieter geblieben: keine Fahrt.
     } else if (!direktVomVorherigen) {
-      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort, `heim-${b.anbieter.kuerzel}`) && mitErinnerung();
+      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.adresse || b.anbieter.ort, `heim-${streckenSchluessel(b.anbieter)}`) && mitErinnerung();
     } else {
       const dauer = fahrzeit(vor.anbieter, b.anbieter, e);
-      neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.ort, `${vor.anbieter.kuerzel}-${b.anbieter.kuerzel}`) && mitErinnerung();
+      neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.adresse || b.anbieter.ort, `${streckenSchluessel(vor.anbieter)}-${streckenSchluessel(b.anbieter)}`) && mitErinnerung();
     }
     neu(`Vorbereitung - ${erster.vollerTitel}`, vorStart, erster.start, e.kategoriePuffer, b.anbieter);
 
@@ -225,7 +245,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
 
     const direktZumNaechsten = nach && !heimfahrt(b, nach, nach.kurse[0].start - e.vorbereitungMin - nachEnde);
     if (!direktZumNaechsten) {
-      neu(`Rückfahrt - ${letzter.vollerTitel}`, nachEnde, nachEnde + b.anbieter.fahrzeitMin, e.kategorieFahrt, b.anbieter, e.heimadresse, `${b.anbieter.kuerzel}-heim`);
+      neu(`Rückfahrt - ${letzter.vollerTitel}`, nachEnde, nachEnde + b.anbieter.fahrzeitMin, e.kategorieFahrt, b.anbieter, e.heimadresse, `${streckenSchluessel(b.anbieter)}-heim`);
     }
   });
   return soll;
@@ -302,7 +322,7 @@ export function ohneFahrzeit(termine, einstellungen) {
     (t) =>
       !t.generiert &&
       t.fahrzeit == null &&
-      !kursAnbieter(t, einstellungen) &&
+      (!kursAnbieter(t, einstellungen) || istExtern(t, einstellungen)) &&
       !istBlockTitel(t.titel) &&
       !titel.has(`${t.start.slice(0, 10)} Anfahrt - ${t.titel.trim()}`)
   );

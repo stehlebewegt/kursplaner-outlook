@@ -16,12 +16,12 @@ import { MARKIERUNG, FAHRZEIT } from "../web/graph.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { planeZeitraum, naechsteTage } from "./planen.js";
 import { gleicheAb, alsEigenerKurs } from "../src/dauerkurse.js";
-import { ohneFahrzeit, kursAnbieter, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerungsFelder, KEINE_ERINNERUNG } from "../src/planer.js";
-import { routenRechner, hatAdresse } from "./route.js";
+import { ohneFahrzeit, kursAnbieter, istExtern, ROUTEN_BESCHRIFTUNG, routenHtml, erinnerungsFelder, KEINE_ERINNERUNG } from "../src/planer.js";
+import { routenRechner, hatAdresse, aufRunden } from "./route.js";
 import { kursStrecken, abweichungen, ohneStrecke } from "./strecken.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 import { fahrtenbuch } from "./fahrtenbuch.js";
-import { ladeRegeln, sortiere, offeneMails } from "./mails.js";
+import { ladeRegeln, sortiere, offeneMails, kategorienAnlegen } from "./mails.js";
 import { hinweise } from "./hinweise.js";
 import { holeFerien, holeFeiertage } from "./ferien.js";
 import { ferienKurse } from "../src/ferien.js";
@@ -82,6 +82,16 @@ function adresseVon(l) {
   const a = l?.address || {};
   const teile = [a.street, [a.postalCode, a.city].filter(Boolean).join(" "), a.countryOrRegion].map((x) => (x || "").trim()).filter(Boolean);
   return a.street || a.city ? teile.join(", ") : l?.displayName || "";
+}
+
+// Fahrzeit für einen Termin mit Adresse. Vertretungen in anderen Vereinen
+// werden wie Kursfahrten auf fahrzeitRundungMin aufgerundet, private Termine
+// auf die Viertelstunde (routenRechner).
+async function fahrzeitFuer(rechne, t) {
+  if (!istExtern(t, einstellungen)) return rechne(t.adresse);
+  const s = await rechne.strecke(null, t.adresse);
+  if (!s) return null;
+  return s.minuten > 240 ? null : aufRunden(s.minuten, einstellungen.fahrzeitRundungMin ?? 15);
 }
 
 function zuTermin(e) {
@@ -215,7 +225,7 @@ if (process.env.NACHBERECHNEN) {
     for (const t of offen) {
       let minuten;
       try {
-        minuten = await rechnePrivat(t.adresse);
+        minuten = await fahrzeitFuer(rechnePrivat, t);
       } catch {
         continue;
       }
@@ -226,7 +236,7 @@ if (process.env.NACHBERECHNEN) {
   }
   // Kursfahrten bekommen auch hier die Strecke in die Notiz.
   if (process.env.KURSPLANER_HEIMADRESSE && einstellungen.streckenNotiz) {
-    einstellungen.strecken = await kursStrecken(routenRechner({ heimadresse: process.env.KURSPLANER_HEIMADRESSE }), einstellungen);
+    einstellungen.strecken = await kursStrecken(routenRechner({ heimadresse: process.env.KURSPLANER_HEIMADRESSE }), einstellungen, await api.holeBereich(von, bis));
     ausgabe(`Kursstrecken: ${Object.keys(einstellungen.strecken).length} berechnet`);
   }
   const monate = new Map();
@@ -296,7 +306,7 @@ if (heimadresse) {
   for (const t of offen) {
     let minuten;
     try {
-      minuten = await rechne(t.adresse);
+      minuten = await fahrzeitFuer(rechne, t);
     } catch {
       continue; // Netz-Problem: beim nächsten Lauf nochmal
     }
@@ -316,9 +326,10 @@ if (heimadresse) {
 // Kursfahrten: tatsächliche Strecke in die Notiz. Gerechnet wird nur, wenn
 // eine Fahrt sie noch nicht hat (neue Blöcke bekommen sie beim nächsten Lauf).
 if (rechne && (einstellungen.streckenNotiz || process.env.STRECKEN_PROBE)) {
-  const offen = ohneStrecke(await api.holeBereich(tage[0], tage[tage.length - 1]), einstellungen);
+  const bereich = await api.holeBereich(tage[0], tage[tage.length - 1]);
+  const offen = ohneStrecke(bereich, einstellungen);
   if (offen.length || process.env.STRECKEN_PROBE) {
-    einstellungen.strecken = await kursStrecken(rechne, einstellungen);
+    einstellungen.strecken = await kursStrecken(rechne, einstellungen, bereich);
     const ab = abweichungen(einstellungen.strecken, einstellungen);
     ausgabe(`Kursstrecken: ${Object.keys(einstellungen.strecken).length} berechnet, Fahrten ohne Strecke ${offen.length} [${offen.map(tagZeit).join(", ")}]; eingestellte Fahrzeit weicht ab: ${ab.join(", ") || "nein"}`);
     if (process.env.STRECKEN_PROBE) {
@@ -354,6 +365,8 @@ if (process.env.ABSCHLUESSE) {
     ausgabe,
   });
 }
+// Kategorie für Vertretungen in anderen Vereinen anlegen (mit Farbe), falls sie fehlt.
+if (schreiben && einstellungen.vertretungExtern) await kategorienAnlegen(graph, einstellungen.vertretungExtern.kategorien);
 // Mails von Anbietern: Regeln einmal pro Lauf aus den Kontakten.
 const kontaktPostfaecher = (process.env.KURSPLANER_KONTAKTE || "").split(",").map((p) => p.trim()).filter(Boolean);
 let mailRegeln = [];

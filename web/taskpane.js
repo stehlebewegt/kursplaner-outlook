@@ -342,10 +342,22 @@ function richteAuswertungEin() {
 function richteNeuerKursEin() {
   $("bereich-neu").hidden = false;
   const heute = jetztLokal().slice(0, 10);
-  const anbieterVon = () => einstellungen.anbieter.find((a) => a.kuerzel === $("n-anbieter").value);
-  $("n-anbieter").innerHTML = einstellungen.anbieter.map((a) => `<option value="${a.kuerzel}">${html(a.name)}</option>`).join("");
+  // Neben den festen Anbietern: Vertretung in einem anderen Verein (wechselnd).
+  const extern = einstellungen.vertretungExtern;
+  const ziele = [...einstellungen.anbieter, ...(extern ? [{ ...extern, name: "Anderer Verein (Vertretung)" }] : [])];
+  const anbieterVon = () => ziele.find((a) => a.kuerzel === $("n-anbieter").value);
+  const istExternGewaehlt = () => !!extern && $("n-anbieter").value === extern.kuerzel;
+  $("n-anbieter").innerHTML = ziele.map((a) => `<option value="${a.kuerzel}">${html(a.name)}</option>`).join("");
   const offen = termin && findeAnbieter(termin, einstellungen);
   if (offen) $("n-anbieter").value = offen.kuerzel;
+  // Vereine mit ihrer letzten Adresse merken: { "TSV Beispiel": "Halle, Straße, Ort" }.
+  const vereine = () => {
+    try {
+      return JSON.parse(Office.context.roamingSettings.get("vereine") || "{}");
+    } catch {
+      return {};
+    }
+  };
   $("n-datum").value = heute;
 
   // Vorschläge aus den nächsten Wochen im Anbieter-Kalender: Kursnamen,
@@ -355,6 +367,20 @@ function richteNeuerKursEin() {
     const a = anbieterVon();
     $("n-kategorie").innerHTML = a.kategorien.map((k) => `<option>${html(k)}</option>`).join("");
     $("n-ort").value = a.ort;
+    // Anderer Verein: nur in meinen Kalender, statt Kursleitung der Verein, Ort von Hand.
+    const ext = istExternGewaehlt();
+    $("n-wohin").value = ext ? "eigen" : $("n-wohin").value;
+    $("n-wohin").disabled = ext;
+    $("n-leitung-label").textContent = ext ? "Verein" : "Kursleitung";
+    $("n-leitung").value = ext ? "" : einstellungen.dauerkurse.kursleitung;
+    $("n-ort").placeholder = ext ? "Adresse der Halle (für Fahrzeit und Navigation)" : "";
+    if (ext) {
+      const v = vereine();
+      $("n-leitungen").innerHTML = Object.keys(v).sort((x, y) => x.localeCompare(y, "de")).map((n) => `<option value="${html(n)}">`).join("");
+      $("n-namen").innerHTML = "";
+      dauer = {};
+      return;
+    }
     try {
       const bis = new Date(Date.parse(`${heute}T12:00:00Z`) + 28 * 86400000).toISOString().slice(0, 10);
       const kurse = await api.holeKursTitel(a.kalender, heute, bis);
@@ -385,6 +411,11 @@ function richteNeuerKursEin() {
   };
   $("n-beginn").oninput = endeVorschlagen;
   $("n-name").onchange = endeVorschlagen;
+  // Bekannter Verein: letzte Adresse vorschlagen.
+  $("n-leitung").onchange = () => {
+    const adr = istExternGewaehlt() && vereine()[$("n-leitung").value.trim()];
+    if (adr && !$("n-ort").value.trim()) $("n-ort").value = adr;
+  };
   $("n-ende").oninput = () => ($("n-ende").dataset.vonHand = "1");
   $("n-serie").onchange = () => ($("n-bis-feld").hidden = !$("n-serie").checked);
   document.querySelectorAll("#bereich-neu input, #bereich-neu select").forEach((f) =>
@@ -403,7 +434,8 @@ function richteNeuerKursEin() {
     serie: $("n-serie").checked,
     bis: $("n-serie").checked ? $("n-bis").value : "",
     zeitzone: config.zeitzone,
-    nurEigen: $("n-wohin").value === "eigen",
+    nurEigen: istExternGewaehlt() || $("n-wohin").value === "eigen",
+    extern: istExternGewaehlt(),
   });
   const zielKalender = (f) => (f.nurEigen ? null : f.anbieter.kalender);
   const zielName = (f) => (f.nurEigen ? "deinem Kalender" : `„${f.anbieter.kalender}“`);
@@ -430,7 +462,9 @@ function richteNeuerKursEin() {
       $("n-hinweis").innerHTML =
         `<strong>${html(kursTitel(f))}</strong><br>${f.beginn}–${f.ende} Uhr, ${html(wie)}<br>` +
         `Kommt in ${html(zielName(f))} · ${html(f.kategorie)}<br>` +
-        (f.nurEigen
+        (f.extern
+          ? "Vertretung bei einem anderen Verein, nur in deinem Kalender. Die Fahrzeit rechnet die Automatik aus der Adresse, dann kommen Fahrten und Vor-/Nachbereitung dazu."
+          : f.nurEigen
           ? "Nur in deinem Kalender, der Anbieter-Kalender bleibt unverändert. Fahrten und Vor-/Nachbereitung kommen automatisch dazu."
           : meiner(f)
           ? "Du bist Kursleitung: Die Termine kommen danach automatisch in deinen Kalender, mit Fahrten und Vor-/Nachbereitung."
@@ -444,6 +478,7 @@ function richteNeuerKursEin() {
       const f = formular();
       if (pruefeKurs(f).length) return;
       await api.legeKursAn(zielKalender(f), kursEreignis(f));
+      if (f.extern) merke("vereine", JSON.stringify({ ...vereine(), [f.leitung.trim()]: f.ort.trim() }));
       $("n-anlegen").hidden = true;
       $("n-hinweis").innerHTML = "";
       zeige(

@@ -3,7 +3,7 @@
 // Öffentliche Ausgabe nur mit Zahlen, ohne km.
 import { BERICHT, ladeJsPdf, berechneStrecken } from "./monatsbericht.js";
 import { erstelleAuswertung } from "../src/auswertung.js";
-import { fahrtenJahr, fahrtenPdf } from "../src/fahrtenbuch.js";
+import { fahrtenJahr, fahrtenPdf, alleZiele } from "../src/fahrtenbuch.js";
 
 export async function fahrtenbuch({ graph, holeBereich, rechne, einstellungen, heute, jetzt, probe, ausgabe }) {
   if (!probe && heute.slice(5, 7) !== "01") return;
@@ -14,7 +14,7 @@ export async function fahrtenbuch({ graph, holeBereich, rechne, einstellungen, h
     if (da.value.length) return;
   }
   const termine = await holeBereich(`${jahr}-01-01`, `${jahr}-12-31`);
-  const vorab = einstellungen.anbieter.flatMap((a) => erstelleAuswertung(termine, a, jetzt, einstellungen).fahrten);
+  const vorab = alleZiele(einstellungen).flatMap((a) => erstelleAuswertung(termine, a, jetzt, einstellungen).fahrten);
   const strecken = await berechneStrecken(vorab, rechne, einstellungen);
   const f = fahrtenJahr(termine, jahr, jetzt, einstellungen, (v, n) => strecken.get(`${v} ${n}`));
   const pdf = fahrtenPdf(f, jahr, einstellungen, ladeJsPdf(), jetzt);

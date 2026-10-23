@@ -18,8 +18,8 @@ const vorTagen = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(
 
 // Farbe für die Kategorien anlegen, falls es sie noch nicht gibt (ohne
 // Berechtigung dafür erscheinen sie trotzdem, nur ohne Farbe).
-const FARBEN = { SVE: "preset4", PTM: "preset7" };
-async function kategorienAnlegen(graph, namen) {
+const FARBEN = { SVE: "preset4", PTM: "preset7", "20 Vertretung andere Vereine": "preset8" };
+export async function kategorienAnlegen(graph, namen) {
   try {
     const da = (await graph("GET", "/outlook/masterCategories")).value.map((k) => k.displayName);
     for (const n of namen.filter((n) => !da.includes(n)))

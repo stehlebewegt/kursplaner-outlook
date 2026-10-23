@@ -11,7 +11,7 @@ const minuten = (t) => (Date.parse(t.ende) - Date.parse(t.start)) / 60000;
 // Anbieter-Kürzeln (siehe automatik/route.js); ohne sie bleiben km leer.
 export function erstelleAuswertung(termine, anbieter, jetzt, einstellungen, strecke = () => null) {
   const zeilen = termine
-    .filter((t) => !t.generiert && kursAnbieter(t, einstellungen) === anbieter)
+    .filter((t) => !t.generiert && kursAnbieter(t, einstellungen)?.kuerzel === anbieter.kuerzel)
     .filter((t) => !["U", "A"].includes(leseKuerzel(t.titel)))
     .map((t) => {
       const k = leseKuerzel(t.titel);
@@ -80,7 +80,9 @@ function sammleFahrten(termine, zeilen, e, anbieter) {
       const kurs = kurse.get(`${datum} ${m[4].trim()}`);
       const status = kurs ? kurs.status : beiAnbieter(t) && tage.get(datum);
       if (!status) return null;
-      const [von, nach] = m[1] === "Anfahrt" ? ["heim", anbieter.kuerzel] : m[1] === "Rückfahrt" ? [anbieter.kuerzel, "heim"] : [m[2], m[3]];
+      // Vertretung in anderen Vereinen: Ziel ist der Ort aus dem Fahrt-Block.
+      const ziel = anbieter.kuerzel === e.vertretungExtern?.kuerzel ? t.ort || anbieter.kuerzel : anbieter.kuerzel;
+      const [von, nach] = m[1] === "Anfahrt" ? ["heim", ziel] : m[1] === "Rückfahrt" ? [ziel, "heim"] : [m[2], m[3]];
       return {
         datum,
         uhrzeit: t.start.slice(11, 16),
