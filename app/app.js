@@ -6,6 +6,7 @@ import { config } from "../web/config.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { kursAnbieter, leseKuerzel, ohneKuerzel, routenUrl } from "../src/planer.js";
 import { leseProtokoll } from "../src/protokoll.js";
+import { kursDetails } from "../src/kursdetails.js";
 import { wendeAn } from "../src/eigeneEinstellungen.js";
 import { setzeKuerzel, verschiebeKurs } from "../src/aktionen.js";
 import { fahrtenJahr, fahrtenPdf, alleZiele } from "../src/fahrtenbuch.js";
@@ -138,7 +139,7 @@ function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokol
       letzterTag = d;
       return (
         kopf +
-        `<div class="kurs${b.faelltAus ? " faellt-aus" : ""}">` +
+        `<div class="kurs${b.faelltAus ? " faellt-aus" : ""}" data-details="${i}" title="Details anzeigen">` +
         `<div class="streifen" style="background:${FARBEN[b.a.kuerzel] || "#5B787D"}"></div>` +
         `<div class="zeit">${t.start.slice(11)}–${t.ende.slice(11)}</div>` +
         `<div class="was">${html(b.name)}${KUERZEL[b.k] ? `<span class="marke-klein">${KUERZEL[b.k]}</span>` : ""}<small>${html(b.wo)}</small></div>` +
@@ -155,23 +156,30 @@ function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokol
       );
     })
     .join("");
+  // Klick auf den Kurs (nicht auf einen Knopf): Kursdetails.
+  ziel.querySelectorAll("[data-details]").forEach((k) => {
+    k.onclick = (e) => {
+      if (!e.target.closest("button")) oeffneLeiste(kurse[k.dataset.details], "details", neuLaden);
+    };
+  });
   ziel.querySelectorAll("[data-protokoll]").forEach((b) => (b.onclick = () => oeffneLeiste(kurse[b.dataset.protokoll], "protokoll")));
   ziel.querySelectorAll("[data-mail]").forEach((b) => (b.onclick = () => oeffneLeiste(kurse[b.dataset.mail], "mail")));
   ziel.querySelectorAll("[data-verschieben]").forEach((b) => (b.onclick = () => oeffneLeiste(kurse[b.dataset.verschieben], "verschieben")));
-  ziel.querySelectorAll("[data-kuerzel]").forEach((b) => {
-    b.onclick = () => {
-      const t = kurse[b.dataset.kurs];
-      const absagen = b.dataset.kuerzel === "A";
-      const frage = absagen
-        ? `„${ohneKuerzel(t.titel)}“ am ${tagDe(t.start)} absagen? Fahrten und Vor-/Nachbereitung fallen dann weg.`
-        : `„${ohneKuerzel(t.titel)}“ am ${tagDe(t.start)} findet doch statt? Fahrten und Vor-/Nachbereitung kommen wieder dazu.`;
-      if (!confirm(frage)) return;
-      mitWarten(b, async () => {
-        const v = await setzeKuerzel(api, t, b.dataset.kuerzel, einstellungen);
-        zeigeAenderungen(v, absagen ? "Kurs abgesagt" : "Kurs findet statt");
-        await neuLaden();
-      });
-    };
+  ziel.querySelectorAll("[data-kuerzel]").forEach((b) => (b.onclick = () => absagenOderStatt(kurse[b.dataset.kurs], b, neuLaden)));
+}
+
+// (A) setzen oder wieder wegnehmen, nach Rückfrage.
+function absagenOderStatt(t, b, neuLaden) {
+  const absagen = b.dataset.kuerzel === "A";
+  const frage = absagen
+    ? `„${ohneKuerzel(t.titel)}“ am ${tagDe(t.start)} absagen? Fahrten und Vor-/Nachbereitung fallen dann weg.`
+    : `„${ohneKuerzel(t.titel)}“ am ${tagDe(t.start)} findet doch statt? Fahrten und Vor-/Nachbereitung kommen wieder dazu.`;
+  if (!confirm(frage)) return;
+  mitWarten(b, async () => {
+    const v = await setzeKuerzel(api, t, b.dataset.kuerzel, einstellungen);
+    zeigeAenderungen(v, absagen ? "Kurs abgesagt" : "Kurs findet statt");
+    $("leiste").hidden = true;
+    await neuLaden();
   });
 }
 
@@ -292,17 +300,126 @@ $("w-vor").onclick = () => ((wochenStart = plusTage(wochenStart, 7)), zeigeWoche
 $("w-heute").onclick = () => ((wochenStart = montag(jetztLokal().slice(0, 10))), zeigeWoche());
 
 // Seitenleiste: Protokoll, E-Mail-Vorlagen oder Verschieben zu einem Kurs.
-async function oeffneLeiste(t, was) {
+async function oeffneLeiste(t, was, neuLaden = () => ANSICHTEN[aktuell]()) {
   zustand.termin = t;
+  $("bereich-details").hidden = was !== "details";
   $("leiste-titel").textContent = ohneKuerzel(t.titel);
   $("leiste-info").textContent = `${tagName(t.start.slice(0, 10))}, ${tagDe(t.start)} · ${t.start.slice(11)}–${t.ende.slice(11)}`;
   $("bereich-protokoll").hidden = was !== "protokoll";
   $("bereich-mail").hidden = was !== "mail";
   $("bereich-verschieben").hidden = was !== "verschieben";
   $("leiste").hidden = false;
-  if (was === "protokoll") await zeigeProtokoll();
+  $("leiste").scrollTop = 0;
+  // In den Details steht die Leitung als Schild, im Titel reicht der Kursname.
+  if (was === "details") $("leiste-titel").textContent = ohneKuerzel(t.titel).replace(/\s*\([^)]+\)\s*$/, "");
+  if (was === "details") await zeigeDetails(t, neuLaden);
+  else if (was === "protokoll") await zeigeProtokoll();
   else if (was === "mail") richteMailEin(kursAnbieter(t, einstellungen));
   else await richteVerschiebenEin(t);
+}
+
+// --- Kursdetails: wann, wo, Protokoll, wie läuft der Kurs, was habe ich gemacht ---
+const AMPEL_TEXT = { gut: "gut", beobachten: "beobachten", kritisch: "kritisch" };
+const komma = (z, n = 1) => z.toFixed(n).replace(".", ",");
+async function zeigeDetails(t, neuLaden) {
+  const ziel = $("bereich-details");
+  const b = beschreibe(t);
+  const datum = t.start.slice(0, 10);
+  const heute = jetztLokal().slice(0, 10);
+  const wer = ohneKuerzel(t.titel).match(/\(([^)]+)\)\s*$/)?.[1] || "";
+  const ort = t.ort || b.a.adresse || b.a.ort || "";
+  ziel.innerHTML =
+    `<div class="chips"><span class="chip">${html(b.a.extern ? "Anderer Verein" : `${b.a.kuerzel} · ${b.a.name}`)}</span>` +
+    `<span class="chip">${KUERZEL[b.k] || "Regulär"}</span>${wer ? `<span class="chip">Leitung ${html(wer)}</span>` : ""}</div>` +
+    `<div class="d-ort"><span id="d-ort">📍 ${html(ort || "Ort fehlt im Termin")}</span>` +
+    (ort ? `<a class="knopf-link" href="${html(routenUrl(ort))}" target="_blank" rel="noopener">🧭 Route</a>` : "") +
+    `</div>` +
+    `<div class="d-knoepfe"><button id="d-protokoll">Protokoll</button><button class="zweit" id="d-mail">E-Mail</button>` +
+    (b.faelltAus ? "" : `<button class="zweit" id="d-verschieben">Verschieben</button>`) +
+    `<button class="zweit" id="d-kuerzel" data-kuerzel="${b.faelltAus ? "" : "A"}">${b.faelltAus ? "Findet statt" : "Absagen"}</button></div>` +
+    `<div id="d-inhalt" class="leise" style="padding-top:14px">Verlauf wird geladen …</div>`;
+  $("d-protokoll").onclick = () => oeffneLeiste(t, "protokoll");
+  $("d-mail").onclick = () => oeffneLeiste(t, "mail");
+  if ($("d-verschieben")) $("d-verschieben").onclick = () => oeffneLeiste(t, "verschieben");
+  $("d-kuerzel").onclick = () => absagenOderStatt(t, $("d-kuerzel"), neuLaden);
+
+  let termine;
+  try {
+    // Ein Abruf: gut vier Monate zurück (Verlauf) und fünf Wochen voraus (nächste Termine).
+    termine = await api.holeVerlauf(plusTage(datum < heute ? datum : heute, -120), plusTage(datum, 35));
+  } catch (e) {
+    $("d-inhalt").innerHTML = `<span class="fehler">Verlauf nicht geladen: ${html(e.message)}</span>`;
+    return;
+  }
+  if (zustand.termin !== t) return; // inzwischen ein anderer Kurs geöffnet
+  const d = kursDetails(t, termine.filter(istKurs), { jetzt: jetztLokal(), ohneKuerzel, faelltAus: (x) => beschreibe(x).faelltAus });
+
+  // Abfahrt: der letzte Fahrt-Block am Kurstag, der vor dem Kurs endet.
+  const fahrt = termine
+    .filter((x) => x.start.slice(0, 10) === datum && /^(Anfahrt|Fahrt )/.test(x.titel) && x.ende <= t.start)
+    .sort((x, y) => (x.ende < y.ende ? 1 : -1))[0];
+  if (fahrt) $("d-ort").insertAdjacentHTML("beforeend", ` · Abfahrt ${fahrt.start.slice(11)}`);
+
+  const p = d.dieser.p;
+  const vorbei = t.ende <= jetztLokal();
+  const dieser = b.faelltAus
+    ? `<div class="protokoll-kurz">Dieser Termin ${KUERZEL[b.k] === "Urlaub" ? "fällt wegen Urlaub aus" : `ist ${KUERZEL[b.k] || "abgesagt"}`}.</div>`
+    : p.thema || d.dieser.anwesend != null
+      ? `<div class="protokoll-kurz"><b>${html(p.thema || "ohne Thema")}</b>` +
+        (p.material ? `<div class="leise">${html(p.material)}</div>` : "") +
+        (d.dieser.anwesend != null ? `<div>${d.dieser.anwesend} von ${d.dieser.gesamt} da</div>` : "") +
+        (p.besonderheiten || /^ja/i.test(p.vorkommnis) ? `<span class="marke-klein" style="margin:6px 0 0;display:inline-block">Besonderheit notiert</span>` : "") +
+        `</div>`
+      : `<div class="protokoll-kurz${vorbei ? " offen" : ""}"><b>${vorbei ? "Protokoll noch offen" : "Protokoll nach dem Kurs"}</b>` +
+        (d.verlauf[0] ? `<div class="leise">Zuletzt: ${html(d.verlauf[0].p.thema || "ohne Thema")} am ${tagDe(d.verlauf[0].t.start)}</div>` : "") +
+        `</div>`;
+
+  const hoechst = Math.max(1, ...d.balken.map((v) => v.gesamt || v.anwesend || 0));
+  const balken = d.balken
+    .map((v) =>
+      v.ausfall || v.anwesend == null
+        ? `<div><i class="aus" style="height:14px"></i>${tagDe(v.t.start)}<br>${v.ausfall ? KUERZEL[leseKuerzel(v.t.titel)] || "fällt aus" : "ohne"}</div>`
+        : `<div title="${v.anwesend} von ${v.gesamt}"><i style="height:${Math.max(6, Math.round((v.anwesend / hoechst) * 60))}px"></i>${tagDe(v.t.start)}<br>${v.anwesend}</div>`
+    )
+    .join("");
+  const kachel = (wert, text) => `<div class="kachel"><b>${wert}</b><span>${text}</span></div>`;
+  const wie = d.gehalten
+    ? `<div class="kacheln">${kachel(d.gehalten, "Termine gehalten")}` +
+      kachel(d.schnittAnwesend == null ? "–" : komma(d.schnittAnwesend), "Ø anwesend") +
+      kachel(d.quote == null ? "–" : `${Math.round(d.quote * 100)} %`, `${d.ampel ? `<i class="ampel ${d.ampel}"></i>` : ""}Anwesenheit${d.ampel ? ` (${AMPEL_TEXT[d.ampel]})` : ""}`) +
+      kachel(d.schnittGesamt == null ? "–" : komma(d.schnittGesamt, 0), "Teilnehmer") +
+      `</div>` +
+      (d.balken.length ? `<div class="balken">${balken}</div>` : "") +
+      `<div class="leise" style="margin-top:8px">${d.mitProtokoll} von ${d.gehalten} mit Teilnehmerzahl. Ampel: ab 90 % gut, ab 65 % beobachten.</div>`
+    : `<div class="leise">Noch keine gehaltenen Termine in den letzten vier Monaten.</div>`;
+  const verlauf = d.verlauf.length
+    ? `<table class="verlauf">${d.verlauf
+        .map(
+          (v) =>
+            `<tr><td>${tagDe(v.t.start)}</td><td>${html(v.p.thema || "ohne Thema")}` +
+            (v.p.besonderheiten || /^ja/i.test(v.p.vorkommnis) ? ` <span class="marke-klein">Besonderheit</span>` : "") +
+            (v.p.material ? `<br><span class="leise">${html(v.p.material)}</span>` : "") +
+            `</td><td class="rechts">${v.anwesend != null ? `${v.anwesend} / ${v.gesamt}` : ""}</td></tr>`
+        )
+        .join("")}</table>` +
+      (d.themen.some(([, n]) => n > 1) ? `<div class="chips">${d.themen.map(([th, n]) => `<span class="chip rand">${html(th)} ${n}</span>`).join("")}</div>` : "")
+    : `<div class="leise">Noch keine Protokolle zu diesem Kurs.</div>`;
+  const kommend = d.kommend.length
+    ? d.kommend
+        .map((v) => {
+          const k = KUERZEL[leseKuerzel(v.t.titel)];
+          return `<div class="d-zeile"><span>${tagName(v.t.start.slice(0, 10)).slice(0, 2)} ${tagDe(v.t.start)} · ${v.t.start.slice(11)}</span>${k ? `<span class="marke-klein">${k}</span>` : `<span class="leise">regulär</span>`}</div>`;
+        })
+        .join("")
+    : `<div class="leise">In den nächsten fünf Wochen kein weiterer Termin.</div>`;
+
+  $("d-inhalt").className = "";
+  $("d-inhalt").style.paddingTop = "0";
+  $("d-inhalt").innerHTML =
+    `<div class="d-teil"><h3>Dieser Termin</h3>${dieser}</div>` +
+    `<div class="d-teil"><h3>Wie läuft der Kurs?</h3>${wie}</div>` +
+    `<div class="d-teil"><h3>Was habe ich gemacht?</h3>${verlauf}</div>` +
+    `<div class="d-teil"><h3>Nächste Termine</h3>${kommend}</div>`;
 }
 
 // --- Kurs verschieben ---
