@@ -5,7 +5,7 @@
            xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
            xsi:type="MailApp">
   <Id>ddd0f0fb-1acd-40f0-8585-5d45455f2e6d</Id>
-  <Version>0.5.0.1</Version>
+  <Version>0.5.1.0</Version>
   <ProviderName>Michael Stehle</ProviderName>
   <DefaultLocale>de-DE</DefaultLocale>
   <DisplayName DefaultValue="Kursplaner"/>
@@ -61,9 +61,9 @@
                     <Description resid="Kurs.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Termin.16"/>
+                    <bt:Image size="32" resid="Termin.32"/>
+                    <bt:Image size="80" resid="Termin.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Url"/>
@@ -79,9 +79,9 @@
                     <Description resid="Neu.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Neu.16"/>
+                    <bt:Image size="32" resid="Neu.32"/>
+                    <bt:Image size="80" resid="Neu.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Neu"/>
@@ -94,9 +94,9 @@
                     <Description resid="Urlaub.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Urlaub.16"/>
+                    <bt:Image size="32" resid="Urlaub.32"/>
+                    <bt:Image size="80" resid="Urlaub.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Urlaub"/>
@@ -112,9 +112,9 @@
                     <Description resid="Auswertung.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Auswertung.16"/>
+                    <bt:Image size="32" resid="Auswertung.32"/>
+                    <bt:Image size="80" resid="Auswertung.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Auswertung"/>
@@ -135,9 +135,9 @@
                     <Description resid="Kurs.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Termin.16"/>
+                    <bt:Image size="32" resid="Termin.32"/>
+                    <bt:Image size="80" resid="Termin.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Url"/>
@@ -153,9 +153,9 @@
                     <Description resid="Neu.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Neu.16"/>
+                    <bt:Image size="32" resid="Neu.32"/>
+                    <bt:Image size="80" resid="Neu.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Neu"/>
@@ -168,9 +168,9 @@
                     <Description resid="Urlaub.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Urlaub.16"/>
+                    <bt:Image size="32" resid="Urlaub.32"/>
+                    <bt:Image size="80" resid="Urlaub.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Urlaub"/>
@@ -186,9 +186,9 @@
                     <Description resid="Auswertung.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Auswertung.16"/>
+                    <bt:Image size="32" resid="Auswertung.32"/>
+                    <bt:Image size="80" resid="Auswertung.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Auswertung"/>
@@ -210,9 +210,9 @@
                     <Description resid="Neu.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Neu.16"/>
+                    <bt:Image size="32" resid="Neu.32"/>
+                    <bt:Image size="80" resid="Neu.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Neu"/>
@@ -225,9 +225,9 @@
                     <Description resid="Urlaub.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Urlaub.16"/>
+                    <bt:Image size="32" resid="Urlaub.32"/>
+                    <bt:Image size="80" resid="Urlaub.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Urlaub"/>
@@ -243,9 +243,9 @@
                     <Description resid="Auswertung.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Auswertung.16"/>
+                    <bt:Image size="32" resid="Auswertung.32"/>
+                    <bt:Image size="80" resid="Auswertung.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Auswertung"/>
@@ -267,9 +267,9 @@
                     <Description resid="Neu.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Neu.16"/>
+                    <bt:Image size="32" resid="Neu.32"/>
+                    <bt:Image size="80" resid="Neu.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Neu"/>
@@ -282,9 +282,9 @@
                     <Description resid="Urlaub.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Urlaub.16"/>
+                    <bt:Image size="32" resid="Urlaub.32"/>
+                    <bt:Image size="80" resid="Urlaub.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Urlaub"/>
@@ -300,9 +300,9 @@
                     <Description resid="Auswertung.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
+                    <bt:Image size="16" resid="Auswertung.16"/>
+                    <bt:Image size="32" resid="Auswertung.32"/>
+                    <bt:Image size="80" resid="Auswertung.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Auswertung"/>
@@ -320,6 +320,18 @@
         <bt:Image id="Icon.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-16.png"/>
         <bt:Image id="Icon.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-32.png"/>
         <bt:Image id="Icon.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-80.png"/>
+        <bt:Image id="Termin.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/termin-16.png"/>
+        <bt:Image id="Termin.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/termin-32.png"/>
+        <bt:Image id="Termin.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/termin-80.png"/>
+        <bt:Image id="Neu.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/neu-16.png"/>
+        <bt:Image id="Neu.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/neu-32.png"/>
+        <bt:Image id="Neu.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/neu-80.png"/>
+        <bt:Image id="Urlaub.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/urlaub-16.png"/>
+        <bt:Image id="Urlaub.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/urlaub-32.png"/>
+        <bt:Image id="Urlaub.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/urlaub-80.png"/>
+        <bt:Image id="Auswertung.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/auswertung-16.png"/>
+        <bt:Image id="Auswertung.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/auswertung-32.png"/>
+        <bt:Image id="Auswertung.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/auswertung-80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Taskpane.Url" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html"/>
@@ -369,9 +381,9 @@
                       <Description resid="Kurs.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Termin.16"/>
+                      <bt:Image size="32" resid="Termin.32"/>
+                      <bt:Image size="80" resid="Termin.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Url"/>
@@ -388,9 +400,9 @@
                       <Description resid="Neu.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Neu.16"/>
+                      <bt:Image size="32" resid="Neu.32"/>
+                      <bt:Image size="80" resid="Neu.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Neu"/>
@@ -404,9 +416,9 @@
                       <Description resid="Urlaub.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Urlaub.16"/>
+                      <bt:Image size="32" resid="Urlaub.32"/>
+                      <bt:Image size="80" resid="Urlaub.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Urlaub"/>
@@ -423,9 +435,9 @@
                       <Description resid="Auswertung.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Auswertung.16"/>
+                      <bt:Image size="32" resid="Auswertung.32"/>
+                      <bt:Image size="80" resid="Auswertung.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Auswertung"/>
@@ -447,9 +459,9 @@
                       <Description resid="Kurs.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Termin.16"/>
+                      <bt:Image size="32" resid="Termin.32"/>
+                      <bt:Image size="80" resid="Termin.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Url"/>
@@ -466,9 +478,9 @@
                       <Description resid="Neu.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Neu.16"/>
+                      <bt:Image size="32" resid="Neu.32"/>
+                      <bt:Image size="80" resid="Neu.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Neu"/>
@@ -482,9 +494,9 @@
                       <Description resid="Urlaub.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Urlaub.16"/>
+                      <bt:Image size="32" resid="Urlaub.32"/>
+                      <bt:Image size="80" resid="Urlaub.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Urlaub"/>
@@ -501,9 +513,9 @@
                       <Description resid="Auswertung.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Auswertung.16"/>
+                      <bt:Image size="32" resid="Auswertung.32"/>
+                      <bt:Image size="80" resid="Auswertung.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Auswertung"/>
@@ -526,9 +538,9 @@
                       <Description resid="Neu.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Neu.16"/>
+                      <bt:Image size="32" resid="Neu.32"/>
+                      <bt:Image size="80" resid="Neu.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Neu"/>
@@ -542,9 +554,9 @@
                       <Description resid="Urlaub.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Urlaub.16"/>
+                      <bt:Image size="32" resid="Urlaub.32"/>
+                      <bt:Image size="80" resid="Urlaub.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Urlaub"/>
@@ -561,9 +573,9 @@
                       <Description resid="Auswertung.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Auswertung.16"/>
+                      <bt:Image size="32" resid="Auswertung.32"/>
+                      <bt:Image size="80" resid="Auswertung.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Auswertung"/>
@@ -586,9 +598,9 @@
                       <Description resid="Neu.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Neu.16"/>
+                      <bt:Image size="32" resid="Neu.32"/>
+                      <bt:Image size="80" resid="Neu.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Neu"/>
@@ -602,9 +614,9 @@
                       <Description resid="Urlaub.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Urlaub.16"/>
+                      <bt:Image size="32" resid="Urlaub.32"/>
+                      <bt:Image size="80" resid="Urlaub.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Urlaub"/>
@@ -621,9 +633,9 @@
                       <Description resid="Auswertung.Tooltip"/>
                     </Supertip>
                     <Icon>
-                      <bt:Image size="16" resid="Icon.16"/>
-                      <bt:Image size="32" resid="Icon.32"/>
-                      <bt:Image size="80" resid="Icon.80"/>
+                      <bt:Image size="16" resid="Auswertung.16"/>
+                      <bt:Image size="32" resid="Auswertung.32"/>
+                      <bt:Image size="80" resid="Auswertung.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Auswertung"/>
@@ -642,6 +654,18 @@
           <bt:Image id="Icon.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-16.png"/>
           <bt:Image id="Icon.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-32.png"/>
           <bt:Image id="Icon.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/icon-80.png"/>
+          <bt:Image id="Termin.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/termin-16.png"/>
+          <bt:Image id="Termin.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/termin-32.png"/>
+          <bt:Image id="Termin.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/termin-80.png"/>
+          <bt:Image id="Neu.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/neu-16.png"/>
+          <bt:Image id="Neu.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/neu-32.png"/>
+          <bt:Image id="Neu.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/neu-80.png"/>
+          <bt:Image id="Urlaub.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/urlaub-16.png"/>
+          <bt:Image id="Urlaub.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/urlaub-32.png"/>
+          <bt:Image id="Urlaub.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/urlaub-80.png"/>
+          <bt:Image id="Auswertung.16" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/auswertung-16.png"/>
+          <bt:Image id="Auswertung.32" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/auswertung-32.png"/>
+          <bt:Image id="Auswertung.80" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/assets/auswertung-80.png"/>
         </bt:Images>
         <bt:Urls>
           <bt:Url id="Taskpane.Url" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html"/>
