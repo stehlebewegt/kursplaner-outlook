@@ -324,7 +324,7 @@ async function start() {
   konto ??= msalApp.getAllAccounts()[0];
   if (!konto) {
     $("anmelden-seite").hidden = false;
-    $("anmelden").onclick = () => msalApp.loginRedirect({ scopes: config.scopes });
+    $("anmelden").onclick = () => msalApp.loginRedirect({ scopes: config.scopes, prompt: "select_account" });
     return;
   }
   api.nutzeAnmeldung(token);
