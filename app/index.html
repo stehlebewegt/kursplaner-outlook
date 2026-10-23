@@ -38,7 +38,7 @@
     nav button:hover:not(:disabled):not(.an) { background: var(--hinter); border-color: var(--hinter); color: var(--dunkel); }
     nav button.an { background: var(--akzent); border-color: var(--akzent); color: #fff; }
     nav button.an .zahl { background: #fff; color: var(--akzent); }
-    section.ansicht { flex: 1; padding: 26px 32px; max-width: 940px; }
+    section.ansicht { flex: 1; min-width: 0; padding: 26px 32px; max-width: 980px; }
     h1 { font-size: 34px; color: var(--dunkel); margin: 0 0 4px; }
     .unter { color: var(--leise); margin-bottom: 18px; }
     .leise { color: var(--leise); font-size: 15px; }
@@ -101,6 +101,24 @@
     #leiste button:not(.zu):not(.knopf) { display: block; width: 100%; margin: 8px 0; }
     #leiste .reihe button { margin: 0; }
     #leiste .zu { position: absolute; right: 14px; top: 12px; width: auto; background: none; border: 0; color: var(--leise); font-size: 24px; padding: 4px 8px; }
+    /* Auswertungen */
+    .tabelle-rahmen { overflow-x: auto; background: #fff; border: 1px solid var(--linie); border-radius: var(--rund); box-shadow: var(--schatten); margin: 12px 0; }
+    .tabelle-rahmen table { margin: 0; font-size: 14px; }
+    .tabelle-rahmen th { font: 700 12px var(--knopf-schrift); color: var(--leise); text-transform: uppercase; letter-spacing: .04em; background: var(--flaeche); white-space: nowrap; }
+    .tabelle-rahmen td, .tabelle-rahmen th { padding: 8px 10px; }
+    .tabelle-rahmen td.z, .tabelle-rahmen th.z { text-align: right; white-space: nowrap; }
+    .tabelle-rahmen tr.summe td { font-weight: 700; background: var(--flaeche); }
+    .tabelle-rahmen td.null { color: #B8BFC1; }
+    .tabelle-rahmen tr.geplant td { color: var(--leise); }
+    .kacheln.fuenf { grid-template-columns: repeat(5, 1fr); margin: 14px 0; }
+    .grenze { height: 12px; border-radius: 6px; background: var(--flaeche); overflow: hidden; margin: 8px 0 4px; }
+    .grenze i { display: block; height: 100%; background: var(--akzent); border-radius: 6px; }
+    .grenze i.warn { background: #D9A33A; } .grenze i.ueber { background: #B8483F; }
+    .pl-punkt { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .pl-punkt .gross { font: 700 30px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); min-width: 40px; text-align: right; }
+    .pl-punkt .gross.ok { color: #3E8E6B; }
+    @media (max-width: 760px) { .kacheln.fuenf { grid-template-columns: repeat(2, 1fr); } }
+
     /* Kursdetails (Klick auf einen Kurs) */
     .kurs[data-details] { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
     .kurs[data-details]:hover { border-color: var(--akzent); box-shadow: 0 2px 12px rgba(31,82,82,.12); }
@@ -193,6 +211,10 @@
       <h3>Auswertungen</h3>
       <button data-ansicht="auswertung">📊 Monatsauswertung</button>
       <button data-ansicht="fahrten">🚗 Fahrten fürs Finanzamt</button>
+      <button data-ansicht="kursbericht">📈 Kursbericht</button>
+      <button data-ansicht="wieoft">🗓️ Wie oft wo</button>
+      <button data-ansicht="geld">💶 Geld</button>
+      <button data-ansicht="pruefliste">✅ Prüfliste <b id="pl-anzahl" class="zahl" hidden></b></button>
       <h3>Kursplaner</h3>
       <button data-ansicht="einstellungen">⚙️ Einstellungen</button>
       <button class="abmelden">↩️ Abmelden</button>
@@ -246,6 +268,43 @@
       <h1>Monatsauswertung</h1>
       <div class="unter">PDF für einen Anbieter, als Datei oder als E-Mail-Entwurf.</div>
       <div data-bereich="bereich-auswertung"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-kursbericht" hidden>
+      <h1>Kursbericht</h1>
+      <div class="unter">Anwesenheit und Ampel je Kurs, Themen und Material für einen Zeitraum.</div>
+      <div class="pillen" id="kb-schnell">
+        <button class="pille" data-zeitraum="monat">Dieser Monat</button><button class="pille" data-zeitraum="vormonat">Letzter Monat</button><button class="pille" data-zeitraum="jahr">Dieses Jahr</button>
+      </div>
+      <div class="drei">
+        <div><label for="kb-von">Von</label><input id="kb-von" type="date"></div>
+        <div><label for="kb-bis">Bis</label><input id="kb-bis" type="date"></div>
+        <div><label for="kb-anbieter">Anbieter</label><select id="kb-anbieter"></select></div>
+      </div>
+      <label class="haken-zeile"><input id="kb-eigene" type="checkbox"> Nur eigene Kurse (ohne Vertretungen und Hospitationen)</label>
+      <label class="haken-zeile"><input id="kb-besonders" type="checkbox"> Besonderheiten mit anzeigen (Namen und Gesundheitsangaben, nicht zum Weitergeben)</label>
+      <div class="reihe"><button id="kb-zeigen">Anzeigen</button><button id="kb-pdf" class="zweit">Als PDF speichern</button></div>
+      <div id="kb-ergebnis"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-wieoft" hidden>
+      <h1>Wie oft war ich wo?</h1>
+      <div class="unter">Kurse je Monat und Anbieter, aufgeteilt nach Art. Nur was schon vorbei ist. „gehalten“ = regulär, Vertretung und Hospitation.</div>
+      <div class="pillen" id="wo-jahre"></div>
+      <div id="wo-ergebnis" class="tabelle-rahmen"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-geld" hidden>
+      <h1>Geld</h1>
+      <div class="unter">Nur für dich: Betrag je Monat, Fahrtkosten und wie viel von der Grenze schon genutzt ist. Kommt nie in den Monatsbericht an die Anbieter.</div>
+      <div class="pillen" id="g-jahre"></div>
+      <div id="g-ergebnis"></div>
+    </section>
+
+    <section class="ansicht" id="ansicht-pruefliste" hidden>
+      <h1>Prüfliste</h1>
+      <div class="unter" id="pl-unter">Was fehlt oder nicht passt, dieses Jahr bis heute.</div>
+      <div id="pl-ergebnis"></div>
     </section>
 
     <section class="ansicht" id="ansicht-fahrten" hidden>

@@ -9,7 +9,11 @@ export const BETREFF = "Kursplaner-Einstellungen";
 
 // Diese Felder darf der Kursplaner überschreiben.
 export const ZAHLEN = ["vorbereitungMin", "nachbereitungMin", "pauseHeimfahrtMin", "maxLueckeAmStueckMin", "fahrzeitRundungMin", "erinnerungVorFahrtMin"];
-export const BEARBEITBAR = [...ZAHLEN, "anbieter", "material", "vorlagen", "monatsbericht"];
+export const BEARBEITBAR = [...ZAHLEN, "anbieter", "material", "vorlagen", "monatsbericht", "kmSatz", "ausbezahlt"];
+
+// Alle bearbeitbaren Werte, wie sie gerade gelten (zum Speichern: die Nachricht
+// wird immer ganz ersetzt, also nie nur einen Teil schicken).
+export const auszug = (e) => Object.fromEntries(BEARBEITBAR.filter((k) => e[k] !== undefined).map((k) => [k, e[k]]));
 
 export function mitEigenen(basis, eigene) {
   const e = { ...basis };
@@ -21,9 +25,15 @@ export function mitEigenen(basis, eigene) {
       fahrzeitMin: Number(a.fahrzeitMin) || 0,
       kategorien: Array.isArray(a.kategorien) ? a.kategorien : [],
       ortErkennung: Array.isArray(a.ortErkennung) ? a.ortErkennung : [],
+      // Geld (nur für Michael, steht deshalb nie im Code): Satz je Kurs, Grenzen.
+      satzJeKurs: Number(a.satzJeKurs) || 0,
+      grenzeJahr: Number(a.grenzeJahr) || 0,
+      grenzeMonat: Number(a.grenzeMonat) || 0,
     }));
   if (Array.isArray(eigene.material)) e.material = eigene.material.filter(Boolean);
   if (Array.isArray(eigene.vorlagen)) e.vorlagen = eigene.vorlagen.filter((v) => v && v.id && v.knopf);
+  if (Number.isFinite(eigene.kmSatz) && eigene.kmSatz >= 0) e.kmSatz = eigene.kmSatz;
+  if (eigene.ausbezahlt && typeof eigene.ausbezahlt === "object") e.ausbezahlt = { ...eigene.ausbezahlt };
   if (eigene.monatsbericht && typeof eigene.monatsbericht === "object") e.monatsbericht = { ...basis.monatsbericht, ...eigene.monatsbericht };
   return e;
 }

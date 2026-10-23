@@ -151,6 +151,10 @@ export const einstellungen = {
     },
   ],
   // Kürzel vor dem Titel. aktiv = Kurs findet statt (bekommt Fahrt und Puffer).
+  // Fahrtkosten je km (steuerliche Pauschale). Sätze je Kurs und Grenzen pflegt
+  // Michael im Kursplaner, sie stehen nur in seinem Postfach.
+  kmSatz: 0.3,
+  ausbezahlt: {},
   kuerzel: {
     "": { bedeutung: "regulär", aktiv: true },
     V: { bedeutung: "Vertretung", aktiv: true },

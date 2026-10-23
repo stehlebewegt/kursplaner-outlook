@@ -7,6 +7,8 @@ import { einstellungen } from "../src/einstellungen.js";
 import { kursAnbieter, leseKuerzel, ohneKuerzel, routenUrl } from "../src/planer.js";
 import { leseProtokoll } from "../src/protokoll.js";
 import { kursDetails } from "../src/kursdetails.js";
+import { kursbericht, wieOftWo, WIE_OFT_ARTEN, geld, pruefliste } from "../src/auswertungen.js";
+import { auszug } from "../src/eigeneEinstellungen.js";
 import { wendeAn } from "../src/eigeneEinstellungen.js";
 import { setzeKuerzel, verschiebeKurs } from "../src/aktionen.js";
 import { fahrtenJahr, fahrtenPdf, alleZiele } from "../src/fahrtenbuch.js";
@@ -99,6 +101,10 @@ const ANSICHTEN = {
   auswertung: () => {},
   fahrten: () => {},
   einstellungen: () => zeigeEinstellungen(),
+  kursbericht: () => richteKursberichtEin(),
+  wieoft: () => zeigeWieOft(),
+  geld: () => zeigeGeld(),
+  pruefliste: () => zeigePruefliste(),
 };
 let aktuell = "heute";
 function oeffne(name) {
@@ -552,6 +558,25 @@ function routen() {
   };
 }
 
+// Strecken (km) für alle Fahrten in "termine", einmal je Paar berechnet.
+// Liefert strecke(von, nach) für die Auswertungen; ohne Heimadresse ohne km.
+const streckenSpeicher = new Map();
+async function streckenFuer(termine, stand, hinweis = () => {}) {
+  const heim = await api.heimAdresse();
+  if (heim) {
+    hinweis("Strecken werden berechnet …");
+    const rechne = routen();
+    const ortVon = (k) => (k === "heim" ? heim : einstellungen.anbieter.find((a) => a.kuerzel === k)?.ort ?? (/^[A-Z]{2,4}$/.test(k) ? null : k));
+    for (const a of alleZiele(einstellungen))
+      for (const f of erstelleAuswertung(termine, a, stand, einstellungen).fahrten) {
+        const paar = `${f.von} ${f.nach}`;
+        if (streckenSpeicher.has(paar) || !ortVon(f.von) || !ortVon(f.nach)) continue;
+        streckenSpeicher.set(paar, await rechne(ortVon(f.von), ortVon(f.nach)).catch(() => null));
+      }
+  }
+  return { heim, strecke: (v, n) => streckenSpeicher.get(`${v} ${n}`) ?? null };
+}
+
 function richteFahrtenEin() {
   const jahr = Number(jetztLokal().slice(0, 4));
   $("fa-jahr").innerHTML = [jahr, jahr - 1, jahr - 2].map((j) => `<option>${j}</option>`).join("");
@@ -563,20 +588,8 @@ function richteFahrtenEin() {
       $("fa-hinweis").textContent = "Kalender wird gelesen …";
       const termine = await api.holeVerlauf(`${j}-01-01`, `${j}-12-31`);
       const stand = jetztLokal();
-      const heim = await api.heimAdresse();
-      const strecken = new Map();
-      if (heim) {
-        $("fa-hinweis").textContent = "Strecken werden berechnet …";
-        const strecke = routen();
-        const ortVon = (k) => (k === "heim" ? heim : einstellungen.anbieter.find((a) => a.kuerzel === k)?.ort ?? (/^[A-Z]{2,4}$/.test(k) ? null : k));
-        for (const a of alleZiele(einstellungen))
-          for (const f of erstelleAuswertung(termine, a, stand, einstellungen).fahrten) {
-            const paar = `${f.von} ${f.nach}`;
-            if (strecken.has(paar) || !ortVon(f.von) || !ortVon(f.nach)) continue;
-            strecken.set(paar, await strecke(ortVon(f.von), ortVon(f.nach)).catch(() => null));
-          }
-      }
-      const f = fahrtenJahr(termine, j, stand, einstellungen, (v, n) => strecken.get(`${v} ${n}`) ?? null);
+      const { heim, strecke } = await streckenFuer(termine, stand, (t) => ($("fa-hinweis").textContent = t));
+      const f = fahrtenJahr(termine, j, stand, einstellungen, strecke);
       fahrtenPdf(f, j, einstellungen, window.jspdf.jsPDF, stand).save(`Fahrten ${j}.pdf`);
       $("fa-hinweis").textContent =
         `${f.summe.fahrten} Fahrten an ${f.summe.tage} Tagen, ${String(f.summe.km).replace(".", ",")} km.` +
@@ -656,6 +669,7 @@ function anbieterKarte(a, i) {
     feld(`ea-kategorien-${i}`, "Kategorien der Kurse (mit Komma getrennt)", (a.kategorien || []).join(", ")) +
     feld(`ea-vertretung-${i}`, "Kategorie für Vertretungen", a.kategorieVertretung) +
     feld(`ea-erkennung-${i}`, "Woran der Ort erkannt wird (Wörter aus der Adresse, mit Komma)", (a.ortErkennung || []).join(", ")) +
+    `<div class="drei"><div>${feld(`ea-satz-${i}`, "Satz je Kurs (€)", a.satzJeKurs || "", "number")}</div><div>${feld(`ea-gjahr-${i}`, "Grenze im Jahr (€)", a.grenzeJahr || "", "number")}</div><div>${feld(`ea-gmonat-${i}`, "Grenze im Monat (€)", a.grenzeMonat || "", "number")}</div></div>` +
     `<label class="haken-zeile"><input id="ea-ferien-${i}" type="checkbox"${a.ferienFrei ? " checked" : ""}> In den Schulferien keine Kurse</label>` +
     `<label class="haken-zeile"><input id="ea-feiertag-${i}" type="checkbox"${a.feiertagFrei ? " checked" : ""}> An Feiertagen keine Kurse</label>` +
     `<button class="weg-knopf" data-weg-anbieter="${i}">Anbieter entfernen</button></div>`
@@ -730,7 +744,8 @@ function zeigeEinstellungen() {
         zeige(`<div class="karte fehler">Bei jedem Anbieter brauchen Kürzel, Name, Kalender und Adresse einen Eintrag.</div>`);
         return;
       }
-      await api.speichereEinstellungen(e);
+      // Immer alles speichern (auch „ausbezahlt“ aus der Geld-Ansicht).
+      await api.speichereEinstellungen({ ...auszug(einstellungen), ...e });
       wendeAn(einstellungen, e);
       zeige(`<div class="karte"><strong>Gespeichert</strong><div class="leise">Gilt ab sofort hier, im Add-in beim nächsten Öffnen und in der Automatik beim nächsten Lauf.</div></div>`);
     });
@@ -752,9 +767,303 @@ function uebernimmFormular() {
     kategorieVertretung: wert(`ea-vertretung-${i}`).trim(),
     ortErkennung: liste(wert(`ea-erkennung-${i}`)),
     ferienFrei: !!$(`ea-ferien-${i}`)?.checked,
+    satzJeKurs: Number(wert(`ea-satz-${i}`)) || 0,
+    grenzeJahr: Number(wert(`ea-gjahr-${i}`)) || 0,
+    grenzeMonat: Number(wert(`ea-gmonat-${i}`)) || 0,
     feiertagFrei: !!$(`ea-feiertag-${i}`)?.checked,
   }));
   e.material = wert("e-material").split("\n").map((x) => x.trim()).filter(Boolean);
   e.vorlagen = e.vorlagen.map((v, i) => ({ ...v, knopf: wert(`ev-knopf-${i}`).trim(), an: wert(`ev-an-${i}`), betreff: wert(`ev-betreff-${i}`), text: wert(`ev-text-${i}`) }));
   e.monatsbericht = { ...e.monatsbericht, tag: Number(wert("em-tag")) || e.monatsbericht.tag, betreff: wert("em-betreff"), text: wert("em-text"), textGruppe: wert("em-gruppe") };
+}
+
+// --- Auswertungen wie im Excel-Kursbuch: Kursbericht, Wie oft wo, Geld, Prüfliste ---
+const jahrCache = new Map(); // ein Jahr Kalender, 5 Minuten gemerkt
+async function ladeJahr(j) {
+  const c = jahrCache.get(j);
+  if (c && Date.now() - c.zeit < 300000) return c.termine;
+  const termine = await api.holeVerlauf(`${j}-01-01`, `${j}-12-31`);
+  jahrCache.set(j, { zeit: Date.now(), termine });
+  return termine;
+}
+const euro = (x) => x.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+const prozent = (x) => (x == null ? "–" : `${Math.round(x * 100)} %`);
+const zahlDe = (x, n = 1) => (x == null ? "–" : x.toLocaleString("de-DE", { maximumFractionDigits: n }));
+const datumDe = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
+const ampelPunkt = (a) => (a ? `<i class="ampel ${a}"></i>${a}` : "");
+function jahrPillen(ziel, gewaehlt, weiter) {
+  const j = Number(jetztLokal().slice(0, 4));
+  ziel.innerHTML = [j, j - 1].map((x) => `<button class="pille${x === gewaehlt ? " an" : ""}" data-jahr="${x}">${x}</button>`).join("");
+  ziel.querySelectorAll("[data-jahr]").forEach((b) => (b.onclick = () => weiter(Number(b.dataset.jahr))));
+}
+const ladeFehler = (ziel, e) => (ziel.innerHTML = `<div class="karte fehler">Konnte den Kalender nicht laden: ${html(e.message)}</div>`);
+
+// 1. Kursbericht
+let kbEingerichtet = false;
+function richteKursberichtEin() {
+  if (kbEingerichtet) return;
+  kbEingerichtet = true;
+  const heute = jetztLokal().slice(0, 10);
+  const setze = (art) => {
+    const j = heute.slice(0, 4);
+    const m = heute.slice(0, 7);
+    const vor = plusTage(`${m}-01`, -1);
+    const [v, b] = art === "jahr" ? [`${j}-01-01`, heute] : art === "vormonat" ? [`${vor.slice(0, 7)}-01`, vor] : [`${m}-01`, heute];
+    $("kb-von").value = v;
+    $("kb-bis").value = b;
+  };
+  setze("monat");
+  $("kb-anbieter").innerHTML =
+    `<option value="">Alle</option>` + alleZiele(einstellungen).map((a) => `<option value="${a.kuerzel}">${html(a.kuerzel)} · ${html(a.name)}</option>`).join("");
+  document.querySelectorAll("#kb-schnell [data-zeitraum]").forEach((b) => (b.onclick = () => (setze(b.dataset.zeitraum), zeigeKursbericht())));
+  $("kb-zeigen").onclick = () => zeigeKursbericht();
+  $("kb-pdf").onclick = () => mitWarten($("kb-pdf"), async () => kursberichtPdf(await rechneKursbericht()));
+  zeigeKursbericht();
+}
+async function rechneKursbericht() {
+  const von = $("kb-von").value;
+  const bis = $("kb-bis").value;
+  const termine = await api.holeVerlauf(von, bis);
+  const opt = { von, bis, anbieter: $("kb-anbieter").value, nurEigene: $("kb-eigene").checked, jetzt: jetztLokal() };
+  return { ...kursbericht(termine, opt, einstellungen), ...opt, besonders: $("kb-besonders").checked };
+}
+async function zeigeKursbericht() {
+  const ziel = $("kb-ergebnis");
+  ziel.innerHTML = `<div class="leise" style="margin-top:12px">Wird geladen …</div>`;
+  let k;
+  try {
+    k = await rechneKursbericht();
+  } catch (e) {
+    return ladeFehler(ziel, e);
+  }
+  const kachel = (w, t) => `<div class="kachel"><b>${w}</b><span>${t}</span></div>`;
+  ziel.innerHTML =
+    `<div class="kacheln fuenf">${kachel(k.mitProtokoll, "mit Protokoll")}${kachel(zahlDe(k.schnittAnwesend), "Ø anwesend")}` +
+    `${kachel(prozent(k.quote), "Anwesenheit")}${kachel(prozent(k.unentschuldigt), "unentschuldigt")}${kachel(k.ohneProtokoll, "ohne Protokoll")}</div>` +
+    (k.kurse.length
+      ? `<div class="tabelle-rahmen"><table><tr><th>Kurs</th><th>Tag</th><th class="z">Termine</th><th class="z">Ø Teiln.</th><th class="z">Ø anwesend</th><th class="z">Anwesenheit</th><th class="z">unentsch.</th><th>Ampel</th></tr>` +
+        k.kurse
+          .map(
+            (x) =>
+              `<tr><td>${html(x.name)}<br><span class="leise">${x.anbieter}</span></td><td>${x.tag} ${x.beginn}</td><td class="z">${x.termine}</td>` +
+              `<td class="z">${zahlDe(x.schnittGesamt, 0)}</td><td class="z">${zahlDe(x.schnittAnwesend)}</td><td class="z">${prozent(x.quote)}</td><td class="z">${prozent(x.unentschuldigt)}</td><td>${ampelPunkt(x.ampel)}</td></tr>`
+          )
+          .join("") +
+        `</table></div>`
+      : `<div class="leer" style="margin-top:12px">In diesem Zeitraum keine gehaltenen Kurse.</div>`) +
+    (k.themen.length ? `<div class="karte"><h2 style="font-size:20px;margin:0 0 8px">Themen</h2><div class="chips">${k.themen.map(([t, n]) => `<span class="chip rand">${html(t)} ${n}</span>`).join("")}</div></div>` : "") +
+    (k.material.length ? `<div class="karte"><h2 style="font-size:20px;margin:0 0 8px">Material</h2><div class="chips">${k.material.map(([t, n]) => `<span class="chip rand">${html(t)} ${n}</span>`).join("")}</div></div>` : "") +
+    (k.besonders && k.besonderheiten.length
+      ? `<div class="karte"><h2 style="font-size:20px;margin:0 0 8px">Besonderheiten</h2>${k.besonderheiten
+          .map((b) => `<div style="margin:8px 0"><b>${tagDe(b.datum)} ${html(b.kurs)}</b>${b.vorkommnis ? ` <span class="marke-klein">Vorkommnis</span>` : ""}<div>${html(b.text || "")}</div></div>`)
+          .join("")}</div>`
+      : k.besonderheiten.length
+        ? `<div class="leise">${k.besonderheiten.length} Besonderheiten notiert (zum Anzeigen oben ankreuzen).</div>`
+        : "");
+}
+function kursberichtPdf(k) {
+  const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+  let y = 18;
+  const zeile = (text, groesse = 10, fett = false) => {
+    if (y > 280) {
+      doc.addPage();
+      y = 18;
+    }
+    doc.setFont("helvetica", fett ? "bold" : "normal");
+    doc.setFontSize(groesse);
+    const teile = doc.splitTextToSize(text, 180);
+    doc.text(teile, 15, y);
+    y += teile.length * groesse * 0.45 + 1.5;
+  };
+  const anb = k.anbieter ? alleZiele(einstellungen).find((a) => a.kuerzel === k.anbieter)?.name : "alle Anbieter";
+  zeile("Kursbericht", 18, true);
+  zeile(`${datumDe(k.von)} bis ${datumDe(k.bis)} · ${anb}${k.nurEigene ? " · nur eigene Kurse" : ""} · Michael Stehle`, 10);
+  y += 3;
+  zeile(`Termine mit Protokoll: ${k.mitProtokoll}   Ø anwesend: ${zahlDe(k.schnittAnwesend)}   Anwesenheit: ${prozent(k.quote)}   unentschuldigt: ${prozent(k.unentschuldigt)}`, 10, true);
+  y += 3;
+  zeile("Anwesenheit je Kurs", 13, true);
+  for (const x of k.kurse)
+    zeile(`${x.anbieter} · ${x.name} · ${x.tag} ${x.beginn}:  ${x.termine} Termine, Ø ${zahlDe(x.schnittAnwesend)} von ${zahlDe(x.schnittGesamt, 0)} anwesend (${prozent(x.quote)}), unentschuldigt ${prozent(x.unentschuldigt)}${x.ampel ? `, ${x.ampel}` : ""}`);
+  y += 3;
+  if (k.themen.length) {
+    zeile("Themen", 13, true);
+    zeile(k.themen.map(([t, n]) => `${t} (${n})`).join(", "));
+  }
+  if (k.material.length) {
+    zeile("Material", 13, true);
+    zeile(k.material.map(([t, n]) => `${t} (${n})`).join(", "));
+  }
+  if (k.besonders && k.besonderheiten.length) {
+    y += 3;
+    zeile("Besonderheiten (vertraulich)", 13, true);
+    for (const b of k.besonderheiten) zeile(`${datumDe(b.datum)} ${b.kurs}${b.vorkommnis ? " (Vorkommnis)" : ""}: ${b.text || ""}`);
+  }
+  doc.save(`Kursbericht ${k.von} bis ${k.bis}${k.anbieter ? ` ${k.anbieter}` : ""}.pdf`);
+}
+
+// 2. Wie oft wo
+let woJahr;
+async function zeigeWieOft(j = (woJahr ??= Number(jetztLokal().slice(0, 4)))) {
+  woJahr = j;
+  jahrPillen($("wo-jahre"), j, zeigeWieOft);
+  const ziel = $("wo-ergebnis");
+  ziel.innerHTML = `<div class="leise" style="padding:14px">Wird geladen …</div>`;
+  let w;
+  try {
+    w = wieOftWo(await ladeJahr(j), j, jetztLokal(), einstellungen);
+  } catch (e) {
+    return ladeFehler(ziel, e);
+  }
+  const kurz = { Regulär: "regulär", Vertretung: "Vertr.", Hospitation: "Hosp.", Urlaub: "Urlaub", Abgesagt: "abges.", gehalten: "gehalten" };
+  const spalten = [...WIE_OFT_ARTEN, "gehalten"];
+  const zellen = (je) => w.anbieter.map((k) => spalten.map((a) => `<td class="z${je[k][a] ? "" : " null"}">${a === "gehalten" ? `<b>${je[k][a]}</b>` : je[k][a]}</td>`).join("")).join("");
+  ziel.innerHTML =
+    `<table><tr><th></th>${w.anbieter.map((k) => `<th colspan="${spalten.length}" style="text-align:center">${k}</th>`).join("")}<th></th></tr>` +
+    `<tr><th>Monat</th>${w.anbieter.map(() => spalten.map((a) => `<th class="z">${kurz[a]}</th>`).join("")).join("")}<th class="z">gesamt</th></tr>` +
+    w.monate.map((m) => `<tr><td>${m.name}</td>${zellen(m.je)}<td class="z"><b>${m.gehalten}</b></td></tr>`).join("") +
+    `<tr class="summe"><td>Summe</td>${zellen(w.summe.je)}<td class="z">${w.summe.gehalten}</td></tr></table>`;
+}
+
+// 3. Geld
+let gJahr;
+const kmCache = new Map();
+async function zeigeGeld(j = (gJahr ??= Number(jetztLokal().slice(0, 4)))) {
+  gJahr = j;
+  jahrPillen($("g-jahre"), j, zeigeGeld);
+  const ziel = $("g-ergebnis");
+  if (!einstellungen.anbieter.some((a) => a.satzJeKurs > 0)) return zeigeSaetzeEingeben(ziel);
+  ziel.innerHTML = `<div class="leise">Wird geladen …</div>`;
+  let termine;
+  try {
+    termine = await ladeJahr(j);
+  } catch (e) {
+    return ladeFehler(ziel, e);
+  }
+  const zeichne = (kmJe, kmText) => {
+    if (gJahr !== j || aktuell !== "geld") return;
+    const liste = geld(termine, j, jetztLokal(), einstellungen, kmJe);
+    ziel.innerHTML =
+      liste
+        .map((a) => {
+          const anteil = a.anteilJahr;
+          const balken = anteil == null ? "" : `<div class="grenze"><i class="${anteil > 1 ? "ueber" : anteil > 0.85 ? "warn" : ""}" style="width:${Math.min(100, anteil * 100)}%"></i></div>` +
+            `<div class="leise">${euro(a.summe.betrag)} von ${euro(a.grenzeJahr)} im Jahr (inkl. geplanter Kurse) · noch ${euro(Math.max(0, a.grenzeJahr - a.summe.betrag))}</div>`;
+          return (
+            `<div class="karte"><h2 style="font-size:22px;margin:0">${html(a.kuerzel)} · ${html(a.name)}</h2>` +
+            `<div class="leise">${euro(a.satz)} je Kurs${a.grenzeMonat ? ` · Monatsgrenze ${euro(a.grenzeMonat)}` : ""}</div>${balken}` +
+            `<div class="tabelle-rahmen"><table><tr><th>Monat</th><th class="z">Kurse</th><th class="z">Betrag</th><th class="z">km</th><th class="z">Fahrtkosten</th><th>ausbezahlt</th></tr>` +
+            a.monate
+              .filter((m) => m.kurse || m.km)
+              .map(
+                (m) =>
+                  `<tr${m.erbracht ? "" : ' class="geplant"'}><td>${m.name}</td><td class="z">${m.kurse}${m.geplant ? ` <span class="leise">(${m.geplant} geplant)</span>` : ""}</td>` +
+                  `<td class="z">${euro(m.betrag)}${m.ueberMonatsgrenze ? ` <span class="marke-klein">über Grenze</span>` : ""}</td><td class="z">${zahlDe(m.km, 0)}</td><td class="z">${m.fahrtkosten == null ? "–" : euro(m.fahrtkosten)}</td>` +
+                  `<td><label class="haken-zeile" style="margin:0"><input type="checkbox" data-ausbezahlt="${m.schluessel}"${m.ausbezahlt ? " checked" : ""}></label></td></tr>`
+              )
+              .join("") +
+            `<tr class="summe"><td>Summe</td><td class="z">${a.summe.kurse}</td><td class="z">${euro(a.summe.betrag)}</td><td class="z">${zahlDe(a.summe.km, 0)}</td><td class="z">${a.summe.fahrtkosten == null ? "–" : euro(a.summe.fahrtkosten)}</td><td>${euro(a.summe.ausbezahlt)}</td></tr>` +
+            `</table></div></div>`
+          );
+        })
+        .join("") +
+      `<div class="leise">${kmText} Sätze und Grenzen änderst du unter ⚙️ Einstellungen beim Anbieter.</div>`;
+    ziel.querySelectorAll("[data-ausbezahlt]").forEach(
+      (c) =>
+        (c.onchange = async () => {
+          const neu = { ...(einstellungen.ausbezahlt || {}) };
+          if (c.checked) neu[c.dataset.ausbezahlt] = true;
+          else delete neu[c.dataset.ausbezahlt];
+          c.disabled = true;
+          try {
+            await api.speichereEinstellungen({ ...auszug(einstellungen), ausbezahlt: neu });
+            einstellungen.ausbezahlt = neu;
+            zeichne(kmJe, kmText);
+          } catch (e) {
+            c.checked = !c.checked;
+            c.disabled = false;
+            zeige(`<div class="karte fehler">Nicht gespeichert: ${html(e.message)}</div>`);
+          }
+        })
+    );
+  };
+  const kmFertig = kmCache.get(j);
+  if (kmFertig) return zeichne(kmFertig.kmJe, kmFertig.text);
+  zeichne(() => null, "km werden berechnet …");
+  // km wie bei den Fahrten fürs Finanzamt, dann neu zeichnen.
+  try {
+    const stand = jetztLokal();
+    const { heim, strecke } = await streckenFuer(termine, stand);
+    const f = fahrtenJahr(termine, j, stand, einstellungen, strecke);
+    const kmJe = (k, monat) => {
+      const r = f.reihen.filter((x) => x.anbieter === k && Number(x.datum.slice(5, 7)) === monat);
+      return r.length ? r.reduce((s, x) => s + (x.km ?? 0), 0) : null;
+    };
+    const text = heim ? `km laut OpenStreetMap, Fahrtkosten mit ${euro(einstellungen.kmSatz)} je km.` : "Ohne km: im Signatur-Entwurf steht keine Adresse.";
+    kmCache.set(j, { kmJe, text });
+    zeichne(kmJe, text);
+  } catch {
+    zeichne(() => null, "km konnten nicht berechnet werden.");
+  }
+}
+function zeigeSaetzeEingeben(ziel) {
+  ziel.innerHTML =
+    `<div class="karte"><h2 style="font-size:22px;margin:0 0 4px">Sätze eintragen</h2>` +
+    `<div class="leise">Einmal eintragen, dann rechnet der Kursplaner selbst. Die Werte liegen nur in deinem Postfach.</div>` +
+    einstellungen.anbieter
+      .map(
+        (a, i) =>
+          `<h3 style="margin:16px 0 0">${html(a.kuerzel)} · ${html(a.name)}</h3><div class="drei">` +
+          `<div><label for="gs-satz-${i}">Satz je Kurs (€)</label><input id="gs-satz-${i}" type="number" step="0.5" min="0"></div>` +
+          `<div><label for="gs-jahr-${i}">Grenze im Jahr (€)</label><input id="gs-jahr-${i}" type="number" step="50" min="0" placeholder="z. B. Übungsleiterpauschale"></div>` +
+          `<div><label for="gs-monat-${i}">Grenze im Monat (€)</label><input id="gs-monat-${i}" type="number" step="10" min="0" placeholder="z. B. Minijob"></div></div>`
+      )
+      .join("") +
+    `<label for="gs-km">Fahrtkosten je km (€)</label><input id="gs-km" type="number" step="0.01" min="0" value="${einstellungen.kmSatz}">` +
+    `<button id="gs-speichern">Speichern</button></div>`;
+  $("gs-speichern").onclick = () =>
+    mitWarten($("gs-speichern"), async () => {
+      const anbieter = einstellungen.anbieter.map((a, i) => ({
+        ...a,
+        satzJeKurs: Number($(`gs-satz-${i}`).value) || 0,
+        grenzeJahr: Number($(`gs-jahr-${i}`).value) || 0,
+        grenzeMonat: Number($(`gs-monat-${i}`).value) || 0,
+      }));
+      const neu = { ...auszug(einstellungen), anbieter, kmSatz: Number($("gs-km").value) || 0 };
+      await api.speichereEinstellungen(neu);
+      wendeAn(einstellungen, neu);
+      entwurf = undefined;
+      zeigeGeld();
+    });
+}
+
+// 4. Prüfliste
+async function zeigePruefliste() {
+  const ziel = $("pl-ergebnis");
+  ziel.innerHTML = `<div class="leise">Wird geladen …</div>`;
+  const j = Number(jetztLokal().slice(0, 4));
+  let p;
+  try {
+    p = pruefliste(await ladeJahr(j), j, jetztLokal(), einstellungen);
+  } catch (e) {
+    return ladeFehler(ziel, e);
+  }
+  // Grenzen aus „Geld“, wenn Sätze eingetragen sind.
+  const knapp = geld(await ladeJahr(j), j, jetztLokal(), einstellungen).filter((a) => a.anteilJahr != null && a.anteilJahr > 0.85);
+  const offen = p.punkte.reduce((s, x) => s + x.termine.length, 0) + knapp.length;
+  $("pl-anzahl").textContent = offen ? String(offen) : "";
+  $("pl-anzahl").hidden = !offen;
+  $("pl-unter").textContent = `Was fehlt oder nicht passt, ${j} bis heute.` + (p.protokollAb ? ` Protokolle zählen ab ${datumDe(p.protokollAb)} (dein erstes Protokoll).` : "");
+  ziel.innerHTML =
+    p.punkte
+      .map(
+        (x, i) =>
+          `<div class="karte"><div class="pl-punkt"><div><b>${x.titel}</b><div class="leise">${x.termine.length ? x.tun : "Alles in Ordnung."}</div></div>` +
+          `<div class="gross${x.termine.length ? "" : " ok"}">${x.termine.length || "✓"}</div></div><div id="pl-liste-${i}"></div></div>`
+      )
+      .join("") +
+    knapp.map((a) => `<div class="karte"><div class="pl-punkt"><div><b>${html(a.kuerzel)}: Grenze fast erreicht</b><div class="leise">${euro(a.summe.betrag)} von ${euro(a.grenzeJahr)} (${prozent(a.anteilJahr)}) inkl. geplanter Kurse.</div></div><div class="gross">!</div></div></div>`).join("") +
+    (offen ? "" : `<div class="leer">Alles grün. 👍</div>`);
+  p.punkte.forEach((x, i) => {
+    if (x.termine.length) zeigeKurse([...x.termine].sort((a, b) => (a.start < b.start ? 1 : -1)), $(`pl-liste-${i}`), () => ((jahrCache.clear(), zeigePruefliste())), { knoepfe: ["protokoll"] });
+  });
 }
