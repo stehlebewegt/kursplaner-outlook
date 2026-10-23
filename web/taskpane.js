@@ -306,7 +306,7 @@ function richteAuswertungEin() {
       $("a-ergebnis").innerHTML =
         `<div style="margin-top:8px"><strong>${html(zeitraum.name)} · ${html(anbieter.kuerzel)}</strong></div>` +
         `<div>Geleistet: ${s.geleistet} (davon ${s.davonVertretung} Vertretung) · Geplant: ${s.geplant} · Ferien: ${s.ferien}</div>` +
-        `<div>Fahrten: ${s.fahrten} (${Math.round(s.fahrtStunden * 100) / 100} Std.)</div>` +
+        `<div>Fahrten: ${s.fahrten}${s.fahrtKm != null ? `, ${String(s.fahrtKm).replace(".", ",")} km` : ""}</div>` +
         `<table><tr><th>Tag</th><th>Kurs</th><th>Status</th></tr>` +
         a.zeilen
           .map((z) => `<tr><td>${tag(z.datum)}</td><td>${html(z.kurs)}${z.art === "Vertretung" ? " (V)" : ""}</td><td>${z.status}</td></tr>`)
