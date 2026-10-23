@@ -68,6 +68,7 @@ nutzeHost({
   terminText: (t) => Promise.resolve(t.text || ""),
   istSerie: () => Promise.resolve(false), // hier immer ein einzelner Termin
   schreibeInsFenster: () => Promise.resolve(false),
+  nachProtokoll: () => schliesseLeiste(),
 });
 
 // Ergebnis-Meldungen unten rechts: Klick oder nach einer Weile weg.
@@ -150,7 +151,7 @@ function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokol
         `<div class="zeit">${t.start.slice(11)}–${t.ende.slice(11)}</div>` +
         `<div class="was">${html(b.name)}${KUERZEL[b.k] ? `<span class="marke-klein">${KUERZEL[b.k]}</span>` : ""}<small>${html(b.wo)}</small></div>` +
         `<div class="knoepfe">` +
-        (knoepfe.includes("protokoll") ? `<button class="knopf" data-protokoll="${i}">Protokoll</button>` : "") +
+        (knoepfe.includes("protokoll") && brauchtProtokoll(t) ? `<button class="knopf" data-protokoll="${i}">Protokoll</button>` : "") +
         (knoepfe.includes("mail") ? `<button class="knopf" data-mail="${i}">E-Mail</button>` : "") +
         (knoepfe.includes("verschieben") && !b.faelltAus ? `<button class="knopf" data-verschieben="${i}">Verschieben</button>` : "") +
         (!knoepfe.includes("kuerzel")
@@ -242,6 +243,11 @@ async function zeigeHeute() {
 }
 
 // --- Offene Protokolle: vergangene Kurse (60 Tage), die stattfanden, ohne Protokoll ---
+// Nur selbst gehaltene Kurse (regulär, Vertretung); Urlaub, Ferien, Absage, Hospitation nicht.
+const brauchtProtokoll = (t) => {
+  const b = beschreibe(t);
+  return !b.faelltAus && b.k !== "H";
+};
 const ohneProtokoll = (t) => {
   const p = leseProtokoll(t.text || "");
   return p.anwesend === "" && !p.thema;
@@ -251,7 +257,7 @@ async function ladeOffeneProtokolle() {
   const jetzt = jetztLokal();
   const termine = await api.holeVerlauf(plusTage(heute, -60), heute);
   return termine
-    .filter((t) => istKurs(t) && t.ende <= jetzt && !beschreibe(t).faelltAus && ohneProtokoll(t))
+    .filter((t) => istKurs(t) && t.ende <= jetzt && brauchtProtokoll(t) && ohneProtokoll(t))
     .sort((a, b) => (a.start < b.start ? 1 : -1));
 }
 function zeigeAnzahl(n) {
@@ -483,11 +489,12 @@ async function richteVerschiebenEin(t) {
       ANSICHTEN[aktuell]();
     });
 }
-$("leiste-zu").onclick = () => {
+function schliesseLeiste() {
   $("leiste").hidden = true;
   ANSICHTEN[aktuell]();
   if (aktuell !== "protokolle") ladeOffeneProtokolle().then((o) => zeigeAnzahl(o.length)).catch(() => {});
-};
+}
+$("leiste-zu").onclick = schliesseLeiste;
 
 // --- Vertretung übernehmen ---
 async function zeigeVertretungen() {

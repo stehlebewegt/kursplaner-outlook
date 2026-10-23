@@ -143,6 +143,7 @@ export async function zeigeProtokoll() {
       } else {
         await api.aendere(zustand.termin.id, { body: { contentType: "text", content: text } });
         zeige(`<div class="karte"><strong>Protokoll gespeichert</strong></div>`);
+        host.nachProtokoll?.(); // App: Seitenleiste zu, Liste neu
       }
     });
 }
