@@ -8,42 +8,54 @@
   <script src="web/vendor/msal-browser.min.js"></script>
   <script src="web/vendor/jspdf.umd.min.js"></script>
   <style>
-    :root { --gruen: #0f6e56; --text: #1f1f1f; --leise: #616161; --rand: #e0e0e0; --hinter: #ffffff; --rot: #b3261e; }
+    @font-face { font-family: "Barlow Semi Condensed"; src: url(app/schriften/barlow-semi-condensed-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+    @font-face { font-family: "Source Sans 3"; src: url(app/schriften/source-sans-3-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Source Sans 3"; src: url(app/schriften/source-sans-3-latin-600-normal.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+    @font-face { font-family: "Atkinson Hyperlegible"; src: url(app/schriften/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+    /* Gleiches Design wie das Kursplaner-Fenster (app/) und das Rehasport-Cockpit. */
+    :root { --gruen: #33474B; --dunkel: #26363A; --band: #33474B; --text: #2F3434; --leise: #5D6566; --rand: #DCE1E2; --flaeche: #EEF0F1; --hinter: #ffffff;
+            --rot: #A3302A; --warm: #C4A870; --knopf: "Atkinson Hyperlegible", "Segoe UI", sans-serif; }
     @media (prefers-color-scheme: dark) {
-      :root { --text: #f0f0f0; --leise: #b0b0b0; --rand: #3a3a3a; --hinter: #1f1f1f; --rot: #f2b8b5; }
+      :root { --gruen: #9FB8BD; --dunkel: #C9D8DB; --text: #EEF0F1; --leise: #B4BCBE; --rand: #3A4A4E; --flaeche: #1B2426; --hinter: #243033; --rot: #F2B8B5; }
     }
-    body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--text); background: var(--hinter); margin: 0; padding: 12px; font-size: 14px; }
-    h1 { font-size: 16px; margin: 0 0 4px; }
-    .leise { color: var(--leise); font-size: 12px; }
-    .karte { border: 1px solid var(--rand); border-radius: 8px; padding: 10px; margin: 12px 0; }
+    * { box-sizing: border-box; }
+    body { font: 15px/1.45 "Source Sans 3", "Segoe UI", system-ui, sans-serif; color: var(--text); background: var(--flaeche); margin: 0; padding: 14px 12px; border-top: 5px solid var(--band); }
+    h1 { font: 700 22px/1.15 "Barlow Semi Condensed", "Segoe UI", sans-serif; color: var(--dunkel); margin: 0 0 4px; }
+    .leise { color: var(--leise); font-size: 13px; }
+    .karte { background: var(--hinter); border: 1px solid var(--rand); border-radius: 14px; padding: 12px 14px; margin: 12px 0; box-shadow: 0 1px 2px rgba(31,82,82,.06); }
     [hidden] { display: none !important; }
-    button { display: block; width: 100%; margin: 6px 0; padding: 8px; border-radius: 6px; border: 1px solid var(--gruen);
-             background: var(--gruen); color: #fff; font-size: 14px; cursor: pointer; }
+    button { display: block; width: 100%; margin: 8px 0; padding: 9px 16px; border-radius: 999px; border: 2px solid var(--gruen);
+             background: var(--gruen); color: #fff; font: 700 14px/1.3 var(--knopf); cursor: pointer; transition: background .15s, border-color .15s; }
+    button:hover:not(:disabled) { background: var(--dunkel); border-color: var(--dunkel); color: #fff; }
+    button:focus-visible { outline: 3px solid var(--warm); outline-offset: 2px; }
     button.zweit { background: transparent; color: var(--gruen); }
-    @media (prefers-color-scheme: dark) { button.zweit { color: #7fd3b8; border-color: #7fd3b8; } }
+    @media (prefers-color-scheme: dark) { button { color: #1B2426; } button:hover:not(:disabled) { color: #1B2426; } button.zweit { color: var(--gruen); } }
     button:disabled { opacity: .5; cursor: default; }
-    .reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     ul { padding-left: 18px; margin: 6px 0; }
     li { margin: 2px 0; }
     .fehler { color: var(--rot); }
-    label { display: block; font-size: 12px; color: var(--leise); margin: 8px 0 2px; }
-    input, select, textarea { width: 100%; box-sizing: border-box; padding: 6px; font: inherit; color: var(--text);
-             background: var(--hinter); border: 1px solid var(--rand); border-radius: 6px; }
-    .haken { max-height: 140px; overflow-y: auto; border: 1px solid var(--rand); border-radius: 6px; padding: 4px 6px; }
-    .haken label, .haken-zeile { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text); margin: 4px 0; }
-    .haken input, .haken-zeile input { width: auto; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin: 10px 0 3px; }
+    input, select, textarea { width: 100%; min-height: 38px; padding: 7px 10px; font: inherit; color: var(--text);
+             background: var(--hinter); border: 1px solid var(--rand); border-radius: 10px; }
+    textarea { min-height: 0; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--gruen); box-shadow: 0 0 0 3px rgba(51,71,75,.15); }
+    .haken { max-height: 160px; overflow-y: auto; border: 1px solid var(--rand); border-radius: 10px; padding: 4px 8px; background: var(--hinter); }
+    .haken label, .haken-zeile { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 400; color: var(--text); margin: 5px 0; }
+    .haken input, .haken-zeile input { width: auto; min-height: 0; accent-color: var(--gruen); }
     .reihe button { margin: 0; }
     #p-letzte div { margin: 2px 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
-    td, th { text-align: left; padding: 2px 4px; border-bottom: 1px solid var(--rand); }
-    .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+    td, th { text-align: left; padding: 3px 5px; border-bottom: 1px solid var(--rand); }
+    .drei { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .drei button { margin: 0; }
     details.karte { padding: 0; }
-    details.karte > summary { list-style: none; cursor: pointer; padding: 10px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    details.karte > summary { list-style: none; cursor: pointer; padding: 12px 14px; font: 700 17px/1.2 "Barlow Semi Condensed", "Segoe UI", sans-serif; color: var(--dunkel); display: flex; justify-content: space-between; align-items: center; }
     details.karte > summary::-webkit-details-marker { display: none; }
     details.karte > summary::after { content: "▸"; color: var(--leise); }
     details.karte[open] > summary::after { content: "▾"; }
-    details.karte > .inhalt { padding: 0 10px 10px; }
+    details.karte[open] > summary { border-bottom: 1px solid var(--rand); margin-bottom: 4px; }
+    details.karte > .inhalt { padding: 4px 14px 14px; }
     .neu::before { content: "+ "; color: var(--gruen); font-weight: 600; }
     .weg::before { content: "− "; color: var(--rot); font-weight: 600; }
   </style>
