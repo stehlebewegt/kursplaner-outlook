@@ -74,12 +74,30 @@ function richteKlappenEin() {
   });
 }
 
+const NUR_BEREICH = {
+  auswertung: { titel: "Monatsauswertung", id: "bereich-auswertung", einrichten: () => richteAuswertungEin() },
+  neu: { titel: "Neuer Kurs", id: "bereich-neu", einrichten: () => richteNeuerKursEin() },
+  urlaub: { titel: "Urlaub", id: "bereich-urlaub", einrichten: () => richteUrlaubEin() },
+};
+
 async function start() {
   if (config.clientId.startsWith("HIER")) {
     $("info").textContent = "Noch nicht eingerichtet: Die App-Registrierung fehlt in web/config.js.";
     return;
   }
   richteKlappenEin();
+  // Eigener Knopf im Reiter „Kursplaner“: nur dieser eine Bereich, egal was
+  // gerade ausgewählt ist (auch aus einer neuen E-Mail heraus).
+  const nur = NUR_BEREICH[new URLSearchParams(location.search).get("bereich")];
+  if (nur) {
+    $("titel").textContent = nur.titel;
+    $("info").textContent = "";
+    nur.einrichten();
+    const d = $(nur.id);
+    d.hidden = false;
+    d.open = true;
+    return;
+  }
   const item = Office.context.mailbox.item;
   // Ohne Termin (z. B. aus einer E-Mail geöffnet): nur die Monatsauswertung.
   if (item?.itemType !== Office.MailboxEnums.ItemType.Appointment) {

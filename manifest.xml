@@ -5,7 +5,7 @@
            xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
            xsi:type="MailApp">
   <Id>ddd0f0fb-1acd-40f0-8585-5d45455f2e6d</Id>
-  <Version>0.4.1.0</Version>
+  <Version>0.5.0.0</Version>
   <ProviderName>Michael Stehle</ProviderName>
   <DefaultLocale>de-DE</DefaultLocale>
   <DisplayName DefaultValue="Kursplaner"/>
@@ -51,14 +51,14 @@
         <DesktopFormFactor>
           <!-- Termine, die Michael selbst angelegt hat (auch die in den Anbieter-Kalendern) -->
           <ExtensionPoint xsi:type="AppointmentOrganizerCommandSurface">
-            <OfficeTab id="TabDefault">
-              <Group id="kursplaner.gruppe.organizer">
-                <Label resid="Gruppe.Label"/>
-                <Control xsi:type="Button" id="kursplaner.oeffnen.organizer">
-                  <Label resid="Button.Label"/>
+            <CustomTab id="kursplaner.tab.organizer">
+              <Group id="kursplaner.kurs.organizer">
+                <Label resid="GruppeKurs.Label"/>
+                <Control xsi:type="Button" id="kursplaner.kurs.organizer">
+                  <Label resid="Kurs.Label"/>
                   <Supertip>
-                    <Title resid="Button.Label"/>
-                    <Description resid="Button.Tooltip"/>
+                    <Title resid="Kurs.Label"/>
+                    <Description resid="Kurs.Tooltip"/>
                   </Supertip>
                   <Icon>
                     <bt:Image size="16" resid="Icon.16"/>
@@ -70,17 +70,69 @@
                   </Action>
                 </Control>
               </Group>
-            </OfficeTab>
+              <Group id="kursplaner.planen.organizer">
+                <Label resid="GruppePlanen.Label"/>
+                <Control xsi:type="Button" id="kursplaner.neu.organizer">
+                  <Label resid="Neu.Label"/>
+                  <Supertip>
+                    <Title resid="Neu.Label"/>
+                    <Description resid="Neu.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Neu"/>
+                  </Action>
+                </Control>
+                <Control xsi:type="Button" id="kursplaner.urlaub.organizer">
+                  <Label resid="Urlaub.Label"/>
+                  <Supertip>
+                    <Title resid="Urlaub.Label"/>
+                    <Description resid="Urlaub.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Urlaub"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Group id="kursplaner.auswertung.organizer">
+                <Label resid="GruppeAuswertung.Label"/>
+                <Control xsi:type="Button" id="kursplaner.auswertung.organizer">
+                  <Label resid="Auswertung.Label"/>
+                  <Supertip>
+                    <Title resid="Auswertung.Label"/>
+                    <Description resid="Auswertung.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Auswertung"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Label resid="Tab.Label"/>
+            </CustomTab>
           </ExtensionPoint>
           <ExtensionPoint xsi:type="AppointmentAttendeeCommandSurface">
-            <OfficeTab id="TabDefault">
-              <Group id="kursplaner.gruppe.attendee">
-                <Label resid="Gruppe.Label"/>
-                <Control xsi:type="Button" id="kursplaner.oeffnen.attendee">
-                  <Label resid="Button.Label"/>
+            <CustomTab id="kursplaner.tab.attendee">
+              <Group id="kursplaner.kurs.attendee">
+                <Label resid="GruppeKurs.Label"/>
+                <Control xsi:type="Button" id="kursplaner.kurs.attendee">
+                  <Label resid="Kurs.Label"/>
                   <Supertip>
-                    <Title resid="Button.Label"/>
-                    <Description resid="Button.Tooltip"/>
+                    <Title resid="Kurs.Label"/>
+                    <Description resid="Kurs.Tooltip"/>
                   </Supertip>
                   <Icon>
                     <bt:Image size="16" resid="Icon.16"/>
@@ -92,18 +144,70 @@
                   </Action>
                 </Control>
               </Group>
-            </OfficeTab>
+              <Group id="kursplaner.planen.attendee">
+                <Label resid="GruppePlanen.Label"/>
+                <Control xsi:type="Button" id="kursplaner.neu.attendee">
+                  <Label resid="Neu.Label"/>
+                  <Supertip>
+                    <Title resid="Neu.Label"/>
+                    <Description resid="Neu.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Neu"/>
+                  </Action>
+                </Control>
+                <Control xsi:type="Button" id="kursplaner.urlaub.attendee">
+                  <Label resid="Urlaub.Label"/>
+                  <Supertip>
+                    <Title resid="Urlaub.Label"/>
+                    <Description resid="Urlaub.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Urlaub"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Group id="kursplaner.auswertung.attendee">
+                <Label resid="GruppeAuswertung.Label"/>
+                <Control xsi:type="Button" id="kursplaner.auswertung.attendee">
+                  <Label resid="Auswertung.Label"/>
+                  <Supertip>
+                    <Title resid="Auswertung.Label"/>
+                    <Description resid="Auswertung.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Auswertung"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Label resid="Tab.Label"/>
+            </CustomTab>
           </ExtensionPoint>
           <!-- In einer E-Mail: Monatsauswertung ohne Termin -->
           <ExtensionPoint xsi:type="MessageReadCommandSurface">
-            <OfficeTab id="TabDefault">
-              <Group id="kursplaner.gruppe.mail">
-                <Label resid="Gruppe.Label"/>
-                <Control xsi:type="Button" id="kursplaner.oeffnen.mail">
-                  <Label resid="Button.Label"/>
+            <CustomTab id="kursplaner.tab.mail">
+              <Group id="kursplaner.planen.mail">
+                <Label resid="GruppePlanen.Label"/>
+                <Control xsi:type="Button" id="kursplaner.neu.mail">
+                  <Label resid="Neu.Label"/>
                   <Supertip>
-                    <Title resid="Button.Label"/>
-                    <Description resid="Button.Tooltip"/>
+                    <Title resid="Neu.Label"/>
+                    <Description resid="Neu.Tooltip"/>
                   </Supertip>
                   <Icon>
                     <bt:Image size="16" resid="Icon.16"/>
@@ -111,11 +215,102 @@
                     <bt:Image size="80" resid="Icon.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <SourceLocation resid="Taskpane.Url"/>
+                    <SourceLocation resid="Taskpane.Neu"/>
+                  </Action>
+                </Control>
+                <Control xsi:type="Button" id="kursplaner.urlaub.mail">
+                  <Label resid="Urlaub.Label"/>
+                  <Supertip>
+                    <Title resid="Urlaub.Label"/>
+                    <Description resid="Urlaub.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Urlaub"/>
                   </Action>
                 </Control>
               </Group>
-            </OfficeTab>
+              <Group id="kursplaner.auswertung.mail">
+                <Label resid="GruppeAuswertung.Label"/>
+                <Control xsi:type="Button" id="kursplaner.auswertung.mail">
+                  <Label resid="Auswertung.Label"/>
+                  <Supertip>
+                    <Title resid="Auswertung.Label"/>
+                    <Description resid="Auswertung.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Auswertung"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Label resid="Tab.Label"/>
+            </CustomTab>
+          </ExtensionPoint>
+          <!-- Neue E-Mail: so ist der Kursplaner von überall erreichbar (Neue E-Mail öffnen) -->
+          <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+            <CustomTab id="kursplaner.tab.neuemail">
+              <Group id="kursplaner.planen.neuemail">
+                <Label resid="GruppePlanen.Label"/>
+                <Control xsi:type="Button" id="kursplaner.neu.neuemail">
+                  <Label resid="Neu.Label"/>
+                  <Supertip>
+                    <Title resid="Neu.Label"/>
+                    <Description resid="Neu.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Neu"/>
+                  </Action>
+                </Control>
+                <Control xsi:type="Button" id="kursplaner.urlaub.neuemail">
+                  <Label resid="Urlaub.Label"/>
+                  <Supertip>
+                    <Title resid="Urlaub.Label"/>
+                    <Description resid="Urlaub.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Urlaub"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Group id="kursplaner.auswertung.neuemail">
+                <Label resid="GruppeAuswertung.Label"/>
+                <Control xsi:type="Button" id="kursplaner.auswertung.neuemail">
+                  <Label resid="Auswertung.Label"/>
+                  <Supertip>
+                    <Title resid="Auswertung.Label"/>
+                    <Description resid="Auswertung.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Auswertung"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Label resid="Tab.Label"/>
+            </CustomTab>
           </ExtensionPoint>
         </DesktopFormFactor>
       </Host>
@@ -128,13 +323,25 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Taskpane.Url" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html"/>
+        <bt:Url id="Taskpane.Auswertung" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html?bereich=auswertung"/>
+        <bt:Url id="Taskpane.Neu" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html?bereich=neu"/>
+        <bt:Url id="Taskpane.Urlaub" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html?bereich=urlaub"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="Gruppe.Label" DefaultValue="Kursplaner"/>
-        <bt:String id="Button.Label" DefaultValue="Kursplaner"/>
+        <bt:String id="Tab.Label" DefaultValue="Kursplaner"/>
+        <bt:String id="GruppeKurs.Label" DefaultValue="Kurs"/>
+        <bt:String id="GruppePlanen.Label" DefaultValue="Planen"/>
+        <bt:String id="GruppeAuswertung.Label" DefaultValue="Auswertungen"/>
+        <bt:String id="Kurs.Label" DefaultValue="Dieser Termin"/>
+        <bt:String id="Auswertung.Label" DefaultValue="Monatsauswertung"/>
+        <bt:String id="Neu.Label" DefaultValue="Neuer Kurs"/>
+        <bt:String id="Urlaub.Label" DefaultValue="Urlaub"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="Button.Tooltip" DefaultValue="Kurs übernehmen, Protokoll, Tag neu planen oder Monatsauswertung."/>
+        <bt:String id="Kurs.Tooltip" DefaultValue="Zum gewählten Termin: übernehmen, Protokoll, Fahrzeit, Tag neu planen, E-Mail."/>
+        <bt:String id="Auswertung.Tooltip" DefaultValue="Monatsauswertung für einen Anbieter und Monat."/>
+        <bt:String id="Neu.Tooltip" DefaultValue="Neuen Kurs anlegen, im Anbieter- oder eigenen Kalender."/>
+        <bt:String id="Urlaub.Tooltip" DefaultValue="Urlaub oder Absagen für mehrere Tage eintragen."/>
       </bt:LongStrings>
     </Resources>
   
@@ -152,14 +359,14 @@
             <SupportsSharedFolders>true</SupportsSharedFolders>
             <!-- Termine, die Michael selbst angelegt hat (auch die in den Anbieter-Kalendern) -->
             <ExtensionPoint xsi:type="AppointmentOrganizerCommandSurface">
-              <OfficeTab id="TabDefault">
-                <Group id="kursplaner.gruppe.organizer">
-                  <Label resid="Gruppe.Label"/>
-                  <Control xsi:type="Button" id="kursplaner.oeffnen.organizer">
-                    <Label resid="Button.Label"/>
+              <CustomTab id="kursplaner.tab.organizer">
+                <Group id="kursplaner.kurs.organizer">
+                  <Label resid="GruppeKurs.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.kurs.organizer">
+                    <Label resid="Kurs.Label"/>
                     <Supertip>
-                      <Title resid="Button.Label"/>
-                      <Description resid="Button.Tooltip"/>
+                      <Title resid="Kurs.Label"/>
+                      <Description resid="Kurs.Tooltip"/>
                     </Supertip>
                     <Icon>
                       <bt:Image size="16" resid="Icon.16"/>
@@ -172,17 +379,72 @@
                     </Action>
                   </Control>
                 </Group>
-              </OfficeTab>
+                <Group id="kursplaner.planen.organizer">
+                  <Label resid="GruppePlanen.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.neu.organizer">
+                    <Label resid="Neu.Label"/>
+                    <Supertip>
+                      <Title resid="Neu.Label"/>
+                      <Description resid="Neu.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Neu"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                  <Control xsi:type="Button" id="kursplaner.urlaub.organizer">
+                    <Label resid="Urlaub.Label"/>
+                    <Supertip>
+                      <Title resid="Urlaub.Label"/>
+                      <Description resid="Urlaub.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Urlaub"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+                <Group id="kursplaner.auswertung.organizer">
+                  <Label resid="GruppeAuswertung.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.auswertung.organizer">
+                    <Label resid="Auswertung.Label"/>
+                    <Supertip>
+                      <Title resid="Auswertung.Label"/>
+                      <Description resid="Auswertung.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Auswertung"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+                <Label resid="Tab.Label"/>
+              </CustomTab>
             </ExtensionPoint>
             <ExtensionPoint xsi:type="AppointmentAttendeeCommandSurface">
-              <OfficeTab id="TabDefault">
-                <Group id="kursplaner.gruppe.attendee">
-                  <Label resid="Gruppe.Label"/>
-                  <Control xsi:type="Button" id="kursplaner.oeffnen.attendee">
-                    <Label resid="Button.Label"/>
+              <CustomTab id="kursplaner.tab.attendee">
+                <Group id="kursplaner.kurs.attendee">
+                  <Label resid="GruppeKurs.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.kurs.attendee">
+                    <Label resid="Kurs.Label"/>
                     <Supertip>
-                      <Title resid="Button.Label"/>
-                      <Description resid="Button.Tooltip"/>
+                      <Title resid="Kurs.Label"/>
+                      <Description resid="Kurs.Tooltip"/>
                     </Supertip>
                     <Icon>
                       <bt:Image size="16" resid="Icon.16"/>
@@ -195,18 +457,73 @@
                     </Action>
                   </Control>
                 </Group>
-              </OfficeTab>
+                <Group id="kursplaner.planen.attendee">
+                  <Label resid="GruppePlanen.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.neu.attendee">
+                    <Label resid="Neu.Label"/>
+                    <Supertip>
+                      <Title resid="Neu.Label"/>
+                      <Description resid="Neu.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Neu"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                  <Control xsi:type="Button" id="kursplaner.urlaub.attendee">
+                    <Label resid="Urlaub.Label"/>
+                    <Supertip>
+                      <Title resid="Urlaub.Label"/>
+                      <Description resid="Urlaub.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Urlaub"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+                <Group id="kursplaner.auswertung.attendee">
+                  <Label resid="GruppeAuswertung.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.auswertung.attendee">
+                    <Label resid="Auswertung.Label"/>
+                    <Supertip>
+                      <Title resid="Auswertung.Label"/>
+                      <Description resid="Auswertung.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Auswertung"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+                <Label resid="Tab.Label"/>
+              </CustomTab>
             </ExtensionPoint>
             <!-- In einer E-Mail: Monatsauswertung ohne Termin -->
             <ExtensionPoint xsi:type="MessageReadCommandSurface">
-              <OfficeTab id="TabDefault">
-                <Group id="kursplaner.gruppe.mail">
-                  <Label resid="Gruppe.Label"/>
-                  <Control xsi:type="Button" id="kursplaner.oeffnen.mail">
-                    <Label resid="Button.Label"/>
+              <CustomTab id="kursplaner.tab.mail">
+                <Group id="kursplaner.planen.mail">
+                  <Label resid="GruppePlanen.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.neu.mail">
+                    <Label resid="Neu.Label"/>
                     <Supertip>
-                      <Title resid="Button.Label"/>
-                      <Description resid="Button.Tooltip"/>
+                      <Title resid="Neu.Label"/>
+                      <Description resid="Neu.Tooltip"/>
                     </Supertip>
                     <Icon>
                       <bt:Image size="16" resid="Icon.16"/>
@@ -214,12 +531,108 @@
                       <bt:Image size="80" resid="Icon.80"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
-                      <SourceLocation resid="Taskpane.Url"/>
+                      <SourceLocation resid="Taskpane.Neu"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                  <Control xsi:type="Button" id="kursplaner.urlaub.mail">
+                    <Label resid="Urlaub.Label"/>
+                    <Supertip>
+                      <Title resid="Urlaub.Label"/>
+                      <Description resid="Urlaub.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Urlaub"/>
                       <SupportsPinning>true</SupportsPinning>
                     </Action>
                   </Control>
                 </Group>
-              </OfficeTab>
+                <Group id="kursplaner.auswertung.mail">
+                  <Label resid="GruppeAuswertung.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.auswertung.mail">
+                    <Label resid="Auswertung.Label"/>
+                    <Supertip>
+                      <Title resid="Auswertung.Label"/>
+                      <Description resid="Auswertung.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Auswertung"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+                <Label resid="Tab.Label"/>
+              </CustomTab>
+            </ExtensionPoint>
+            <!-- Neue E-Mail: so ist der Kursplaner von überall erreichbar (Neue E-Mail öffnen) -->
+            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+              <CustomTab id="kursplaner.tab.neuemail">
+                <Group id="kursplaner.planen.neuemail">
+                  <Label resid="GruppePlanen.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.neu.neuemail">
+                    <Label resid="Neu.Label"/>
+                    <Supertip>
+                      <Title resid="Neu.Label"/>
+                      <Description resid="Neu.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Neu"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                  <Control xsi:type="Button" id="kursplaner.urlaub.neuemail">
+                    <Label resid="Urlaub.Label"/>
+                    <Supertip>
+                      <Title resid="Urlaub.Label"/>
+                      <Description resid="Urlaub.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Urlaub"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+                <Group id="kursplaner.auswertung.neuemail">
+                  <Label resid="GruppeAuswertung.Label"/>
+                  <Control xsi:type="Button" id="kursplaner.auswertung.neuemail">
+                    <Label resid="Auswertung.Label"/>
+                    <Supertip>
+                      <Title resid="Auswertung.Label"/>
+                      <Description resid="Auswertung.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16"/>
+                      <bt:Image size="32" resid="Icon.32"/>
+                      <bt:Image size="80" resid="Icon.80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Auswertung"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+                <Label resid="Tab.Label"/>
+              </CustomTab>
             </ExtensionPoint>
           </DesktopFormFactor>
         </Host>
@@ -232,13 +645,25 @@
         </bt:Images>
         <bt:Urls>
           <bt:Url id="Taskpane.Url" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html"/>
+          <bt:Url id="Taskpane.Auswertung" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html?bereich=auswertung"/>
+          <bt:Url id="Taskpane.Neu" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html?bereich=neu"/>
+          <bt:Url id="Taskpane.Urlaub" DefaultValue="https://stehlebewegt.github.io/kursplaner-outlook/taskpane.html?bereich=urlaub"/>
         </bt:Urls>
         <bt:ShortStrings>
-          <bt:String id="Gruppe.Label" DefaultValue="Kursplaner"/>
-          <bt:String id="Button.Label" DefaultValue="Kursplaner"/>
+          <bt:String id="Tab.Label" DefaultValue="Kursplaner"/>
+          <bt:String id="GruppeKurs.Label" DefaultValue="Kurs"/>
+          <bt:String id="GruppePlanen.Label" DefaultValue="Planen"/>
+          <bt:String id="GruppeAuswertung.Label" DefaultValue="Auswertungen"/>
+          <bt:String id="Kurs.Label" DefaultValue="Dieser Termin"/>
+          <bt:String id="Auswertung.Label" DefaultValue="Monatsauswertung"/>
+          <bt:String id="Neu.Label" DefaultValue="Neuer Kurs"/>
+          <bt:String id="Urlaub.Label" DefaultValue="Urlaub"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="Button.Tooltip" DefaultValue="Kurs übernehmen, Protokoll, Tag neu planen oder Monatsauswertung."/>
+          <bt:String id="Kurs.Tooltip" DefaultValue="Zum gewählten Termin: übernehmen, Protokoll, Fahrzeit, Tag neu planen, E-Mail."/>
+          <bt:String id="Auswertung.Tooltip" DefaultValue="Monatsauswertung für einen Anbieter und Monat."/>
+          <bt:String id="Neu.Tooltip" DefaultValue="Neuen Kurs anlegen, im Anbieter- oder eigenen Kalender."/>
+          <bt:String id="Urlaub.Tooltip" DefaultValue="Urlaub oder Absagen für mehrere Tage eintragen."/>
         </bt:LongStrings>
       </Resources>
     </VersionOverrides>
