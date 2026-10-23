@@ -56,7 +56,7 @@ export function abweichungen(strecken, e) {
 export function ohneStrecke(termine, e) {
   const kurse = new Set(termine.filter((t) => !t.generiert && kursAnbieter(t, e)).map((t) => `${t.start.slice(0, 10)} ${t.titel.trim()}`));
   const nenntKurs = (t) => {
-    const m = t.titel.trim().match(/^(?:Anfahrt|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - (.+)$/);
+    const m = t.titel.trim().match(/^(?:Anfahrt|🚗 Jetzt losfahren|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - (.+)$/);
     return m && kurse.has(`${t.start.slice(0, 10)} ${m[1].trim()}`);
   };
   return termine.filter(

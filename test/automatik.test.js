@@ -50,7 +50,7 @@ test("Am iPhone verschobener Kurs: Blöcke ziehen mit", async () => {
   await planeZeitraum(api, ["2026-10-28"], einstellungen, { schreiben: true });
   Object.assign(api.termine[0], { start: "2026-10-28T10:00", ende: "2026-10-28T10:45" });
   await planeZeitraum(api, ["2026-10-28"], einstellungen, { schreiben: true });
-  const anfahrt = api.termine.find((t) => t.titel.startsWith("Anfahrt"));
+  const anfahrt = api.termine.find((t) => t.titel.startsWith("🚗 Jetzt losfahren"));
   assert.equal(anfahrt.start, "2026-10-28T09:25");
   assert.equal(api.termine.length, 5);
 });

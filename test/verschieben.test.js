@@ -44,7 +44,7 @@ test("Kurs auf einen anderen Tag: alte Blöcke weg, neue am neuen Tag, Anbieter-
   assert.equal(api.termine.filter((t) => t.generiert && t.start.startsWith("2026-11-04")).length, 0);
   const neu = api.termine.filter((t) => t.generiert && t.start.startsWith("2026-11-05")).map((t) => `${t.start.slice(11)} ${t.titel}`).sort();
   assert.deepEqual(neu, [
-    "09:25 Anfahrt - RehaSport (Michael)",
+    "09:25 🚗 Jetzt losfahren - RehaSport (Michael)",
     "09:45 Vorbereitung - RehaSport (Michael)",
     "10:45 Nachbereitung - RehaSport (Michael)",
     "11:00 Rückfahrt - RehaSport (Michael)",

@@ -127,6 +127,11 @@ export function termineFuerTag(alle, datum, einstellungen) {
 // (auf dem iPhone in der Google-Maps-App, wenn sie installiert ist). Start ist
 // der aktuelle Standort. Die Heimadresse kennt nur die Automatik (Secret),
 // ohne sie bekommt die Rückfahrt keinen Link.
+// Titel der Hinfahrt. So steht es auch in der Erinnerung auf dem Handy.
+// Früher hieß sie „Anfahrt - …“; beides wird erkannt (alte Blöcke, Auswertungen).
+export const ANFAHRT = "🚗 Jetzt losfahren";
+export const HINFAHRT_TITEL = /^(?:Anfahrt|🚗 Jetzt losfahren) - /;
+
 export const ROUTEN_LINK = "https://www.google.com/maps/dir/?api=1";
 // Outlook-Felder für die Erinnerung eines Blocks: Minuten vor Beginn (0 = zum
 // Beginn), leer oder -1 = keine.
@@ -174,7 +179,12 @@ export function planeTag(datum, alleTermine, einstellungen) {
   // Vergangene Tage nie mit Erinnerung, sonst meldet Outlook sie als überfällig.
   const vergangen = e.heute && datum < e.heute;
   const mitErinnerung = () => {
-    if (e.erinnerungVorFahrtMin && !vergangen) soll[soll.length - 1].erinnerung = e.erinnerungVorFahrtMin;
+    // 0 = genau zur Abfahrt, negativ = keine Erinnerung. Heute schon vorbei:
+    // keine, sonst meldet Outlook sie sofort als überfällig.
+    const b = soll[soll.length - 1];
+    const jetzt = typeof e.jetzt === "function" ? e.jetzt() : e.jetzt;
+    const vorbei = jetzt && b.start < jetzt;
+    if (e.erinnerungVorFahrtMin >= 0 && !vergangen && !vorbei) b.erinnerung = e.erinnerungVorFahrtMin;
   };
   // Nach dem Kurs: Erinnerung zum Beginn der Nachbereitung (= Kursende), damit
   // das Protokoll gleich ausgefüllt wird.
@@ -204,7 +214,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
   for (const { erster, letzter, bis } of gruppen) {
     const von = beginn(erster);
     if (erster.start.slice(0, 10) === datum && !(uebernachtetDavor && mitUebernachtung(erster, e)))
-      neu(`Anfahrt - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort }, erster.adresse || erster.ort) && mitErinnerung();
+      neu(`${ANFAHRT} - ${erster.titel.trim()}`, von - erster.fahrzeit, von, e.kategorieFahrt, { ort: erster.ort }, erster.adresse || erster.ort) && mitErinnerung();
     if (letzter.ende.slice(0, 10) === datum && !(uebernachtetDanach && mitUebernachtung(letzter, e)))
       neu(`Rückfahrt - ${letzter.titel.trim()}`, bis, bis + letzter.fahrzeit, e.kategorieFahrt, { ort: letzter.ort }, e.heimadresse);
   }
@@ -223,7 +233,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
     if (direktVomVorherigen && gleicherAnbieter(vor.anbieter, b.anbieter)) {
       // Beim selben Anbieter geblieben: keine Fahrt.
     } else if (!direktVomVorherigen) {
-      neu(`Anfahrt - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.adresse || b.anbieter.ort, `heim-${streckenSchluessel(b.anbieter)}`) && mitErinnerung();
+      neu(`${ANFAHRT} - ${erster.vollerTitel}`, vorStart - b.anbieter.fahrzeitMin, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.adresse || b.anbieter.ort, `heim-${streckenSchluessel(b.anbieter)}`) && mitErinnerung();
     } else {
       const dauer = fahrzeit(vor.anbieter, b.anbieter, e);
       neu(`Fahrt ${vor.anbieter.kuerzel} → ${b.anbieter.kuerzel} - ${erster.vollerTitel}`, vorStart - dauer, vorStart, e.kategorieFahrt, b.anbieter, b.anbieter.adresse || b.anbieter.ort, `${streckenSchluessel(vor.anbieter)}-${streckenSchluessel(b.anbieter)}`) && mitErinnerung();
@@ -255,7 +265,7 @@ export function planeTag(datum, alleTermine, einstellungen) {
 // und Kategorie, Ort bei einem Anbieter. Die werden beim ersten Neuplanen
 // übernommen, sonst gäbe es alles doppelt. Private Fahrten (Arzt usw.) passen
 // nicht, weil ihr Ort keinem Anbieter gehört.
-const ALTE_BLOCK_TITEL = /^(Anfahrt|Vorbereitung|Nach-\/Vorbereitung|Nachbereitung|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - /;
+const ALTE_BLOCK_TITEL = /^(Anfahrt|🚗 Jetzt losfahren|Vorbereitung|Nach-\/Vorbereitung|Nachbereitung|Rückfahrt|Fahrt [A-Z]+ → [A-Z]+) - /;
 
 export const istBlockTitel = (titel) => ALTE_BLOCK_TITEL.test(titel.trim());
 
@@ -290,7 +300,8 @@ export function markiereAlteBloecke(termine, einstellungen) {
     const anfahrt = termine.find(
       (b) =>
         !b.generiert &&
-        b.titel.trim() === `Anfahrt - ${t.titel.trim()}` &&
+        HINFAHRT_TITEL.test(b.titel.trim()) &&
+        b.titel.trim().replace(HINFAHRT_TITEL, "") === t.titel.trim() &&
         (b.kategorien || []).includes(e.kategorieFahrt)
     );
     return anfahrt && dauer(anfahrt) > 0 ? { ...t, fahrzeit: dauer(anfahrt), fahrzeitMerken: true } : t;
@@ -324,6 +335,7 @@ export function ohneFahrzeit(termine, einstellungen) {
       t.fahrzeit == null &&
       (!kursAnbieter(t, einstellungen) || istExtern(t, einstellungen)) &&
       !istBlockTitel(t.titel) &&
-      !titel.has(`${t.start.slice(0, 10)} Anfahrt - ${t.titel.trim()}`)
+      !titel.has(`${t.start.slice(0, 10)} Anfahrt - ${t.titel.trim()}`) &&
+      !titel.has(`${t.start.slice(0, 10)} ${ANFAHRT} - ${t.titel.trim()}`)
   );
 }

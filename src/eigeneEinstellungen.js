@@ -18,7 +18,8 @@ export const auszug = (e) => Object.fromEntries(BEARBEITBAR.filter((k) => e[k] !
 export function mitEigenen(basis, eigene) {
   const e = { ...basis };
   if (!eigene || typeof eigene !== "object") return e;
-  for (const k of ZAHLEN) if (Number.isFinite(eigene[k]) && eigene[k] >= 0) e[k] = eigene[k];
+  // Nur die Erinnerung darf negativ sein (-1 = keine).
+  for (const k of ZAHLEN) if (Number.isFinite(eigene[k]) && eigene[k] >= (k === "erinnerungVorFahrtMin" ? -1 : 0)) e[k] = eigene[k];
   if (Array.isArray(eigene.anbieter) && eigene.anbieter.length)
     e.anbieter = eigene.anbieter.filter((a) => a && a.kuerzel && a.name).map((a) => ({
       ...a,
@@ -29,6 +30,7 @@ export function mitEigenen(basis, eigene) {
       satzJeKurs: Number(a.satzJeKurs) || 0,
       grenzeJahr: Number(a.grenzeJahr) || 0,
       grenzeMonat: Number(a.grenzeMonat) || 0,
+      kmAbZuhause: Number(a.kmAbZuhause) || 0, // einfache Strecke, wie im Kursbuch
     }));
   if (Array.isArray(eigene.material)) e.material = eigene.material.filter(Boolean);
   if (Array.isArray(eigene.vorlagen)) e.vorlagen = eigene.vorlagen.filter((v) => v && v.id && v.knopf);

@@ -67,7 +67,7 @@ export const einstellungen = {
   // (Michael 22.10.2026: 5 Minuten).
   fahrzeitRundungMin: 5,
   // Erinnerung (Minuten) vor Anfahrten und Fahrten zwischen Anbietern; 0 = aus.
-  erinnerungVorFahrtMin: 10,
+  erinnerungVorFahrtMin: 0, // 0 = genau zur Abfahrt („🚗 Jetzt losfahren“), -1 = keine
   // Erinnerung bei Kursende (an der Nachbereitung): Protokoll ausfüllen.
   erinnerungProtokoll: true,
   // Ferien-Kürzel (F) automatisch setzen; false = nur anzeigen (Probelauf).

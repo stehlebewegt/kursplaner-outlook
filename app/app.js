@@ -134,7 +134,7 @@ function beschreibe(t) {
 
 // Kurse als Karten mit Knöpfen (Woche, Heute, Offene Protokolle).
 const istKurs = (t) =>
-  !t.generiert && kursAnbieter(t, einstellungen) && !/^(Anfahrt|Rückfahrt|Fahrt |Vorbereitung|Nachbereitung|Nach-\/Vorbereitung)/.test(t.titel);
+  !t.generiert && kursAnbieter(t, einstellungen) && !/^(Anfahrt|🚗 Jetzt losfahren|Rückfahrt|Fahrt |Vorbereitung|Nachbereitung|Nach-\/Vorbereitung)/.test(t.titel);
 function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokoll", "mail", "verschieben", "kuerzel"] } = {}) {
   let letzterTag = "";
   ziel.innerHTML = kurse
@@ -195,6 +195,7 @@ async function zeigeHeute() {
   const heute = jetztLokal().slice(0, 10);
   $("h-unter").textContent = `${tagName(heute)}, ${tagDe(heute)}${heute.slice(0, 4)}`;
   $("h-fahrt").innerHTML = "";
+  $("h-frei").innerHTML = "";
   $("h-liste").innerHTML = `<div class="leise">Wird geladen …</div>`;
   let termine;
   try {
@@ -223,14 +224,20 @@ async function zeigeHeute() {
     zeigeKurse(heuteKurse, $("h-liste"), zeigeHeute, { mitTag: false });
     return;
   }
+  // Kein Kurs heute: deutlich als eigene Karte, darunter die Vorschau.
   const naechster = kurse.find((t) => t.start.slice(0, 10) > heute && !beschreibe(t).faelltAus);
+  const frei = (zeile) =>
+    `<div class="frei"><div class="symbol">🌿</div><div><div class="gross">Heute keine Kurse</div><div class="klein">${zeile}</div></div></div>`;
   if (!naechster) {
-    $("h-titel").textContent = "Heute keine Kurse";
-    $("h-liste").innerHTML = `<div class="leer">In den nächsten zwei Wochen stehen keine Kurse in deinem Kalender.</div>`;
+    $("h-frei").innerHTML = frei("Auch in den nächsten zwei Wochen steht kein Kurs in deinem Kalender.");
+    $("h-titel").textContent = "";
+    $("h-liste").innerHTML = "";
     return;
   }
   const tag = naechster.start.slice(0, 10);
-  $("h-titel").textContent = `Heute keine Kurse. Nächster Kurstag: ${tagName(tag)}, ${tagDe(tag)}`;
+  const tage = Math.round((new Date(`${tag}T12:00:00Z`) - new Date(`${heute}T12:00:00Z`)) / 864e5);
+  $("h-frei").innerHTML = frei(`Nächster Kurstag: ${tagName(tag)}, ${tagDe(tag)} (${tage === 1 ? "morgen" : `in ${tage} Tagen`})`);
+  $("h-titel").textContent = `Vorschau ${tagName(tag)}, ${tagDe(tag)}`;
   zeigeKurse(kurse.filter((t) => t.start.slice(0, 10) === tag), $("h-liste"), zeigeHeute, { mitTag: false });
 }
 
@@ -362,7 +369,7 @@ async function zeigeDetails(t, neuLaden) {
 
   // Abfahrt: der letzte Fahrt-Block am Kurstag, der vor dem Kurs endet.
   const fahrt = termine
-    .filter((x) => x.start.slice(0, 10) === datum && /^(Anfahrt|Fahrt )/.test(x.titel) && x.ende <= t.start)
+    .filter((x) => x.start.slice(0, 10) === datum && /^(Anfahrt|🚗 Jetzt losfahren|Fahrt )/.test(x.titel) && x.ende <= t.start)
     .sort((x, y) => (x.ende < y.ende ? 1 : -1))[0];
   if (fahrt) $("d-ort").insertAdjacentHTML("beforeend", ` · Abfahrt ${fahrt.start.slice(11)}`);
 
@@ -396,7 +403,7 @@ async function zeigeDetails(t, neuLaden) {
       kachel(d.schnittGesamt == null ? "–" : komma(d.schnittGesamt, 0), "Teilnehmer") +
       `</div>` +
       (d.balken.length ? `<div class="balken">${balken}</div>` : "") +
-      `<div class="leise" style="margin-top:8px">${d.mitProtokoll} von ${d.gehalten} mit Teilnehmerzahl. Ampel: ab 90 % gut, ab 65 % beobachten.</div>`
+      `<div class="leise" style="margin-top:8px">${d.mitProtokoll} von ${d.gehalten} mit Teilnehmerzahl. Ampel wie im Kursbuch: ab 70 % gut, unter 55 % kritisch.</div>`
     : `<div class="leise">Noch keine gehaltenen Termine in den letzten vier Monaten.</div>`;
   const verlauf = d.verlauf.length
     ? `<table class="verlauf">${d.verlauf
@@ -562,7 +569,18 @@ function routen() {
 // Liefert strecke(von, nach) für die Auswertungen; ohne Heimadresse ohne km.
 const streckenSpeicher = new Map();
 async function streckenFuer(termine, stand, hinweis = () => {}) {
-  const heim = await api.heimAdresse();
+  // km ab Zuhause aus den Einstellungen (wie im Kursbuch) gehen vor, dann OpenStreetMap.
+  const fest = (v, n) => {
+    const k = v === "heim" ? n : n === "heim" ? v : null;
+    const a = k && einstellungen.anbieter.find((x) => x.kuerzel === k && x.kmAbZuhause > 0);
+    return a ? { km: a.kmAbZuhause, minuten: a.fahrzeitMin } : null;
+  };
+  let heim = null;
+  try {
+    heim = await api.heimAdresse();
+  } catch {
+    /* ohne Adresse eben nur die festen km */
+  }
   if (heim) {
     hinweis("Strecken werden berechnet …");
     const rechne = routen();
@@ -570,11 +588,13 @@ async function streckenFuer(termine, stand, hinweis = () => {}) {
     for (const a of alleZiele(einstellungen))
       for (const f of erstelleAuswertung(termine, a, stand, einstellungen).fahrten) {
         const paar = `${f.von} ${f.nach}`;
-        if (streckenSpeicher.has(paar) || !ortVon(f.von) || !ortVon(f.nach)) continue;
+        if (fest(f.von, f.nach) || streckenSpeicher.has(paar) || !ortVon(f.von) || !ortVon(f.nach)) continue;
         streckenSpeicher.set(paar, await rechne(ortVon(f.von), ortVon(f.nach)).catch(() => null));
       }
   }
-  return { heim, strecke: (v, n) => streckenSpeicher.get(`${v} ${n}`) ?? null };
+  const strecke = (v, n) => fest(v, n) ?? streckenSpeicher.get(`${v} ${n}`) ?? null;
+  const fehlt = [...streckenSpeicher].filter(([, r]) => !r).length;
+  return { heim, strecke, fehlt };
 }
 
 function richteFahrtenEin() {
@@ -593,7 +613,7 @@ function richteFahrtenEin() {
       fahrtenPdf(f, j, einstellungen, window.jspdf.jsPDF, stand).save(`Fahrten ${j}.pdf`);
       $("fa-hinweis").textContent =
         `${f.summe.fahrten} Fahrten an ${f.summe.tage} Tagen, ${String(f.summe.km).replace(".", ",")} km.` +
-        (heim ? (f.summe.ohneKm ? ` Bei ${f.summe.ohneKm} Tagen fehlen die km.` : "") : " Ohne km: im Signatur-Entwurf steht keine Adresse.");
+        (f.summe.ohneKm ? ` Bei ${f.summe.ohneKm} Tagen fehlen die km${heim ? "" : " (keine Adresse im Signatur-Entwurf)"}: unter ⚙️ Einstellungen beim Anbieter „km ab Zuhause“ eintragen.` : "");
     });
 }
 
@@ -616,6 +636,7 @@ async function start() {
   // Eigene Einstellungen aus dem Postfach, bevor irgendetwas geplant wird.
   try {
     wendeAn(einstellungen, await api.leseEinstellungen());
+    einstellungen.jetzt = jetztLokal; // keine Erinnerung für schon vorbeigegangene Abfahrten
   } catch {
     /* dann eben die Standardwerte */
   }
@@ -653,7 +674,7 @@ const ZEITEN = [
   ["maxLueckeAmStueckMin", "Kurse gelten als „am Stück“ bis zu einer Lücke von (Min.)"],
   ["pauseHeimfahrtMin", "Heimfahren zwischen zwei Kursen erst ab einer Pause von (Min.)"],
   ["fahrzeitRundungMin", "Berechnete Fahrzeit aufrunden auf (Min.)"],
-  ["erinnerungVorFahrtMin", "Erinnerung vor der Abfahrt (Min., 0 = aus)"],
+  ["erinnerungVorFahrtMin", "Erinnerung aufs Handy: Minuten vor der Abfahrt (0 = genau zur Abfahrt, -1 = keine)"],
 ];
 const feld = (id, label, wert, typ = "text") =>
   `<label for="${id}">${label}</label>` +
@@ -670,6 +691,7 @@ function anbieterKarte(a, i) {
     feld(`ea-vertretung-${i}`, "Kategorie für Vertretungen", a.kategorieVertretung) +
     feld(`ea-erkennung-${i}`, "Woran der Ort erkannt wird (Wörter aus der Adresse, mit Komma)", (a.ortErkennung || []).join(", ")) +
     `<div class="drei"><div>${feld(`ea-satz-${i}`, "Satz je Kurs (€)", a.satzJeKurs || "", "number")}</div><div>${feld(`ea-gjahr-${i}`, "Grenze im Jahr (€)", a.grenzeJahr || "", "number")}</div><div>${feld(`ea-gmonat-${i}`, "Grenze im Monat (€)", a.grenzeMonat || "", "number")}</div></div>` +
+    feld(`ea-km-${i}`, "km ab Zuhause (einfache Strecke)", a.kmAbZuhause || "", "number") +
     `<label class="haken-zeile"><input id="ea-ferien-${i}" type="checkbox"${a.ferienFrei ? " checked" : ""}> In den Schulferien keine Kurse</label>` +
     `<label class="haken-zeile"><input id="ea-feiertag-${i}" type="checkbox"${a.feiertagFrei ? " checked" : ""}> An Feiertagen keine Kurse</label>` +
     `<button class="weg-knopf" data-weg-anbieter="${i}">Anbieter entfernen</button></div>`
@@ -770,6 +792,7 @@ function uebernimmFormular() {
     satzJeKurs: Number(wert(`ea-satz-${i}`)) || 0,
     grenzeJahr: Number(wert(`ea-gjahr-${i}`)) || 0,
     grenzeMonat: Number(wert(`ea-gmonat-${i}`)) || 0,
+    kmAbZuhause: Number(wert(`ea-km-${i}`)) || 0,
     feiertagFrei: !!$(`ea-feiertag-${i}`)?.checked,
   }));
   e.material = wert("e-material").split("\n").map((x) => x.trim()).filter(Boolean);
@@ -956,7 +979,7 @@ async function zeigeGeld(j = (gJahr ??= Number(jetztLokal().slice(0, 4)))) {
               .filter((m) => m.kurse || m.km)
               .map(
                 (m) =>
-                  `<tr${m.erbracht ? "" : ' class="geplant"'}><td>${m.name}</td><td class="z">${m.kurse}${m.geplant ? ` <span class="leise">(${m.geplant} geplant)</span>` : ""}</td>` +
+                  `<tr${m.erbracht ? "" : ' class="geplant"'}><td>${m.name}</td><td class="z">${m.kurse}${m.geplant ? `<br><span class="leise" style="font-size:12px">${m.geplant} geplant</span>` : ""}</td>` +
                   `<td class="z">${euro(m.betrag)}${m.ueberMonatsgrenze ? ` <span class="marke-klein">über Grenze</span>` : ""}</td><td class="z">${zahlDe(m.km, 0)}</td><td class="z">${m.fahrtkosten == null ? "–" : euro(m.fahrtkosten)}</td>` +
                   `<td><label class="haken-zeile" style="margin:0"><input type="checkbox" data-ausbezahlt="${m.schluessel}"${m.ausbezahlt ? " checked" : ""}></label></td></tr>`
               )
@@ -992,13 +1015,18 @@ async function zeigeGeld(j = (gJahr ??= Number(jetztLokal().slice(0, 4)))) {
   // km wie bei den Fahrten fürs Finanzamt, dann neu zeichnen.
   try {
     const stand = jetztLokal();
-    const { heim, strecke } = await streckenFuer(termine, stand);
+    const { heim, strecke, fehlt } = await streckenFuer(termine, stand);
     const f = fahrtenJahr(termine, j, stand, einstellungen, strecke);
     const kmJe = (k, monat) => {
       const r = f.reihen.filter((x) => x.anbieter === k && Number(x.datum.slice(5, 7)) === monat);
-      return r.length ? r.reduce((s, x) => s + (x.km ?? 0), 0) : null;
+      return r.some((x) => x.km != null) ? r.reduce((s, x) => s + (x.km ?? 0), 0) : null;
     };
-    const text = heim ? `km laut OpenStreetMap, Fahrtkosten mit ${euro(einstellungen.kmSatz)} je km.` : "Ohne km: im Signatur-Entwurf steht keine Adresse.";
+    const festeKm = einstellungen.anbieter.some((a) => a.kmAbZuhause > 0);
+    const text =
+      f.summe.ohneKm || !f.reihen.length
+        ? `Bei ${f.summe.ohneKm} Fahrtagen fehlen die km${heim ? (fehlt ? " (OpenStreetMap hat nicht geantwortet)" : "") : " (keine Adresse im Signatur-Entwurf)"}. ` +
+          `Am einfachsten: unter ⚙️ Einstellungen beim Anbieter „km ab Zuhause“ eintragen.`
+        : `km ${festeKm ? "aus deinen Einstellungen" : "laut OpenStreetMap"}, Fahrtkosten mit ${euro(einstellungen.kmSatz)} je km.`;
     kmCache.set(j, { kmJe, text });
     zeichne(kmJe, text);
   } catch {
@@ -1015,7 +1043,8 @@ function zeigeSaetzeEingeben(ziel) {
           `<h3 style="margin:16px 0 0">${html(a.kuerzel)} · ${html(a.name)}</h3><div class="drei">` +
           `<div><label for="gs-satz-${i}">Satz je Kurs (€)</label><input id="gs-satz-${i}" type="number" step="0.5" min="0"></div>` +
           `<div><label for="gs-jahr-${i}">Grenze im Jahr (€)</label><input id="gs-jahr-${i}" type="number" step="50" min="0" placeholder="z. B. Übungsleiterpauschale"></div>` +
-          `<div><label for="gs-monat-${i}">Grenze im Monat (€)</label><input id="gs-monat-${i}" type="number" step="10" min="0" placeholder="z. B. Minijob"></div></div>`
+          `<div><label for="gs-monat-${i}">Grenze im Monat (€)</label><input id="gs-monat-${i}" type="number" step="10" min="0" placeholder="z. B. Minijob"></div></div>` +
+          `<label for="gs-km-${i}">km ab Zuhause (einfache Strecke)</label><input id="gs-km-${i}" type="number" step="1" min="0">`
       )
       .join("") +
     `<label for="gs-km">Fahrtkosten je km (€)</label><input id="gs-km" type="number" step="0.01" min="0" value="${einstellungen.kmSatz}">` +
@@ -1027,6 +1056,7 @@ function zeigeSaetzeEingeben(ziel) {
         satzJeKurs: Number($(`gs-satz-${i}`).value) || 0,
         grenzeJahr: Number($(`gs-jahr-${i}`).value) || 0,
         grenzeMonat: Number($(`gs-monat-${i}`).value) || 0,
+        kmAbZuhause: Number($(`gs-km-${i}`).value) || 0,
       }));
       const neu = { ...auszug(einstellungen), anbieter, kmSatz: Number($("gs-km").value) || 0 };
       await api.speichereEinstellungen(neu);

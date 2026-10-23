@@ -2,8 +2,8 @@
 // Name, gleicher Wochentag, gleiche Uhrzeit). Rechnet nur, lädt nichts.
 import { leseProtokoll, gesamt } from "./protokoll.js";
 
-// Ampel wie in Michaels Kursauswertung (Excel): ab 90 % gut, ab 65 % beobachten.
-export const AMPEL = { gut: 0.9, beobachten: 0.65 };
+// Ampel wie in Michaels Kursbuch 2026 (Stammdaten): gut ab 70 %, kritisch unter 55 %.
+export const AMPEL = { gut: 0.7, beobachten: 0.55 };
 export const ampel = (quote) => (quote == null ? "" : quote >= AMPEL.gut ? "gut" : quote >= AMPEL.beobachten ? "beobachten" : "kritisch");
 
 const wochentag = (t) => new Date(`${t.start.slice(0, 10)}T12:00:00Z`).getUTCDay();

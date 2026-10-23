@@ -21,7 +21,7 @@ test("Vertretung im anderen Verein: Fahrten mit Fahrzeit aus dem Termin, Navigat
   const t = [termin("(V) RehaSport (TSV Beispiel)", d, "18:00", "18:45", KAT, HALLE, { fahrzeit: 25 })];
   const soll = planeTag(d, t, einstellungen);
   assert.deepEqual(kurz(soll), [
-    "17:20-17:45 Anfahrt - (V) RehaSport (TSV Beispiel)",
+    "17:20-17:45 🚗 Jetzt losfahren - (V) RehaSport (TSV Beispiel)",
     "17:45-18:00 Vorbereitung - (V) RehaSport (TSV Beispiel)",
     "18:45-19:00 Nachbereitung - (V) RehaSport (TSV Beispiel)",
     "19:00-19:25 Rückfahrt - (V) RehaSport (TSV Beispiel)",
@@ -33,7 +33,7 @@ test("Vertretung im anderen Verein: Fahrten mit Fahrzeit aus dem Termin, Navigat
 test("Ohne berechnete Fahrzeit gilt die Standard-Fahrzeit, und die Automatik soll sie berechnen", () => {
   const d = "2026-11-03";
   const t = [termin("(V) RehaSport (TSV Beispiel)", d, "18:00", "18:45", KAT, HALLE, { fahrzeit: null, adresse: HALLE })];
-  assert.equal(kurz(planeTag(d, t, einstellungen))[0], "17:15-17:45 Anfahrt - (V) RehaSport (TSV Beispiel)");
+  assert.equal(kurz(planeTag(d, t, einstellungen))[0], "17:15-17:45 🚗 Jetzt losfahren - (V) RehaSport (TSV Beispiel)");
   assert.equal(ohneFahrzeit(t, einstellungen).length, 1);
   assert.equal(kursAnbieter(t[0], einstellungen).kuerzel, "VTR");
 });

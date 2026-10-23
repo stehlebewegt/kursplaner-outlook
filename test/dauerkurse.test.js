@@ -42,7 +42,7 @@ test("selbst verschobene Kopie bleibt, eigene ohne Gegenstück werden nur gezäh
   const eigene = [
     k("RehaSport (Michael)", "2026-11-02T14:00", "2026-11-02T14:45"),
     k("RehaSport (Michael)", "2026-11-05T15:00", "2026-11-05T15:45"),
-    { ...k("Anfahrt - RehaSport (Michael)", "2026-11-02T13:45", "2026-11-02T14:00"), generiert: true },
+    { ...k("🚗 Jetzt losfahren - RehaSport (Michael)", "2026-11-02T13:45", "2026-11-02T14:00"), generiert: true },
   ];
   const r = gleicheAb(anbieter, eigene, einstellungen);
   assert.equal(r.anlegen.length, 0);

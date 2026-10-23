@@ -18,7 +18,7 @@ const termine = [
   t("RehaSport / PUR (Michael)", "2026-10-12", "15:00", ptm.kategorien[0], P(8, 2, 0, "Gleichgewicht", "Matte, Stab")),
   t("RehaSport / PUR (Michael)", "2026-10-12", "15:00", ptm.kategorien[0]),
   t("RehaSport (Michael)", "2026-10-28", "08:00", sve.kategorien[0]),
-  t("Anfahrt - RehaSport (Michael)", "2026-10-07", "07:00", "90 🚗 Fahrzeit"),
+  t("🚗 Jetzt losfahren - RehaSport (Michael)", "2026-10-07", "07:00", "90 🚗 Fahrzeit"),
 ];
 const jetzt = "2026-10-23T12:00";
 
@@ -28,7 +28,7 @@ test("Kursbericht: Anwesenheit, Ampel, nur eigene", () => {
   assert.equal(k.mitProtokoll, 3);
   const mi = k.kurse.find((x) => x.anbieter === "SVE" && x.beginn === "08:00");
   assert.equal(mi.quote, 14 / 20);
-  assert.equal(mi.ampel, "beobachten");
+  assert.equal(mi.ampel, "gut");
   assert.deepEqual(k.themen, [["Gleichgewicht", 1], ["Kraft", 1]]);
   assert.equal(kursbericht(termine, { von: "2026-10-01", bis: "2026-10-31", jetzt, nurEigene: true, anbieter: "SVE" }, e).gehalten, 2);
 });

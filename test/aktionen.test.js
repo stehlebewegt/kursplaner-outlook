@@ -41,7 +41,7 @@ test("Vertretung übernehmen: Kurs mit (V) und Vertretungs-Kategorie, Blöcke dr
   assert.equal(kurs.titel, "(V) RehaSport (Eva)");
   assert.deepEqual(kurs.kategorien, ["19 Vertretung Kurs SVE", "10 SVE: RehaSport"]);
   assert.deepEqual(titel(api), [
-    "08:10 Anfahrt - (V) RehaSport (Eva)",
+    "08:10 🚗 Jetzt losfahren - (V) RehaSport (Eva)",
     "08:30 Vorbereitung - (V) RehaSport (Eva)",
     "08:45 (V) RehaSport (Eva)",
     "09:30 Nachbereitung - (V) RehaSport (Eva)",
@@ -57,7 +57,7 @@ test("Vertretung direkt an eigenen Kurs: Fahrten werden zusammengelegt", async (
   const quelle = { titel: "RehaSport (Eva)", start: "2026-10-28T10:45", ende: "2026-10-28T11:30", kategorien: ["10 SVE: RehaSport"], ort: ORT };
   await uebernehmeKurs(api, quelle, { vertretung: true }, einstellungen);
   assert.deepEqual(titel(api), [
-    "09:10 Anfahrt - RehaSport (Michael)",
+    "09:10 🚗 Jetzt losfahren - RehaSport (Michael)",
     "09:30 Vorbereitung - RehaSport (Michael)",
     "09:45 RehaSport (Michael)",
     "10:30 Nach-/Vorbereitung - (V) RehaSport (Eva)",
@@ -93,7 +93,7 @@ test("Urlaub setzen: (U) davor, Termin frei, Blöcke weg; Kürzel entfernen holt
 test("Vorhandene Fahrt-Blöcke ohne Routen-Link werden erkannt", async () => {
   const d = "2026-10-20";
   const privat = { id: "p", titel: "Fortbildung", start: `${d}T10:00`, ende: `${d}T12:00`, kategorien: [], ort: "Albstadt", generiert: false, fahrzeit: 60 };
-  const block = { id: "b", titel: "Anfahrt - Fortbildung", start: `${d}T09:00`, ende: `${d}T10:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, vorschau: "" };
+  const block = { id: "b", titel: "🚗 Jetzt losfahren - Fortbildung", start: `${d}T09:00`, ende: `${d}T10:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, vorschau: "" };
   const api = { holeTag: async () => [privat, block] };
   const v = await vorschauTag(api, d, einstellungen);
   assert.deepEqual(v.nachbessern.map((l) => l.id), ["b"]);
@@ -103,10 +103,10 @@ test("Vorhandene Fahrt-Blöcke ohne Routen-Link werden erkannt", async () => {
 test("Anfahrt bekommt eine Erinnerung, vorhandene Blöcke werden nachgebessert", async () => {
   const d = "2026-10-20";
   const privat = { id: "p", titel: "Fortbildung", start: `${d}T10:00`, ende: `${d}T12:00`, kategorien: [], ort: "Albstadt", generiert: false, fahrzeit: 60 };
-  const hin = { id: "h", titel: "Anfahrt - Fortbildung", start: `${d}T09:00`, ende: `${d}T10:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, vorschau: "🧭 Route in Google Maps starten", erinnerung: -1 };
+  const hin = { id: "h", titel: "🚗 Jetzt losfahren - Fortbildung", start: `${d}T09:00`, ende: `${d}T10:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, vorschau: "🧭 Route in Google Maps starten", erinnerung: -1 };
   const rueck = { id: "r", titel: "Rückfahrt - Fortbildung", start: `${d}T12:00`, ende: `${d}T13:00`, kategorien: [einstellungen.kategorieFahrt], ort: "Albstadt", generiert: true, erinnerung: -1 };
   const v = await vorschauTag({ holeTag: async () => [privat, hin, rueck] }, d, { ...einstellungen, heute: "2026-10-19" });
-  assert.deepEqual(v.nachbessern, [{ id: "h", felder: { isReminderOn: true, reminderMinutesBeforeStart: 10 } }]);
+  assert.deepEqual(v.nachbessern, [{ id: "h", felder: { isReminderOn: true, reminderMinutesBeforeStart: 0 } }]);
   // Am selben Tag weggeklickt: bleibt aus (sonst käme sie bei jedem Lauf wieder).
   const heute = await vorschauTag({ holeTag: async () => [privat, hin, rueck] }, d, { ...einstellungen, heute: d });
   assert.deepEqual(heute.nachbessern, []);

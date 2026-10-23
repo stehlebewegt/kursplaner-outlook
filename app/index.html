@@ -86,6 +86,10 @@
     .marke-klein { font: 700 12px var(--knopf-schrift); padding: 3px 9px; border-radius: 999px; background: var(--warm-hell); color: var(--warm-text); margin-left: 6px; }
     .zahl { display: inline-block; min-width: 22px; padding: 0 7px; margin-left: 4px; border-radius: 11px; background: var(--warm); color: var(--schrift); font: 700 13px/20px var(--knopf-schrift); text-align: center; }
     .fahrt { border-left: 5px solid var(--warm); }
+    .frei { background: var(--warm-hell); border: 2px solid var(--warm); border-radius: 14px; padding: 18px 20px; margin: 18px 0 6px; display: flex; gap: 16px; align-items: center; }
+    .frei .symbol { font-size: 40px; line-height: 1; }
+    .frei .gross { font: 700 26px/1.1 "Barlow Semi Condensed", sans-serif; color: var(--warm-text); }
+    .frei .klein { color: var(--warm-text); margin-top: 4px; }
     .fahrt .gross { font: 700 40px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); }
     .knopf-link { display: inline-block; margin-top: 12px; padding: 11px 24px; border-radius: 999px; background: var(--akzent); color: #fff; font: 700 15px var(--knopf-schrift); text-decoration: none; }
     .knopf-link:hover { background: var(--dunkel); }
@@ -224,6 +228,7 @@
       <h1>Heute</h1>
       <div class="unter" id="h-unter"></div>
       <div id="h-fahrt"></div>
+      <div id="h-frei"></div>
       <div class="tag" id="h-titel"></div>
       <div id="h-liste"></div>
     </section>

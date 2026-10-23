@@ -16,7 +16,7 @@ test("Nur Kursfahrten ohne Strecke zählen", () => {
   const d = "2026-11-06T";
   const f = (titel, vorschau) => ({ titel, start: `${d}10:00`, generiert: true, kategorien: [einstellungen.kategorieFahrt], ort: "Physio-Team", vorschau });
   const kurs = { titel: "PUR (Michael)", start: `${d}11:00`, generiert: false, kategorien: ["01 PTM: PUR Kurs"], ort: "Physio-Team" };
-  const t = [kurs, f("Anfahrt - PUR (Michael)", "🧭 Route"), f("Rückfahrt - PUR (Michael)", "📏 Strecke laut OpenStreetMap: 1 km"), f("Anfahrt - Besprechung PTM", "🧭 Route")];
+  const t = [kurs, f("🚗 Jetzt losfahren - PUR (Michael)", "🧭 Route"), f("Rückfahrt - PUR (Michael)", "📏 Strecke laut OpenStreetMap: 1 km"), f("🚗 Jetzt losfahren - Besprechung PTM", "🧭 Route")];
   assert.equal(ohneStrecke(t, einstellungen).length, 1);
 });
 

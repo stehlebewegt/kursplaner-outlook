@@ -25,7 +25,7 @@ test("Kursdetails rechnen nur den gleichen Kurs (Name, Wochentag, Uhrzeit)", () 
   assert.equal(d.mitProtokoll, 2);
   assert.equal(d.schnittAnwesend, 7);
   assert.equal(d.quote, 14 / 20);
-  assert.equal(d.ampel, "beobachten");
+  assert.equal(d.ampel, "gut");
   assert.equal(d.balken.length, 3);
   assert.deepEqual(d.verlauf.map((v) => v.p.thema), ["Gleichgewicht", "Kraft"]);
   assert.deepEqual(d.kommend.map((v) => v.t.start.slice(0, 10)), ["2026-11-02"]);

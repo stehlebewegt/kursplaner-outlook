@@ -8,7 +8,7 @@ import { MONATE } from "./auswertung.js";
 export const ARTEN = { "": "Regulär", V: "Vertretung", H: "Hospitation", U: "Urlaub", A: "Abgesagt", F: "Ferien" };
 const TAG = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 const zahl = (v) => (String(v ?? "").trim() === "" ? null : parseInt(v, 10) || 0);
-const istBlock = (t) => t.generiert || /^(Anfahrt|Rückfahrt|Fahrt |Vorbereitung|Nachbereitung|Nach-\/Vorbereitung)/.test(t.titel);
+const istBlock = (t) => t.generiert || /^(Anfahrt|🚗 Jetzt losfahren|Rückfahrt|Fahrt |Vorbereitung|Nachbereitung|Nach-\/Vorbereitung)/.test(t.titel);
 
 // Alle Kurse mit Anbieter, Art und Protokoll.
 export function kursZeilen(termine, e) {

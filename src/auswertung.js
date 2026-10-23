@@ -58,7 +58,7 @@ export function erstelleAuswertung(termine, anbieter, jetzt, einstellungen, stre
   return { zeilen, summe, fahrten };
 }
 
-const FAHRT_TITEL = /^(Anfahrt|Rückfahrt|Fahrt ([A-Z]+) → ([A-Z]+)) - (.+)$/;
+const FAHRT_TITEL = /^(Anfahrt|🚗 Jetzt losfahren|Rückfahrt|Fahrt ([A-Z]+) → ([A-Z]+)) - (.+)$/;
 
 // Fahrt-Blöcke (Kategorie Fahrzeit) an Tagen, an denen bei diesem Anbieter
 // ein Kurs stattfand: Der Titel nennt einen Kurs des Tages, oder der Ort ist
@@ -82,11 +82,12 @@ function sammleFahrten(termine, zeilen, e, anbieter) {
       if (!status) return null;
       // Vertretung in anderen Vereinen: Ziel ist der Ort aus dem Fahrt-Block.
       const ziel = anbieter.kuerzel === e.vertretungExtern?.kuerzel ? t.ort || anbieter.kuerzel : anbieter.kuerzel;
-      const [von, nach] = m[1] === "Anfahrt" ? ["heim", ziel] : m[1] === "Rückfahrt" ? [ziel, "heim"] : [m[2], m[3]];
+      const hin = m[1] === "Anfahrt" || m[1] === "🚗 Jetzt losfahren";
+      const [von, nach] = hin ? ["heim", ziel] : m[1] === "Rückfahrt" ? [ziel, "heim"] : [m[2], m[3]];
       return {
         datum,
         uhrzeit: t.start.slice(11, 16),
-        fahrt: m[1] === "Anfahrt" ? "Hinfahrt" : m[1] === "Rückfahrt" ? "Rückfahrt" : "Weiterfahrt",
+        fahrt: hin ? "Hinfahrt" : m[1] === "Rückfahrt" ? "Rückfahrt" : "Weiterfahrt",
         von,
         nach,
         kurs: ohneKuerzel(m[4]).trim(),

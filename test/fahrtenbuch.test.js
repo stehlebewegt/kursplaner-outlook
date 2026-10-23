@@ -9,7 +9,7 @@ test("Fahrten im Jahr: nur gefahrene, eine Zeile pro Tag, km summiert", () => {
   const t = (titel, s, e, kat, gen = false) => ({ titel, start: s, ende: e, kategorien: [kat], ort: SVE, generiert: gen });
   const termine = [
     t("RehaSport (Michael)", "2026-03-04T08:45", "2026-03-04T09:30", "10 SVE: RehaSport"),
-    t("Anfahrt - RehaSport (Michael)", "2026-03-04T08:10", "2026-03-04T08:30", "90 🚗 Fahrzeit", true),
+    t("🚗 Jetzt losfahren - RehaSport (Michael)", "2026-03-04T08:10", "2026-03-04T08:30", "90 🚗 Fahrzeit", true),
     t("Rückfahrt - RehaSport (Michael)", "2026-03-04T09:45", "2026-03-04T10:05", "90 🚗 Fahrzeit", true),
     t("(U) RehaSport (Michael)", "2026-03-11T08:45", "2026-03-11T09:30", "10 SVE: RehaSport"),
     t("RehaSport (Michael)", "2025-12-30T08:45", "2025-12-30T09:30", "10 SVE: RehaSport"),

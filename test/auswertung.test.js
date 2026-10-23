@@ -15,7 +15,7 @@ test("Monatsauswertung SVE: geleistet, geplant, Vertretung, Ferien, U/A und ande
     kurs("(F) RehaSport (Michael)", "2026-10-28T08:45", "2026-10-28T09:30", ["10 SVE: RehaSport"]),
     kurs("RehaSport (Michael)", "2026-10-30T08:45", "2026-10-30T09:30", ["10 SVE: RehaSport"]),
     kurs("RehaSport / PUR (Michael)", "2026-10-15T11:00", "2026-10-15T11:45", ["01 PTM: PUR Kurs"]),
-    { ...kurs("Anfahrt - RehaSport (Michael)", "2026-10-07T08:10", "2026-10-07T08:30", ["90 🚗 Fahrzeit"]), generiert: true },
+    { ...kurs("🚗 Jetzt losfahren - RehaSport (Michael)", "2026-10-07T08:10", "2026-10-07T08:30", ["90 🚗 Fahrzeit"]), generiert: true },
   ];
   const { zeilen, summe, fahrten } = erstelleAuswertung(termine, SVE, "2026-10-16T10:00", einstellungen);
   assert.equal(zeilen.length, 5);
@@ -39,13 +39,13 @@ test("Fahrten: nur zu Kursen des Anbieters am selben Tag, nicht zu abgesagten", 
   const termine = [
     kurs("RehaSport (Michael)", "2026-10-07T08:45", "2026-10-07T09:30", ["10 SVE: RehaSport"]),
     fahrt("Rückfahrt - RehaSport (Michael)", "2026-10-07T09:45", "2026-10-07T10:05"),
-    fahrt("Anfahrt - RehaSport (Michael)", "2026-10-08T08:10", "2026-10-08T08:30"), // anderer Tag
+    fahrt("🚗 Jetzt losfahren - RehaSport (Michael)", "2026-10-08T08:10", "2026-10-08T08:30"), // anderer Tag
     kurs("(A) RehaSport (Michael)", "2026-10-09T08:45", "2026-10-09T09:30", ["10 SVE: RehaSport"]),
-    fahrt("Anfahrt - (A) RehaSport (Michael)", "2026-10-09T08:10", "2026-10-09T08:30"),
-    fahrt("Anfahrt - Zahnarzt", "2026-10-07T13:00", "2026-10-07T13:15"),
+    fahrt("🚗 Jetzt losfahren - (A) RehaSport (Michael)", "2026-10-09T08:10", "2026-10-09T08:30"),
+    fahrt("🚗 Jetzt losfahren - Zahnarzt", "2026-10-07T13:00", "2026-10-07T13:15"),
     // Titel nennt einen Kurs, der nicht im Kalender steht, Ort ist aber der Anbieter:
-    { ...fahrt("Anfahrt - Faszien (Michael)", "2026-10-07T08:00", "2026-10-07T08:20"), ort: "SVE Sport- & Gesundheitscenter, Ettenkircher Straße 17" },
-    { ...fahrt("Anfahrt - RehaSport (Michael)", "2026-10-07T07:00", "2026-10-07T07:20"), kategorien: ["90 🚗 Fahrzeit", "Fahrtkosten nicht abrechenbar"] },
+    { ...fahrt("🚗 Jetzt losfahren - Faszien (Michael)", "2026-10-07T08:00", "2026-10-07T08:20"), ort: "SVE Sport- & Gesundheitscenter, Ettenkircher Straße 17" },
+    { ...fahrt("🚗 Jetzt losfahren - RehaSport (Michael)", "2026-10-07T07:00", "2026-10-07T07:20"), kategorien: ["90 🚗 Fahrzeit", "Fahrtkosten nicht abrechenbar"] },
   ];
   const { fahrten } = erstelleAuswertung(termine, SVE, "2026-10-16T10:00", einstellungen);
   assert.deepEqual(fahrten.map((f) => `${f.datum} ${f.fahrt}`), ["2026-10-07 Hinfahrt", "2026-10-07 Rückfahrt"]);
