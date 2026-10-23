@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { findeAnbieter } from "../src/planer.js";
 import { vorschauTag, planeTagNeu, setzeKuerzel } from "../src/aktionen.js";
+import { wendeAn } from "../src/eigeneEinstellungen.js";
 import {
   $, zustand, nutzeHost, mitWarten, zeigeAenderungen, zeigeProtokoll, richteAuswertungEin, richteNeuerKursEin,
   richteMailEin, richteUrlaubEin, richteFahrzeitEin, uebernehme,
@@ -98,6 +99,12 @@ async function start() {
     return;
   }
   richteKlappenEin();
+  // Eigene Einstellungen aus dem Postfach (im Kursplaner-Fenster gepflegt).
+  try {
+    wendeAn(einstellungen, await api.leseEinstellungen());
+  } catch {
+    /* dann eben die Standardwerte */
+  }
   // Eigener Knopf im Reiter „Kursplaner“: nur dieser eine Bereich, egal was
   // gerade ausgewählt ist (auch aus einer neuen E-Mail heraus).
   const nur = NUR_BEREICH[new URLSearchParams(location.search).get("bereich")];

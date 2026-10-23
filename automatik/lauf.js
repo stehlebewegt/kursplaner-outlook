@@ -21,6 +21,7 @@ import { routenRechner, hatAdresse, aufRunden } from "./route.js";
 import { kursStrecken, abweichungen, ohneStrecke } from "./strecken.js";
 import { monatsberichte, abschluesse } from "./monatsbericht.js";
 import { fahrtenbuch } from "./fahrtenbuch.js";
+import { holeEigene, wendeAn } from "../src/eigeneEinstellungen.js";
 import { ladeRegeln, sortiere, offeneMails, kategorienAnlegen } from "./mails.js";
 import { hinweise } from "./hinweise.js";
 import { holeFerien, holeFeiertage } from "./ferien.js";
@@ -187,6 +188,15 @@ const zeit = (t) => `${t.start.slice(11)}–${t.ende.slice(11)}`;
 const tagZeit = (t) => `${t.start.slice(8, 10)}.${t.start.slice(5, 7)}. ${t.start.slice(11)}`;
 const zeilen = [];
 const ausgabe = (z) => (console.log(z), zeilen.push(z));
+// Eigene Einstellungen aus Michaels Postfach (im Kursplaner-Fenster gepflegt).
+// Ausgabe nur, ob es welche gibt, nie die Werte (Adressen).
+try {
+  const eigene = await holeEigene(graph);
+  wendeAn(einstellungen, eigene);
+  ausgabe(`Eigene Einstellungen: ${eigene ? Object.keys(eigene).length + " Felder" : "keine"}`);
+} catch (e) {
+  ausgabe(`Eigene Einstellungen nicht gelesen: ${e.message.slice(0, 80)}`);
+}
 
 // Einmalig Routen-Links in vorhandene Fahrt-Blöcke schreiben, ohne neu zu
 // planen: ROUTENLINKS="JJJJ-MM-TT:JJJJ-MM-TT". Ziel ist der Ort des Blocks,

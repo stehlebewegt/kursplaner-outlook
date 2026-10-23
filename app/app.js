@@ -6,7 +6,8 @@ import { config } from "../web/config.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { kursAnbieter, leseKuerzel, ohneKuerzel, routenUrl } from "../src/planer.js";
 import { leseProtokoll } from "../src/protokoll.js";
-import { setzeKuerzel } from "../src/aktionen.js";
+import { wendeAn } from "../src/eigeneEinstellungen.js";
+import { setzeKuerzel, verschiebeKurs } from "../src/aktionen.js";
 import { fahrtenJahr, fahrtenPdf, alleZiele } from "../src/fahrtenbuch.js";
 import { erstelleAuswertung } from "../src/auswertung.js";
 import { adressVarianten } from "../automatik/route.js";
@@ -96,10 +97,14 @@ const ANSICHTEN = {
   urlaub: () => {},
   auswertung: () => {},
   fahrten: () => {},
+  einstellungen: () => zeigeEinstellungen(),
 };
 let aktuell = "heute";
 function oeffne(name) {
-  document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("an", b.dataset.ansicht === name));
+  document.querySelectorAll("nav button, #unten button").forEach((b) => b.classList.toggle("an", b.dataset.ansicht === name));
+  // „Mehr“ ist aktiv, wenn die Ansicht nicht unten in der Leiste steht.
+  $("mehr").classList.toggle("an", !document.querySelector(`#unten [data-ansicht="${name}"]`));
+  document.querySelector("nav").classList.remove("offen");
   document.querySelectorAll("section.ansicht").forEach((s) => (s.hidden = s.id !== `ansicht-${name}`));
   $("leiste").hidden = true;
   aktuell = name;
@@ -123,7 +128,7 @@ function beschreibe(t) {
 // Kurse als Karten mit Knöpfen (Woche, Heute, Offene Protokolle).
 const istKurs = (t) =>
   !t.generiert && kursAnbieter(t, einstellungen) && !/^(Anfahrt|Rückfahrt|Fahrt |Vorbereitung|Nachbereitung|Nach-\/Vorbereitung)/.test(t.titel);
-function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokoll", "mail", "kuerzel"] } = {}) {
+function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokoll", "mail", "verschieben", "kuerzel"] } = {}) {
   let letzterTag = "";
   ziel.innerHTML = kurse
     .map((t, i) => {
@@ -140,6 +145,7 @@ function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokol
         `<div class="knoepfe">` +
         (knoepfe.includes("protokoll") ? `<button class="knopf" data-protokoll="${i}">Protokoll</button>` : "") +
         (knoepfe.includes("mail") ? `<button class="knopf" data-mail="${i}">E-Mail</button>` : "") +
+        (knoepfe.includes("verschieben") && !b.faelltAus ? `<button class="knopf" data-verschieben="${i}">Verschieben</button>` : "") +
         (!knoepfe.includes("kuerzel")
           ? ""
           : b.faelltAus
@@ -151,6 +157,7 @@ function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokol
     .join("");
   ziel.querySelectorAll("[data-protokoll]").forEach((b) => (b.onclick = () => oeffneLeiste(kurse[b.dataset.protokoll], "protokoll")));
   ziel.querySelectorAll("[data-mail]").forEach((b) => (b.onclick = () => oeffneLeiste(kurse[b.dataset.mail], "mail")));
+  ziel.querySelectorAll("[data-verschieben]").forEach((b) => (b.onclick = () => oeffneLeiste(kurse[b.dataset.verschieben], "verschieben")));
   ziel.querySelectorAll("[data-kuerzel]").forEach((b) => {
     b.onclick = () => {
       const t = kurse[b.dataset.kurs];
@@ -227,8 +234,10 @@ async function ladeOffeneProtokolle() {
     .sort((a, b) => (a.start < b.start ? 1 : -1));
 }
 function zeigeAnzahl(n) {
-  $("p-anzahl").textContent = n ? String(n) : "";
-  $("p-anzahl").hidden = !n;
+  for (const id of ["p-anzahl", "p-anzahl2"]) {
+    $(id).textContent = n ? String(n) : "";
+    $(id).hidden = !n;
+  }
 }
 async function zeigeOffeneProtokolle() {
   $("o-unter").textContent = "Wird geladen …";
@@ -282,16 +291,67 @@ $("w-zurueck").onclick = () => ((wochenStart = plusTage(wochenStart, -7)), zeige
 $("w-vor").onclick = () => ((wochenStart = plusTage(wochenStart, 7)), zeigeWoche());
 $("w-heute").onclick = () => ((wochenStart = montag(jetztLokal().slice(0, 10))), zeigeWoche());
 
-// Seitenleiste: Protokoll oder E-Mail-Vorlagen zu einem Kurs.
+// Seitenleiste: Protokoll, E-Mail-Vorlagen oder Verschieben zu einem Kurs.
 async function oeffneLeiste(t, was) {
   zustand.termin = t;
   $("leiste-titel").textContent = ohneKuerzel(t.titel);
   $("leiste-info").textContent = `${tagName(t.start.slice(0, 10))}, ${tagDe(t.start)} · ${t.start.slice(11)}–${t.ende.slice(11)}`;
   $("bereich-protokoll").hidden = was !== "protokoll";
   $("bereich-mail").hidden = was !== "mail";
+  $("bereich-verschieben").hidden = was !== "verschieben";
   $("leiste").hidden = false;
   if (was === "protokoll") await zeigeProtokoll();
-  else richteMailEin(kursAnbieter(t, einstellungen));
+  else if (was === "mail") richteMailEin(kursAnbieter(t, einstellungen));
+  else await richteVerschiebenEin(t);
+}
+
+// --- Kurs verschieben ---
+const minuten = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+const uhr = (m) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+let anbieterKopie = null;
+async function richteVerschiebenEin(t) {
+  const dauer = minuten(t.ende.slice(11)) - minuten(t.start.slice(11));
+  $("vs-datum").value = t.start.slice(0, 10);
+  $("vs-beginn").value = t.start.slice(11);
+  $("vs-ende").value = t.ende.slice(11);
+  $("vs-beginn").oninput = () => $("vs-beginn").value && ($("vs-ende").value = uhr(minuten($("vs-beginn").value) + dauer));
+  $("vs-hinweis").textContent = "";
+  $("vs-anbieter-zeile").hidden = true;
+  anbieterKopie = null;
+  // Steht der Kurs auch im Anbieter-Kalender? Dann dort mitverschieben (Standard).
+  const a = kursAnbieter(t, einstellungen);
+  if (a.kalender) {
+    try {
+      const tag = t.start.slice(0, 10);
+      anbieterKopie =
+        (await api.holeAnbieterKurse(tag, tag)).find(
+          (k) => k.kalender === a.kalender && ohneKuerzel(k.titel) === ohneKuerzel(t.titel).replace(/^\(V\)\s*/, "") && k.start === t.start
+        ) || null;
+    } catch {
+      anbieterKopie = null;
+    }
+  }
+  if (anbieterKopie) {
+    $("vs-anbieter-text").textContent = `Auch im Kalender „${a.kalender}“ verschieben`;
+    $("vs-anbieter").checked = true;
+    $("vs-anbieter-zeile").hidden = false;
+  }
+  $("vs-los").onclick = () =>
+    mitWarten($("vs-los"), async () => {
+      const neu = { datum: $("vs-datum").value, beginn: $("vs-beginn").value, ende: $("vs-ende").value };
+      if (!neu.datum || !neu.beginn || !neu.ende || neu.ende <= neu.beginn) {
+        $("vs-hinweis").innerHTML = `<span class="fehler">Bitte Tag, Beginn und Ende prüfen.</span>`;
+        return;
+      }
+      const mit = anbieterKopie && $("vs-anbieter").checked ? anbieterKopie : null;
+      const v = await verschiebeKurs(api, t, neu, einstellungen, { anbieterKopie: mit });
+      zeige(
+        `<div class="karte"><strong>Kurs verschoben</strong><div>${html(ohneKuerzel(t.titel))}: ${tagName(neu.datum)}, ${tagDe(neu.datum)} ${neu.beginn}–${neu.ende}.</div>` +
+          `<div class="leise">Fahrten und Vor-/Nachbereitung sind angepasst${mit ? ", der Anbieter-Kalender auch" : ""}.</div></div>`
+      );
+      $("leiste").hidden = true;
+      ANSICHTEN[aktuell]();
+    });
 }
 $("leiste-zu").onclick = () => {
   $("leiste").hidden = true;
@@ -423,6 +483,12 @@ async function start() {
     return;
   }
   api.nutzeAnmeldung(token);
+  // Eigene Einstellungen aus dem Postfach, bevor irgendetwas geplant wird.
+  try {
+    wendeAn(einstellungen, await api.leseEinstellungen());
+  } catch {
+    /* dann eben die Standardwerte */
+  }
   $("wer").textContent = konto.name || konto.username;
   $("haupt").hidden = false;
   await holeBereiche();
@@ -430,7 +496,17 @@ async function start() {
   richteUrlaubEin();
   richteAuswertungEin();
   richteFahrtenEin();
-  document.querySelectorAll("nav button").forEach((b) => (b.onclick = () => oeffne(b.dataset.ansicht)));
+  document.querySelectorAll("nav [data-ansicht], #unten [data-ansicht]").forEach((b) => (b.onclick = () => oeffne(b.dataset.ansicht)));
+  $("unten").hidden = false;
+  $("mehr").onclick = () => document.querySelector("nav").classList.toggle("offen");
+  document.querySelectorAll(".abmelden").forEach(
+    (b) =>
+      (b.onclick = () => {
+        if (confirm("Vom Kursplaner abmelden? Beim nächsten Öffnen meldest du dich neu an.")) {
+          msalApp.logoutRedirect({ account: konto, postLogoutRedirectUri: location.origin + location.pathname });
+        }
+      })
+  );
   // Start immer mit „Heute“; die Zahl offener Protokolle steht im Menü.
   oeffne("heute");
   ladeOffeneProtokolle().then((o) => zeigeAnzahl(o.length)).catch(() => {});
@@ -438,3 +514,130 @@ async function start() {
 start().catch((e) => zeige(`<div class="karte fehler">Das hat nicht geklappt: ${html(e.message)}</div>`));
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// --- Einstellungen: Zeiten, Anbieter, Material, E-Mail-Vorlagen, Monatsbericht ---
+// Gespeichert in Michaels Postfach (src/eigeneEinstellungen.js), nicht im Code.
+const ZEITEN = [
+  ["vorbereitungMin", "Vorbereitung vor dem Kurs (Min.)"],
+  ["nachbereitungMin", "Nachbereitung nach dem Kurs (Min.)"],
+  ["maxLueckeAmStueckMin", "Kurse gelten als „am Stück“ bis zu einer Lücke von (Min.)"],
+  ["pauseHeimfahrtMin", "Heimfahren zwischen zwei Kursen erst ab einer Pause von (Min.)"],
+  ["fahrzeitRundungMin", "Berechnete Fahrzeit aufrunden auf (Min.)"],
+  ["erinnerungVorFahrtMin", "Erinnerung vor der Abfahrt (Min., 0 = aus)"],
+];
+const feld = (id, label, wert, typ = "text") =>
+  `<label for="${id}">${label}</label>` +
+  (typ === "textarea" ? `<textarea id="${id}" rows="6">${html(wert ?? "")}</textarea>` : `<input id="${id}" type="${typ}" value="${html(wert ?? "")}">`);
+const liste = (text) => text.split(",").map((x) => x.trim()).filter(Boolean);
+
+function anbieterKarte(a, i) {
+  return (
+    `<div class="e-karte" data-anbieter="${i}">` +
+    `<div class="reihe"><div>${feld(`ea-kuerzel-${i}`, "Kürzel (z. B. SVE)", a.kuerzel)}</div><div>${feld(`ea-name-${i}`, "Name", a.name)}</div></div>` +
+    feld(`ea-ort-${i}`, "Adresse", a.ort) +
+    `<div class="reihe"><div>${feld(`ea-fahrzeit-${i}`, "Fahrzeit (Min.)", a.fahrzeitMin, "number")}</div><div>${feld(`ea-kalender-${i}`, "Anbieter-Kalender in Outlook", a.kalender)}</div></div>` +
+    feld(`ea-kategorien-${i}`, "Kategorien der Kurse (mit Komma getrennt)", (a.kategorien || []).join(", ")) +
+    feld(`ea-vertretung-${i}`, "Kategorie für Vertretungen", a.kategorieVertretung) +
+    feld(`ea-erkennung-${i}`, "Woran der Ort erkannt wird (Wörter aus der Adresse, mit Komma)", (a.ortErkennung || []).join(", ")) +
+    `<label class="haken-zeile"><input id="ea-ferien-${i}" type="checkbox"${a.ferienFrei ? " checked" : ""}> In den Schulferien keine Kurse</label>` +
+    `<label class="haken-zeile"><input id="ea-feiertag-${i}" type="checkbox"${a.feiertagFrei ? " checked" : ""}> An Feiertagen keine Kurse</label>` +
+    `<button class="weg-knopf" data-weg-anbieter="${i}">Anbieter entfernen</button></div>`
+  );
+}
+function vorlageKarte(v, i) {
+  return (
+    `<div class="e-karte" data-vorlage-nr="${i}">` +
+    `<div class="reihe"><div>${feld(`ev-knopf-${i}`, "Knopf", v.knopf)}</div><div><label for="ev-an-${i}">Empfänger</label>` +
+    `<select id="ev-an-${i}"><option value="">leer lassen</option><option value="anbieter"${v.an === "anbieter" ? " selected" : ""}>gemerkter Empfänger des Anbieters</option></select></div></div>` +
+    feld(`ev-betreff-${i}`, "Betreff", v.betreff) +
+    feld(`ev-text-${i}`, "Text", v.text, "textarea") +
+    `<button class="weg-knopf" data-weg-vorlage="${i}">Vorlage entfernen</button></div>`
+  );
+}
+
+let entwurf; // Arbeitskopie der Einstellungen in der Ansicht
+function zeigeEinstellungen() {
+  entwurf ??= {
+    ...Object.fromEntries(ZEITEN.map(([k]) => [k, einstellungen[k]])),
+    anbieter: einstellungen.anbieter.map((a) => ({ ...a })),
+    material: [...einstellungen.material],
+    vorlagen: einstellungen.vorlagen.map((v) => ({ ...v })),
+    monatsbericht: { ...einstellungen.monatsbericht },
+  };
+  const e = entwurf;
+  $("e-inhalt").className = "";
+  $("e-inhalt").innerHTML =
+    `<div class="e-block"><h2>Zeiten</h2>${ZEITEN.map(([k, l]) => feld(`ez-${k}`, l, e[k], "number")).join("")}</div>` +
+    `<div class="e-block"><h2>Anbieter</h2><div class="leise">Feste Anbieter mit eigenem Kalender. Vertretungen in anderen Vereinen brauchen keinen Eintrag.</div>` +
+    e.anbieter.map(anbieterKarte).join("") +
+    `<button class="zweit" id="e-anbieter-neu">Anbieter hinzufügen</button></div>` +
+    `<div class="e-block"><h2>Material</h2><div class="leise">Zum Anhaken im Kursprotokoll, eins pro Zeile.</div>` +
+    `<textarea id="e-material" rows="8">${html(e.material.join("\n"))}</textarea></div>` +
+    `<div class="e-block"><h2>E-Mail-Vorlagen</h2><div class="leise">Platzhalter: {kurs}, {wochentag}, {datum}, {kurzdatum}, {zeit}, {anbieter}</div>` +
+    e.vorlagen.map(vorlageKarte).join("") +
+    `<button class="zweit" id="e-vorlage-neu">Vorlage hinzufügen</button></div>` +
+    `<div class="e-block"><h2>Monatsauswertung</h2>` +
+    feld("em-tag", "Entwurf kommt am Tag des Monats", e.monatsbericht.tag, "number") +
+    feld("em-betreff", "Betreff ({monat}, {anbieter})", e.monatsbericht.betreff) +
+    feld("em-text", "Text an eine Person ({anrede}, {monat}, {nachtrag})", e.monatsbericht.text, "textarea") +
+    feld("em-gruppe", "Text an mehrere Personen", e.monatsbericht.textGruppe, "textarea") +
+    `</div>` +
+    `<button id="e-speichern">Einstellungen speichern</button>`;
+
+  $("e-anbieter-neu").onclick = () => {
+    uebernimmFormular();
+    e.anbieter.push({ kuerzel: "", name: "", kalender: "", ort: "", ortErkennung: [], fahrzeitMin: 20, kategorien: [], kategorieVertretung: "", feiertagFrei: true, empfaenger: "" });
+    zeigeEinstellungen();
+  };
+  $("e-vorlage-neu").onclick = () => {
+    uebernimmFormular();
+    e.vorlagen.push({ id: `eigene-${Date.now()}`, knopf: "Neue Vorlage", an: "", betreff: "{kurs} am {wochentag}, {kurzdatum}", text: "Hallo,\n\n\n\nViele Grüße\nMichael" });
+    zeigeEinstellungen();
+  };
+  document.querySelectorAll("[data-weg-anbieter]").forEach((b) => (b.onclick = () => {
+    if (!confirm("Diesen Anbieter entfernen? Seine Kurse bekommen dann keine Fahrten mehr.")) return;
+    uebernimmFormular();
+    e.anbieter.splice(Number(b.dataset.wegAnbieter), 1);
+    zeigeEinstellungen();
+  }));
+  document.querySelectorAll("[data-weg-vorlage]").forEach((b) => (b.onclick = () => {
+    uebernimmFormular();
+    e.vorlagen.splice(Number(b.dataset.wegVorlage), 1);
+    zeigeEinstellungen();
+  }));
+  $("e-speichern").onclick = () =>
+    mitWarten($("e-speichern"), async () => {
+      uebernimmFormular();
+      const fehler = e.anbieter.some((a) => !a.kuerzel || !a.name || !a.kalender || !a.ort);
+      if (fehler) {
+        zeige(`<div class="karte fehler">Bei jedem Anbieter brauchen Kürzel, Name, Kalender und Adresse einen Eintrag.</div>`);
+        return;
+      }
+      await api.speichereEinstellungen(e);
+      wendeAn(einstellungen, e);
+      zeige(`<div class="karte"><strong>Gespeichert</strong><div class="leise">Gilt ab sofort hier, im Add-in beim nächsten Öffnen und in der Automatik beim nächsten Lauf.</div></div>`);
+    });
+}
+
+// Eingaben aus dem Formular in die Arbeitskopie übernehmen.
+function uebernimmFormular() {
+  const e = entwurf;
+  const wert = (id) => $(id)?.value ?? "";
+  for (const [k] of ZEITEN) if (wert(`ez-${k}`) !== "") e[k] = Number(wert(`ez-${k}`));
+  e.anbieter = e.anbieter.map((a, i) => ({
+    ...a,
+    kuerzel: wert(`ea-kuerzel-${i}`).trim().toUpperCase(),
+    name: wert(`ea-name-${i}`).trim(),
+    ort: wert(`ea-ort-${i}`).trim(),
+    fahrzeitMin: Number(wert(`ea-fahrzeit-${i}`)) || 0,
+    kalender: wert(`ea-kalender-${i}`).trim(),
+    kategorien: liste(wert(`ea-kategorien-${i}`)),
+    kategorieVertretung: wert(`ea-vertretung-${i}`).trim(),
+    ortErkennung: liste(wert(`ea-erkennung-${i}`)),
+    ferienFrei: !!$(`ea-ferien-${i}`)?.checked,
+    feiertagFrei: !!$(`ea-feiertag-${i}`)?.checked,
+  }));
+  e.material = wert("e-material").split("\n").map((x) => x.trim()).filter(Boolean);
+  e.vorlagen = e.vorlagen.map((v, i) => ({ ...v, knopf: wert(`ev-knopf-${i}`).trim(), an: wert(`ev-an-${i}`), betreff: wert(`ev-betreff-${i}`), text: wert(`ev-text-${i}`) }));
+  e.monatsbericht = { ...e.monatsbericht, tag: Number(wert("em-tag")) || e.monatsbericht.tag, betreff: wert("em-betreff"), text: wert("em-text"), textGruppe: wert("em-gruppe") };
+}

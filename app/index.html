@@ -78,21 +78,39 @@
     .fahrt { background: var(--flaeche); border-color: var(--linie); }
     .fahrt .gross { font: 600 34px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); }
     .knopf-link { display: inline-block; margin-top: 10px; padding: 10px 18px; border-radius: 8px; background: var(--akzent); color: #fff; font-weight: 600; text-decoration: none; }
+    .e-block { border: 1px solid var(--linie); border-radius: 10px; padding: 12px 14px; margin: 14px 0; }
+    .e-block h2 { font-size: 20px; color: var(--dunkel); margin: 0 0 4px; }
+    .e-karte { background: var(--flaeche); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+    .e-karte .weg-knopf { width: auto !important; display: inline-block !important; color: var(--rot); border-color: var(--rot); background: #fff; }
+    #e-speichern { position: sticky; bottom: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
     .leer { padding: 24px; text-align: center; color: var(--leise); border: 1px dashed var(--linie); border-radius: 10px; }
 
     /* Seitenleiste für Protokoll und E-Mail zu einem Kurs */
     #leiste { position: fixed; inset: 0 0 0 auto; width: min(460px, 100vw); background: #fff; box-shadow: -8px 0 30px rgba(0,0,0,.15); padding: 18px 22px; overflow-y: auto; z-index: 10; }
+    #leiste button:not(.zu):not(.knopf) { display: block; width: 100%; margin: 8px 0; }
+    #leiste .reihe button { margin: 0; }
     #leiste .zu { position: absolute; right: 14px; top: 12px; width: auto; background: none; border: 0; color: var(--leise); font-size: 24px; padding: 4px 8px; }
     #ergebnis { position: fixed; right: 18px; bottom: 18px; max-width: 420px; z-index: 20; }
     #ergebnis .karte { background: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.15); margin: 0; }
     #anmelden-seite { margin: 10vh auto; max-width: 420px; text-align: center; }
     #anmelden-seite img { width: 120px; }
 
+    .link-weiss { background: none; border: 1px solid rgba(255,255,255,.5); color: #fff; padding: 3px 10px; font-size: 13px; margin-left: 10px; }
+    #unten { display: none; }
     @media (max-width: 760px) {
       main { flex-direction: column; }
-      nav { width: auto; border-right: 0; border-bottom: 1px solid var(--linie); display: flex; overflow-x: auto; gap: 4px; padding: 8px; }
-      nav h3 { display: none; }
-      nav button { white-space: nowrap; width: auto; }
+      /* Menü als ausklappbare Liste über „Mehr“, unten eine feste Leiste */
+      nav { display: none; position: fixed; inset: 0 0 64px 0; z-index: 15; width: auto; overflow-y: auto; border: 0; padding: 16px; }
+      nav.offen { display: block; }
+      nav button { font-size: 17px; padding: 12px; }
+      #unten:not([hidden]) { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 16; background: #fff; border-top: 1px solid var(--linie);
+                             padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+      #unten button { flex: 1; background: none; border: 0; color: var(--leise); font-size: 12px; font-weight: 600; padding: 6px 0; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+      #unten button span { font-size: 22px; line-height: 1; }
+      #unten button.an { color: var(--dunkel); }
+      #unten .zahl { position: absolute; top: 0; left: 55%; font-size: 11px; min-width: 18px; }
+      body { padding-bottom: 72px; }
+      footer { display: none; }
       section.ansicht { padding: 16px; }
       .kurs .zeit { width: auto; }
       header .rechts { display: none; }
@@ -104,7 +122,7 @@
     <img class="logo" src="logo.png" alt="">
     <div class="marke">stehle bewegt</div>
     <div class="klein">Kursplaner</div>
-    <div class="rechts" id="wer"></div>
+    <div class="rechts"><span id="wer"></span> <button class="abmelden link-weiss">Abmelden</button></div>
   </header>
 
   <div id="anmelden-seite" hidden>
@@ -127,6 +145,9 @@
       <h3>Auswertungen</h3>
       <button data-ansicht="auswertung">📊 Monatsauswertung</button>
       <button data-ansicht="fahrten">🚗 Fahrten fürs Finanzamt</button>
+      <h3>Kursplaner</h3>
+      <button data-ansicht="einstellungen">⚙️ Einstellungen</button>
+      <button class="abmelden">↩️ Abmelden</button>
     </nav>
 
     <section class="ansicht" id="ansicht-heute">
@@ -187,7 +208,20 @@
       <button id="fa-pdf">PDF erstellen</button>
       <div id="fa-hinweis" class="leise"></div>
     </section>
+    <section class="ansicht" id="ansicht-einstellungen" hidden>
+      <h1>Einstellungen</h1>
+      <div class="unter">Gilt für den Kursplaner, das Outlook-Add-in und die Automatik. Gespeichert in deinem Postfach, nicht im Internet. Die Automatik übernimmt Änderungen beim nächsten Lauf.</div>
+      <div id="e-inhalt" class="leise">Wird geladen …</div>
+    </section>
   </main>
+
+  <!-- Handy: Leiste unten mit den wichtigsten Ansichten, der Rest unter „Mehr“. -->
+  <div id="unten" hidden>
+    <button data-ansicht="heute" class="an"><span>☀️</span>Heute</button>
+    <button data-ansicht="woche"><span>📅</span>Woche</button>
+    <button data-ansicht="protokolle"><span>📝</span>Protokolle<b id="p-anzahl2" class="zahl" hidden></b></button>
+    <button id="mehr"><span>☰</span>Mehr</button>
+  </div>
 
   <aside id="leiste" hidden>
     <button class="zu" id="leiste-zu" aria-label="Schließen">×</button>
@@ -195,6 +229,17 @@
     <div class="leise" id="leiste-info"></div>
     <div data-bereich="bereich-protokoll"></div>
     <div data-bereich="bereich-mail"></div>
+    <div id="bereich-verschieben" hidden>
+      <label for="vs-datum">Neuer Tag</label>
+      <input id="vs-datum" type="date">
+      <div class="reihe">
+        <div><label for="vs-beginn">Beginn</label><input id="vs-beginn" type="time" step="300"></div>
+        <div><label for="vs-ende">Ende</label><input id="vs-ende" type="time" step="300"></div>
+      </div>
+      <label class="haken-zeile" id="vs-anbieter-zeile" hidden><input id="vs-anbieter" type="checkbox" checked> <span id="vs-anbieter-text"></span></label>
+      <div id="vs-hinweis" class="leise"></div>
+      <button id="vs-los">Verschieben</button>
+    </div>
   </aside>
 
   <div id="ergebnis"></div>

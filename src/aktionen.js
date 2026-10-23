@@ -109,3 +109,22 @@ export async function setzeZeitraum(api, von, bis, kuerzel, einstellungen, { sch
   for (const d of tage) await planeTagNeu(api, d, einstellungen);
   return { aendern, bleiben, tage };
 }
+
+// Kurs auf einen anderen Tag oder eine andere Zeit legen. anbieterKopie: der
+// gleiche Kurs im Anbieter-Kalender, der mitwandert (sonst legt der Abgleich
+// der Dauerkurse ihn am alten Tag wieder an). Alter und neuer Tag werden neu geplant.
+export async function verschiebeKurs(api, kurs, { datum, beginn, ende }, einstellungen, { anbieterKopie = null } = {}) {
+  const start = `${datum}T${beginn}`;
+  const bis = `${datum}T${ende}`;
+  await api.verschiebe(kurs.id, start, bis);
+  if (anbieterKopie) await api.verschiebe(anbieterKopie.id, start, bis);
+  const tage = [...new Set([datumVon(kurs), datum])].sort();
+  const anlegen = [];
+  const loeschen = [];
+  for (const d of tage) {
+    const v = await planeTagNeu(api, d, einstellungen);
+    anlegen.push(...v.anlegen);
+    loeschen.push(...v.loeschen);
+  }
+  return { tage, anlegen, loeschen, start, ende: bis };
+}

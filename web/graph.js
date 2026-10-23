@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { termineFuerTag, erinnerungsFelder } from "../src/planer.js";
 import { SIGNATUR_BETREFF, leseSignatur, htmlZuText, mitSignatur } from "../src/signatur.js";
+import { holeEigene, speichereEigene } from "../src/eigeneEinstellungen.js";
 
 const GRAPH = "https://graph.microsoft.com/v1.0";
 // Unsichtbare Markierung an jedem Block, den das Add-in anlegt.
@@ -190,6 +191,14 @@ export async function aendere(id, felder) {
   await graph("PATCH", `/me/events/${id}`, felder);
 }
 
+// Termin auf neue Zeit legen (start/ende "JJJJ-MM-TTTHH:MM", Ortszeit).
+export async function verschiebe(id, start, ende) {
+  await graph("PATCH", `/me/events/${id}`, {
+    start: { dateTime: `${start}:00`, timeZone: config.zeitzone },
+    end: { dateTime: `${ende}:00`, timeZone: config.zeitzone },
+  });
+}
+
 export async function loesche(id) {
   await graph("DELETE", `/me/events/${id}`);
 }
@@ -271,3 +280,7 @@ async function holeSignatur() {
   }
   return signatur;
 }
+
+// Eigene Einstellungen im Postfach (siehe src/eigeneEinstellungen.js).
+export const leseEinstellungen = () => holeEigene(graph, "/me");
+export const speichereEinstellungen = (daten) => speichereEigene(graph, daten, "/me");
