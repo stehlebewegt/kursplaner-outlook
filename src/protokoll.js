@@ -87,3 +87,14 @@ export function auswertungVerlauf(termine, kursTitel, vorDatum, standardMaterial
   const material = [...nachSchluessel.values()].sort((a, b) => a.localeCompare(b, "de"));
   return { letzte, themen, material };
 }
+
+// Ausfallgrund bei abgesagten Kursen: eigene erste Zeile im Termintext
+// („Ausfallgrund: Halle zu“), der Rest (Protokoll, eigene Notizen) bleibt.
+// Gründe wie im Reha-Cockpit; Urlaub und Ferien haben eigene Kürzel.
+export const AUSFALLGRUENDE = ["Absage", "Halle zu", "Krank", "Feiertag", "Sonstiges"];
+const GRUND_ZEILE = /^\s*Ausfallgrund:\s*(.*)$/im;
+export const leseAusfallgrund = (text = "") => (text.match(GRUND_ZEILE)?.[1] || "").trim();
+export function mitAusfallgrund(text = "", grund = "") {
+  const rest = text.replace(/\r/g, "").replace(/^\s*Ausfallgrund:.*(\n|$)/im, "").replace(/^\n+/, "");
+  return grund ? `Ausfallgrund: ${grund}\n${rest}`.trimEnd() : rest.trimEnd();
+}

@@ -3,7 +3,8 @@
 import { leseProtokoll, gesamt } from "./protokoll.js";
 
 // Ampel wie in Michaels Kursbuch 2026 (Stammdaten): gut ab 70 %, kritisch unter 55 %.
-export const AMPEL = { gut: 0.7, beobachten: 0.55 };
+// In den Kursdetails wie im Reha-Cockpit: nur die letzten 8 Protokolle, ab 3.
+export const AMPEL = { gut: 0.7, beobachten: 0.55, letzte: 8, ab: 3 };
 export const ampel = (quote) => (quote == null ? "" : quote >= AMPEL.gut ? "gut" : quote >= AMPEL.beobachten ? "beobachten" : "kritisch");
 
 const wochentag = (t) => new Date(`${t.start.slice(0, 10)}T12:00:00Z`).getUTCDay();
@@ -24,6 +25,19 @@ export function kursDetails(kurs, termine, { jetzt, ohneKuerzel, faelltAus }) {
   const gezaehlt = gehalten.filter((v) => v.anwesend != null);
   const summe = (k) => gezaehlt.reduce((s, v) => s + (v[k] || 0), 0);
   const quote = summe("gesamt") ? summe("anwesend") / summe("gesamt") : null;
+  const juengste = gezaehlt.slice(-AMPEL.letzte);
+  const anteil = (liste, k) => liste.reduce((x, v) => x + (v[k] || 0), 0);
+  const quoteAmpel = juengste.length >= AMPEL.ab && anteil(juengste, "gesamt") ? anteil(juengste, "anwesend") / anteil(juengste, "gesamt") : null;
+  // Trend: Schnitt anwesend der letzten 4 Protokolle gegen die 4 davor (±10 %).
+  const schnitt = (liste) => anteil(liste, "anwesend") / liste.length;
+  const neu = gezaehlt.slice(-4);
+  const davor = gezaehlt.slice(-8, -4);
+  let trend = null;
+  if (neu.length === 4 && davor.length >= 2) {
+    const n = schnitt(neu);
+    const d = schnitt(davor);
+    trend = { jetzt: n, vorher: d, richtung: n > d * 1.1 ? "steigt" : n < d * 0.9 ? "sinkt" : "gleich" };
+  }
   const themen = new Map();
   for (const v of gehalten) if (v.p.thema) themen.set(v.p.thema, (themen.get(v.p.thema) || 0) + 1);
   return {
@@ -32,7 +46,10 @@ export function kursDetails(kurs, termine, { jetzt, ohneKuerzel, faelltAus }) {
     schnittAnwesend: gezaehlt.length ? summe("anwesend") / gezaehlt.length : null,
     schnittGesamt: gezaehlt.length ? summe("gesamt") / gezaehlt.length : null,
     quote,
-    ampel: ampel(quote),
+    quoteAmpel,
+    ampel: ampel(quoteAmpel),
+    trend,
+    ausfaelle: vergangen.filter((v) => v.ausfall).map((v) => v.t).reverse(),
     // Balken: die letzten 8 Termine, ausgefallene als leerer Platz.
     balken: vergangen.slice(-8),
     verlauf: gehalten.filter((v) => v.p.thema || v.anwesend != null).reverse().slice(0, 5),

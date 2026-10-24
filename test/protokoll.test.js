@@ -52,3 +52,15 @@ test("Verlauf: letzte drei Themen des Kurses, Themen- und Materialliste", () => 
   assert.ok(!v.themen.includes("Heute"));
   assert.deepEqual(v.material, ["Ball", "Hocker", "Matte", "Pilatesball", "Stab", "Theraband"]);
 });
+
+test("Ausfallgrund steht als eigene Zeile vorne, Protokoll bleibt", async () => {
+  const { mitAusfallgrund, leseAusfallgrund } = await import("../src/protokoll.js");
+  const alt = "Thema: Kraft\nAnwesend: 5";
+  const neu = mitAusfallgrund(alt, "Halle zu");
+  assert.equal(neu, "Ausfallgrund: Halle zu\nThema: Kraft\nAnwesend: 5");
+  assert.equal(leseAusfallgrund(neu), "Halle zu");
+  assert.equal(leseProtokoll(neu).thema, "Kraft");
+  assert.equal(mitAusfallgrund(neu, "krank"), "Ausfallgrund: krank\nThema: Kraft\nAnwesend: 5");
+  assert.equal(mitAusfallgrund(neu, ""), alt);
+  assert.equal(leseAusfallgrund(alt), "");
+});

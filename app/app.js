@@ -5,7 +5,7 @@ import * as api from "../web/graph.js";
 import { config } from "../web/config.js";
 import { einstellungen } from "../src/einstellungen.js";
 import { kursAnbieter, leseKuerzel, ohneKuerzel, routenUrl } from "../src/planer.js";
-import { leseProtokoll } from "../src/protokoll.js";
+import { leseProtokoll, AUSFALLGRUENDE, leseAusfallgrund, mitAusfallgrund } from "../src/protokoll.js";
 import { kursDetails } from "../src/kursdetails.js";
 import { kursbericht, wieOftWo, WIE_OFT_ARTEN, geld, pruefliste } from "../src/auswertungen.js";
 import { auszug } from "../src/eigeneEinstellungen.js";
@@ -149,7 +149,7 @@ function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokol
         `<div class="kurs${b.faelltAus ? " faellt-aus" : ""}" data-details="${i}" title="Details anzeigen">` +
         `<div class="streifen" style="background:${FARBEN[b.a.kuerzel] || "#5B787D"}"></div>` +
         `<div class="zeit">${t.start.slice(11)}–${t.ende.slice(11)}</div>` +
-        `<div class="was">${html(b.name)}${KUERZEL[b.k] ? `<span class="marke-klein">${KUERZEL[b.k]}</span>` : ""}<small>${html(b.wo)}</small></div>` +
+        `<div class="was">${html(b.name)}${KUERZEL[b.k] ? `<span class="marke-klein">${KUERZEL[b.k]}${b.k === "A" && leseAusfallgrund(t.text) ? ` · ${html(leseAusfallgrund(t.text))}` : ""}</span>` : ""}<small>${html(b.wo)}</small></div>` +
         `<div class="knoepfe">` +
         (knoepfe.includes("protokoll") && brauchtProtokoll(t) ? `<button class="knopf" data-protokoll="${i}">Protokoll</button>` : "") +
         (knoepfe.includes("mail") ? `<button class="knopf" data-mail="${i}">E-Mail</button>` : "") +
@@ -175,16 +175,36 @@ function zeigeKurse(kurse, ziel, neuLaden, { mitTag = true, knoepfe = ["protokol
   ziel.querySelectorAll("[data-kuerzel]").forEach((b) => (b.onclick = () => absagenOderStatt(kurse[b.dataset.kurs], b, neuLaden)));
 }
 
-// (A) setzen oder wieder wegnehmen, nach Rückfrage.
-function absagenOderStatt(t, b, neuLaden) {
+// Kleine Auswahl mit Knöpfen (statt confirm), gibt die Wahl zurück oder null.
+function waehle(titel, text, optionen) {
+  const d = $("auswahl");
+  $("auswahl-titel").textContent = titel;
+  $("auswahl-text").textContent = text;
+  return new Promise((fertig) => {
+    $("auswahl-knoepfe").innerHTML = optionen.map((o, i) => `<button class="zweit" data-i="${i}">${html(o)}</button>`).join("");
+    $("auswahl-knoepfe").querySelectorAll("button").forEach((b) => (b.onclick = () => (d.close(), fertig(optionen[b.dataset.i]))));
+    $("auswahl-zu").onclick = () => d.close();
+    d.onclose = () => fertig(null); // zählt nur, wenn vorher nichts gewählt wurde
+    d.showModal();
+  });
+}
+
+// (A) setzen (mit Ausfallgrund) oder wieder wegnehmen, nach Rückfrage.
+const OHNE_GRUND = "Ohne Grund";
+async function absagenOderStatt(t, b, neuLaden) {
   const absagen = b.dataset.kuerzel === "A";
-  const frage = absagen
-    ? `„${ohneKuerzel(t.titel)}“ am ${tagDe(t.start)} absagen? Fahrten und Vor-/Nachbereitung fallen dann weg.`
-    : `„${ohneKuerzel(t.titel)}“ am ${tagDe(t.start)} findet doch statt? Fahrten und Vor-/Nachbereitung kommen wieder dazu.`;
-  if (!confirm(frage)) return;
+  const kurs = `„${ohneKuerzel(t.titel)}“ am ${tagDe(t.start)}`;
+  let grund = "";
+  if (absagen) {
+    const wahl = await waehle("Kurs absagen", `${kurs}: Warum fällt er aus? Fahrten und Vor-/Nachbereitung fallen dann weg.`, [...AUSFALLGRUENDE, OHNE_GRUND]);
+    if (!wahl) return;
+    grund = wahl === OHNE_GRUND ? "" : wahl;
+  } else if (!confirm(`${kurs} findet doch statt? Fahrten und Vor-/Nachbereitung kommen wieder dazu.`)) return;
   mitWarten(b, async () => {
     const v = await setzeKuerzel(api, t, b.dataset.kuerzel, einstellungen);
-    zeigeAenderungen(v, absagen ? "Kurs abgesagt" : "Kurs findet statt");
+    const text = mitAusfallgrund(t.text || "", grund);
+    if (text !== (t.text || "").replace(/\r/g, "").trimEnd()) await api.aendere(t.id, { body: { contentType: "text", content: text } });
+    zeigeAenderungen(v, absagen ? `Kurs abgesagt${grund ? ` (${grund})` : ""}` : "Kurs findet statt");
     $("leiste").hidden = true;
     await neuLaden();
   });
@@ -197,6 +217,7 @@ async function zeigeHeute() {
   $("h-unter").textContent = `${tagName(heute)}, ${tagDe(heute)}${heute.slice(0, 4)}`;
   $("h-fahrt").innerHTML = "";
   $("h-frei").innerHTML = "";
+  zeigeWartet();
   $("h-liste").innerHTML = `<div class="leise">Wird geladen …</div>`;
   let termine;
   try {
@@ -240,6 +261,42 @@ async function zeigeHeute() {
   $("h-frei").innerHTML = frei(`Nächster Kurstag: ${tagName(tag)}, ${tagDe(tag)} (${tage === 1 ? "morgen" : `in ${tage} Tagen`})`);
   $("h-titel").textContent = `Vorschau ${tagName(tag)}, ${tagDe(tag)}`;
   zeigeKurse(kurse.filter((t) => t.start.slice(0, 10) === tag), $("h-liste"), zeigeHeute, { mitTag: false });
+}
+
+// „Wartet auf dich“ unter den Kursen: offene Protokolle, Prüfliste, Grenzen.
+async function zeigeWartet() {
+  const ziel = $("h-wartet");
+  const j = Number(jetztLokal().slice(0, 4));
+  let offen, p, knapp;
+  try {
+    offen = await ladeOffeneProtokolle();
+    const termine = await ladeJahr(j);
+    p = pruefliste(termine, j, jetztLokal(), einstellungen);
+    knapp = geld(termine, j, jetztLokal(), einstellungen).filter((a) => a.anteilJahr != null && a.anteilJahr > 0.85);
+  } catch {
+    ziel.innerHTML = "";
+    return;
+  }
+  zeigeAnzahl(offen.length);
+  const zeilen = [];
+  if (offen.length)
+    zeilen.push({
+      text: offen.length === 1 ? "1 Protokoll offen" : `${offen.length} Protokolle offen`,
+      klein: offen.slice(0, 3).map((t) => `${tagDe(t.start)} ${beschreibe(t).name}`).join(" · ") + (offen.length > 3 ? " …" : ""),
+      ansicht: "protokolle",
+    });
+  // „Ohne Teilnehmerzahl“ sind dieselben wie die offenen Protokolle.
+  for (const x of p.punkte.filter((x) => x.id !== "teilnehmer" && x.termine.length))
+    zeilen.push({ text: `${x.titel}: ${x.termine.length}`, klein: x.tun, ansicht: "pruefliste" });
+  for (const a of knapp) zeilen.push({ text: `${a.name}: ${prozent(a.anteilJahr)} der Jahresgrenze`, klein: "Rest des Jahres im Blick behalten.", ansicht: "geld" });
+  ziel.innerHTML =
+    `<div class="tag">Wartet auf dich</div>` +
+    (zeilen.length
+      ? `<div class="karte wartet">${zeilen
+          .map((z) => `<button class="w-zeile" data-ziel="${z.ansicht}"><b>${html(z.text)}</b><span>${html(z.klein)}</span><i>›</i></button>`)
+          .join("")}</div>`
+      : `<div class="w-leer">✓ Nichts offen. Alle Protokolle sind eingetragen.</div>`);
+  ziel.querySelectorAll("[data-ziel]").forEach((b) => (b.onclick = () => oeffne(b.dataset.ziel)));
 }
 
 // --- Offene Protokolle: vergangene Kurse (60 Tage), die stattfanden, ohne Protokoll ---
@@ -339,6 +396,9 @@ async function oeffneLeiste(t, was, neuLaden = () => ANSICHTEN[aktuell]()) {
 
 // --- Kursdetails: wann, wo, Protokoll, wie läuft der Kurs, was habe ich gemacht ---
 const AMPEL_TEXT = { gut: "gut", beobachten: "beobachten", kritisch: "kritisch" };
+const TREND = { steigt: "↗ Es kommen mehr", sinkt: "↘ Es kommen weniger", gleich: "→ Gleichbleibend" };
+// „Halle zu“ bei Absagen mit Grund, sonst Urlaub, Ferien, abgesagt.
+const ausfallText = (t) => (leseKuerzel(t.titel) === "A" && leseAusfallgrund(t.text)) || KUERZEL[leseKuerzel(t.titel)] || "fällt aus";
 const komma = (z, n = 1) => z.toFixed(n).replace(".", ",");
 async function zeigeDetails(t, neuLaden) {
   const ziel = $("bereich-details");
@@ -382,7 +442,8 @@ async function zeigeDetails(t, neuLaden) {
   const p = d.dieser.p;
   const vorbei = t.ende <= jetztLokal();
   const dieser = b.faelltAus
-    ? `<div class="protokoll-kurz">Dieser Termin ${KUERZEL[b.k] === "Urlaub" ? "fällt wegen Urlaub aus" : `ist ${KUERZEL[b.k] || "abgesagt"}`}.</div>`
+    ? `<div class="protokoll-kurz">Dieser Termin ${KUERZEL[b.k] === "Urlaub" ? "fällt wegen Urlaub aus" : `ist ${KUERZEL[b.k] || "abgesagt"}`}` +
+      `${leseAusfallgrund(t.text) ? ` (${html(leseAusfallgrund(t.text))})` : ""}.</div>`
     : p.thema || d.dieser.anwesend != null
       ? `<div class="protokoll-kurz"><b>${html(p.thema || "ohne Thema")}</b>` +
         (p.material ? `<div class="leise">${html(p.material)}</div>` : "") +
@@ -397,7 +458,7 @@ async function zeigeDetails(t, neuLaden) {
   const balken = d.balken
     .map((v) =>
       v.ausfall || v.anwesend == null
-        ? `<div><i class="aus" style="height:14px"></i>${tagDe(v.t.start)}<br>${v.ausfall ? KUERZEL[leseKuerzel(v.t.titel)] || "fällt aus" : "ohne"}</div>`
+        ? `<div><i class="aus" style="height:14px"></i>${tagDe(v.t.start)}<br>${v.ausfall ? html(ausfallText(v.t)) : "ohne"}</div>`
         : `<div title="${v.anwesend} von ${v.gesamt}"><i style="height:${Math.max(6, Math.round((v.anwesend / hoechst) * 60))}px"></i>${tagDe(v.t.start)}<br>${v.anwesend}</div>`
     )
     .join("");
@@ -405,11 +466,18 @@ async function zeigeDetails(t, neuLaden) {
   const wie = d.gehalten
     ? `<div class="kacheln">${kachel(d.gehalten, "Termine gehalten")}` +
       kachel(d.schnittAnwesend == null ? "–" : komma(d.schnittAnwesend), "Ø anwesend") +
-      kachel(d.quote == null ? "–" : `${Math.round(d.quote * 100)} %`, `${d.ampel ? `<i class="ampel ${d.ampel}"></i>` : ""}Anwesenheit${d.ampel ? ` (${AMPEL_TEXT[d.ampel]})` : ""}`) +
+      kachel(
+        d.quoteAmpel == null ? (d.quote == null ? "–" : `${Math.round(d.quote * 100)} %`) : `${Math.round(d.quoteAmpel * 100)} %`,
+        `${d.ampel ? `<i class="ampel ${d.ampel}"></i>` : ""}Anwesenheit${d.ampel ? ` (${AMPEL_TEXT[d.ampel]})` : ""}`
+      ) +
       kachel(d.schnittGesamt == null ? "–" : komma(d.schnittGesamt, 0), "Teilnehmer") +
       `</div>` +
       (d.balken.length ? `<div class="balken">${balken}</div>` : "") +
-      `<div class="leise" style="margin-top:8px">${d.mitProtokoll} von ${d.gehalten} mit Teilnehmerzahl. Ampel wie im Kursbuch: ab 70 % gut, unter 55 % kritisch.</div>`
+      (d.trend ? `<div class="trend ${d.trend.richtung}">${TREND[d.trend.richtung]} · Ø ${komma(d.trend.jetzt)} anwesend in den letzten 4 Terminen, davor ${komma(d.trend.vorher)}</div>` : "") +
+      (d.ausfaelle.length
+        ? `<div class="d-ausfall"><b>Ausgefallen:</b> ${d.ausfaelle.map((x) => `${tagDe(x.start)} ${html(ausfallText(x))}`).join(" · ")}</div>`
+        : "") +
+      `<div class="leise" style="margin-top:8px">${d.mitProtokoll} von ${d.gehalten} mit Teilnehmerzahl. Ampel aus den letzten 8 Protokollen, ab 3: ab 70 % gut, unter 55 % kritisch.</div>`
     : `<div class="leise">Noch keine gehaltenen Termine in den letzten vier Monaten.</div>`;
   const verlauf = d.verlauf.length
     ? `<table class="verlauf">${d.verlauf

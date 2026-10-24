@@ -101,6 +101,23 @@
     .leer { padding: 28px; text-align: center; color: var(--leise); border: 2px dashed var(--linie); border-radius: var(--rund); background: rgba(255,255,255,.5); }
 
     /* Seitenleiste für Protokoll und E-Mail zu einem Kurs */
+    .trend { margin-top: 10px; font-weight: 700; color: var(--dunkel); }
+    .trend.steigt { color: #2E6B4A; } .trend.sinkt { color: var(--rot); }
+    .d-ausfall { margin-top: 6px; color: var(--leise); }
+    .wartet { padding: 4px 0; }
+    #h-wartet .w-zeile { margin: 0; display: grid; justify-content: stretch; align-items: start; min-height: 0; grid-template-columns: 1fr auto; gap: 2px 12px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--linie); padding: 12px 18px; font: inherit; color: var(--schrift); cursor: pointer; border-radius: 0; }
+    .w-zeile:last-child { border-bottom: 0; }
+    #h-wartet .w-zeile b { font-weight: 700; }
+    #h-wartet .w-zeile span { grid-column: 1; color: var(--leise); font-size: 14px; }
+    #h-wartet .w-zeile i { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-style: normal; font-size: 22px; color: var(--leise); }
+    .w-zeile:hover { background: var(--flaeche); }
+    .w-leer { color: var(--leise); }
+    #auswahl { border: 0; border-radius: 14px; padding: 22px 22px 18px; width: min(420px, calc(100vw - 32px)); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+    #auswahl::backdrop { background: rgba(38,54,58,.45); }
+    #auswahl h2 { margin: 0 0 6px; font: 700 22px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); }
+    #auswahl .wahl { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+    #auswahl .wahl button { flex: 1 1 40%; }
+    #auswahl .abbrechen { background: none; border: 0; color: var(--leise); text-decoration: underline; padding: 6px 0; }
     #leiste { position: fixed; inset: 0 0 0 auto; width: min(560px, 100vw); background: #fff; border-left: 4px solid var(--band); box-shadow: -8px 0 30px rgba(0,0,0,.15); padding: 22px 26px; overflow-y: auto; z-index: 10; }
     #leiste button:not(.zu):not(.knopf) { display: block; width: 100%; margin: 8px 0; }
     #leiste .reihe button { margin: 0; }
@@ -231,6 +248,7 @@
       <div id="h-frei"></div>
       <div class="tag" id="h-titel"></div>
       <div id="h-liste"></div>
+      <div id="h-wartet"></div>
     </section>
 
     <section class="ansicht" id="ansicht-protokolle" hidden>
@@ -360,5 +378,6 @@
   <footer><span>© <span id="jahr"></span> stehle bewegt</span><span>Daten bleiben in deinem Outlook.</span></footer>
 
   <script type="module" src="app.js"></script>
+  <dialog id="auswahl"><h2 id="auswahl-titel"></h2><div class="leise" id="auswahl-text"></div><div class="wahl" id="auswahl-knoepfe"></div><button class="abbrechen" id="auswahl-zu">Abbrechen</button></dialog>
 </body>
 </html>

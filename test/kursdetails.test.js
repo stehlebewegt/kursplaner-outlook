@@ -25,7 +25,8 @@ test("Kursdetails rechnen nur den gleichen Kurs (Name, Wochentag, Uhrzeit)", () 
   assert.equal(d.mitProtokoll, 2);
   assert.equal(d.schnittAnwesend, 7);
   assert.equal(d.quote, 14 / 20);
-  assert.equal(d.ampel, "gut");
+  assert.equal(d.ampel, ""); // erst ab 3 Protokollen
+  assert.deepEqual(d.ausfaelle.map((x) => x.start.slice(0, 10)), ["2026-10-19"]);
   assert.equal(d.balken.length, 3);
   assert.deepEqual(d.verlauf.map((v) => v.p.thema), ["Gleichgewicht", "Kraft"]);
   assert.deepEqual(d.kommend.map((v) => v.t.start.slice(0, 10)), ["2026-11-02"]);
@@ -36,4 +37,16 @@ test("Ampel-Grenzen wie in der Kursauswertung", () => {
   assert.equal(ampel(0.65), "beobachten");
   assert.equal(ampel(0.5), "kritisch");
   assert.equal(ampel(null), "");
+});
+
+test("Ampel aus den letzten 8 Protokollen, Trend aus 4 gegen 4", () => {
+  const tage = Array.from({ length: 10 }, (_, i) => new Date(Date.UTC(2026, 7, 3 + 7 * i)).toISOString().slice(0, 10));
+  // erst 10 von 10 da, die letzten vier nur 5 von 10
+  const termine = tage.map((d, i) => t(d, undefined, prot("X", i < 6 ? 10 : 5, i < 6 ? 0 : 5, 0)));
+  const d = kursDetails(termine[9], termine, { jetzt: "2026-12-01T00:00", ohneKuerzel, faelltAus: () => false });
+  assert.equal(d.quoteAmpel, (4 * 10 + 4 * 5) / 80); // nur die letzten 8
+  assert.equal(d.ampel, "gut"); // 75 %
+  assert.equal(d.trend.richtung, "sinkt");
+  assert.equal(d.trend.jetzt, 5);
+  assert.equal(d.trend.vorher, 10);
 });
