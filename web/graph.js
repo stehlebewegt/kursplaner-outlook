@@ -203,6 +203,13 @@ export async function loesche(id) {
   await graph("DELETE", `/me/events/${id}`);
 }
 
+// Zahlen wie in „Outlook Heute“: ungelesene im Posteingang, Entwürfe, Postausgang.
+export async function holeOrdnerZahlen() {
+  const ordner = (name) => graph("GET", `/me/mailFolders/${name}?$select=unreadItemCount,totalItemCount`);
+  const [posteingang, entwuerfe, postausgang] = await Promise.all(["inbox", "drafts", "outbox"].map(ordner));
+  return { posteingang: posteingang.unreadItemCount, entwuerfe: entwuerfe.totalItemCount, postausgang: postausgang.totalItemCount };
+}
+
 // Kurse aller Anbieter-Kalender im Zeitraum (mit Text und Kalendername),
 // für „Vertretung übernehmen“ im Kursplaner-Fenster.
 export async function holeAnbieterKurse(von, bis) {

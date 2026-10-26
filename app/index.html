@@ -112,6 +112,26 @@
     #h-wartet .w-zeile i { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-style: normal; font-size: 22px; color: var(--leise); }
     .w-zeile:hover { background: var(--flaeche); }
     .w-leer { color: var(--leise); }
+    /* Überblick wie „Outlook Heute“: Kalender links, Aufgaben und Nachrichten rechts */
+    .ueberblick { display: grid; grid-template-columns: 3fr 2fr; gap: 0 20px; }
+    .ueberblick .karte { padding: 8px 18px; }
+    .k-tag { font-weight: 700; color: var(--dunkel); margin: 10px 0 2px; padding-bottom: 2px; border-bottom: 1px solid var(--linie); }
+    .k-zeile { display: grid; grid-template-columns: 96px 1fr; gap: 0 10px; padding: 5px 0; font-size: 15px; }
+    .k-zeile .zeit { color: var(--leise); font-variant-numeric: tabular-nums; }
+    .k-zeile .ort { grid-column: 2; color: var(--leise); font-size: 13px; }
+    .k-zeile.vorbei { opacity: .5; }
+    .k-zeile.jetzt .zeit { color: var(--rot); font-weight: 700; }
+    label.a-zeile { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 8px 0; border-bottom: 1px solid var(--linie); font-size: 15px; font-weight: 400; cursor: pointer; }
+    .a-zeile:last-child { border-bottom: 0; }
+    .a-zeile input { width: 18px; height: 18px; min-height: 0; padding: 0; margin: 2px 0 0; flex: none; accent-color: var(--akzent); }
+    label.a-zeile.ueberfaellig { color: var(--rot); }
+    .a-zeile .wichtig { color: var(--rot); font-weight: 700; }
+    .a-zeile .faellig { display: block; font-size: 13px; color: var(--leise); }
+    .a-zeile.ueberfaellig .faellig { color: var(--rot); }
+    .n-zeile { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--linie); }
+    .n-zeile:last-child { border-bottom: 0; }
+    .n-zeile b { font-variant-numeric: tabular-nums; }
+    .ueberblick .leise, .ueberblick .fehler { padding: 8px 0; font-size: 15px; }
     #auswahl { border: 0; border-radius: 14px; padding: 22px 22px 18px; width: min(420px, calc(100vw - 32px)); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
     #auswahl::backdrop { background: rgba(38,54,58,.45); }
     #auswahl h2 { margin: 0 0 6px; font: 700 22px "Barlow Semi Condensed", sans-serif; color: var(--dunkel); }
@@ -198,6 +218,7 @@
       h1 { font-size: 28px; }
       .kurs .zeit { width: auto; }
       .kacheln { grid-template-columns: repeat(2, 1fr); }
+      .ueberblick { grid-template-columns: 1fr; }
       #leiste { border-left: 0; padding: 18px 16px calc(24px + env(safe-area-inset-bottom)); z-index: 18; }
       #leiste .d-knoepfe { margin: 14px -16px 0; padding: 12px 16px; }
       header .rechts { display: none; }
@@ -248,6 +269,13 @@
       <div id="h-frei"></div>
       <div class="tag" id="h-titel"></div>
       <div id="h-liste"></div>
+      <div class="ueberblick">
+        <div><div class="tag">Kalender</div><div class="karte" id="h-kalender"></div></div>
+        <div>
+          <div class="tag">Aufgaben</div><div class="karte" id="h-aufgaben"></div>
+          <div class="tag">Nachrichten</div><div class="karte" id="h-nachrichten"></div>
+        </div>
+      </div>
       <div id="h-wartet"></div>
     </section>
 
