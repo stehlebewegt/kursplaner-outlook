@@ -218,14 +218,19 @@ async function zeigeHeute() {
   $("h-fahrt").innerHTML = "";
   $("h-frei").innerHTML = "";
   zeigeWartet();
+  zeigeAufgaben();
+  zeigeNachrichten();
   $("h-liste").innerHTML = `<div class="leise">Wird geladen …</div>`;
+  $("h-kalender").innerHTML = `<div class="leise">Wird geladen …</div>`;
   let termine;
   try {
     termine = await api.holeVerlauf(heute, plusTage(heute, 14));
   } catch (e) {
     $("h-liste").innerHTML = `<div class="fehler">Konnte den Kalender nicht laden: ${html(e.message)}</div>`;
+    $("h-kalender").innerHTML = "";
     return;
   }
+  zeigeKalender(termine, heute);
   const jetzt = jetztLokal();
   // Nächste Fahrt heute, die noch nicht vorbei ist.
   const fahrt = termine
@@ -261,6 +266,124 @@ async function zeigeHeute() {
   $("h-frei").innerHTML = frei(`Nächster Kurstag: ${tagName(tag)}, ${tagDe(tag)} (${tage === 1 ? "morgen" : `in ${tage} Tagen`})`);
   $("h-titel").textContent = `Vorschau ${tagName(tag)}, ${tagDe(tag)}`;
   zeigeKurse(kurse.filter((t) => t.start.slice(0, 10) === tag), $("h-liste"), zeigeHeute, { mitTag: false });
+}
+
+// --- Überblick wie „Outlook Heute“ ---
+// Kalender: alle Termine von heute und den nächsten zwei Tagen.
+function zeigeKalender(termine, heute) {
+  const jetzt = jetztLokal();
+  const tage = [0, 1, 2].map((n) => plusTage(heute, n));
+  const name = (d, n) => (n === 0 ? "Heute" : n === 1 ? "Morgen" : tagName(d));
+  $("h-kalender").innerHTML = tage
+    .map((d, n) => {
+      const ende = plusTage(d, 1);
+      const amTag = termine
+        .filter((t) => t.start < `${ende}T00:00` && t.ende > `${d}T00:00`)
+        .sort((a, b) => (a.start < b.start ? -1 : 1));
+      const zeilen = amTag.map((t) => {
+        const ganz = t.start.slice(11) === "00:00" && t.ende.slice(11) === "00:00";
+        const zeit = ganz ? "ganztägig" : `${t.start.slice(0, 10) < d ? "…" : t.start.slice(11)} – ${t.ende.slice(0, 10) > d ? "…" : t.ende.slice(11)}`;
+        const art = t.ende <= jetzt ? "vorbei" : t.start <= jetzt ? "jetzt" : "";
+        return (
+          `<div class="k-zeile ${art}"><span class="zeit">${zeit}</span><span>${html(t.titel)}</span>` +
+          (t.ort ? `<span class="ort">${html(t.ort)}</span>` : "") +
+          `</div>`
+        );
+      });
+      return `<div class="k-tag">${name(d, n)}, ${tagDe(d)}</div>` + (zeilen.join("") || `<div class="leise">Keine Termine</div>`);
+    })
+    .join("");
+}
+
+async function zeigeNachrichten() {
+  const ziel = $("h-nachrichten");
+  try {
+    const z = await api.holeOrdnerZahlen();
+    ziel.innerHTML = [
+      ["Posteingang (ungelesen)", z.posteingang],
+      ["Entwürfe", z.entwuerfe],
+      ["Postausgang", z.postausgang],
+    ]
+      .map(([n, zahl]) => `<div class="n-zeile"><span>${n}</span><b>${zahl}</b></div>`)
+      .join("");
+  } catch (e) {
+    ziel.innerHTML = `<div class="fehler">Konnte die Ordner nicht lesen: ${html(e.message)}</div>`;
+  }
+}
+
+// Aufgaben kommen aus Microsoft To Do (dort landen auch die Outlook-Aufgaben).
+// Dafür braucht es einmalig deine Zustimmung, deshalb ein eigener Schlüssel.
+const AUFGABEN = ["Tasks.ReadWrite"];
+async function aufgabenGraph(methode, pfad, body) {
+  const t = (await msalApp.acquireTokenSilent({ scopes: AUFGABEN, account: konto })).accessToken;
+  const antwort = await fetch(`https://graph.microsoft.com/v1.0${pfad}`, {
+    method: methode,
+    headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json", Prefer: `outlook.timezone="${config.zeitzone}"` },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!antwort.ok) throw new Error(`${antwort.status} ${(await antwort.text()).slice(0, 160)}`);
+  return antwort.json();
+}
+
+async function zeigeAufgaben() {
+  const ziel = $("h-aufgaben");
+  ziel.innerHTML = `<div class="leise">Wird geladen …</div>`;
+  let aufgaben = [];
+  try {
+    const listen = (await aufgabenGraph("GET", "/me/todo/lists?$top=50")).value;
+    for (const l of listen) {
+      const filter = encodeURIComponent("status ne 'completed'");
+      const antwort = await aufgabenGraph("GET", `/me/todo/lists/${l.id}/tasks?$filter=${filter}&$top=100`);
+      aufgaben.push(...antwort.value.map((a) => ({ ...a, liste: l.id })));
+    }
+  } catch (e) {
+    if (e instanceof msal.InteractionRequiredAuthError || /consent|interaction/i.test(e.errorCode || e.message)) {
+      ziel.innerHTML =
+        `<div class="leise">Damit der Kursplaner deine Aufgaben zeigen darf, musst du einmal zustimmen.</div>` +
+        `<button id="h-aufgaben-ok">Aufgaben anzeigen</button>`;
+      $("h-aufgaben-ok").onclick = () => msalApp.acquireTokenRedirect({ scopes: AUFGABEN, account: konto });
+      return;
+    }
+    ziel.innerHTML = `<div class="fehler">Konnte die Aufgaben nicht laden: ${html(e.message)}</div>`;
+    return;
+  }
+  const heute = jetztLokal().slice(0, 10);
+  const faellig = (a) => a.dueDateTime?.dateTime?.slice(0, 10) || "";
+  // Wie in Outlook: mit Datum zuerst (älteste oben), ohne Datum am Ende.
+  aufgaben.sort((a, b) => (faellig(a) || "9") < (faellig(b) || "9") ? -1 : (faellig(a) || "9") > (faellig(b) || "9") ? 1 : a.title.localeCompare(b.title));
+  if (!aufgaben.length) {
+    ziel.innerHTML = `<div class="w-leer">✓ Keine offenen Aufgaben.</div>`;
+    return;
+  }
+  ziel.innerHTML = aufgaben
+    .map((a, i) => {
+      const f = faellig(a);
+      const zu = f && f < heute;
+      const wann = f ? (f === heute ? "heute fällig" : `${zu ? "überfällig seit" : "fällig"} ${tagDe(f)}${f.slice(0, 4)}`) : "";
+      return (
+        `<label class="a-zeile${zu ? " ueberfaellig" : ""}"><input type="checkbox" data-aufgabe="${i}">` +
+        `<span>${a.importance === "high" ? `<span class="wichtig">! </span>` : ""}${html(a.title)}` +
+        (wann ? `<span class="faellig">${wann}</span>` : "") +
+        `</span></label>`
+      );
+    })
+    .join("");
+  ziel.querySelectorAll("[data-aufgabe]").forEach(
+    (box) =>
+      (box.onchange = async () => {
+        const a = aufgaben[box.dataset.aufgabe];
+        box.disabled = true;
+        try {
+          await aufgabenGraph("PATCH", `/me/todo/lists/${a.liste}/tasks/${a.id}`, { status: "completed" });
+          box.closest(".a-zeile").remove();
+          if (!ziel.querySelector(".a-zeile")) ziel.innerHTML = `<div class="w-leer">✓ Keine offenen Aufgaben.</div>`;
+        } catch (e) {
+          box.checked = false;
+          box.disabled = false;
+          zeige(`<div class="karte fehler">Konnte die Aufgabe nicht abhaken: ${html(e.message)}</div>`);
+        }
+      })
+  );
 }
 
 // „Wartet auf dich“ unter den Kursen: offene Protokolle, Prüfliste, Grenzen.
