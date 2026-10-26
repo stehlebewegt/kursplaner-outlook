@@ -395,6 +395,7 @@ try {
     jetzt: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Berlin" }).replace(" ", "T").slice(0, 16),
     ausgabe,
     erzwingen: process.env.HINWEISE_PROBE === "ja",
+    postfach,
     holeMails: () => offeneMails({ graph, regeln: mailRegeln, jetztIso: new Date().toISOString(), einstellungen }),
   });
 } catch (e) {
