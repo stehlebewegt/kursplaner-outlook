@@ -77,7 +77,7 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
   // dann wird in diesem Fenster bei jedem Lauf erneut (kurz) geprüft.
   if (erzwingen || umzug.hinweise || (stunde >= e.morgensAb && stunde < e.morgensAb + 2)) {
     const kennung = `hinweise ${heute}${erzwingen ? " probe" : ""}`;
-    if (erzwingen || !(await schonDa(graph, kennung))) {
+    if (erzwingen || umzug.hinweise || !(await schonDa(graph, kennung))) {
       // Protokolle: Kurse der letzten Tage, die schon vorbei sind.
       const zurueck = await holeBereich(plusTage(heute, -e.protokollTage), plusTage(heute, -1));
       const ohne = fehlendeProtokolle(zurueck, jetzt, einstellungen);
@@ -108,7 +108,7 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
   if (erzwingen || umzug.woche || (sonntag && stunde >= e.wocheAb)) {
     const montag = umzug.woche && !erzwingen ? umzug.montag : sonntag ? plusTage(heute, 1) : plusTage(heute, (8 - new Date(`${heute}T12:00:00Z`).getUTCDay()) % 7 || 7);
     const kennung = `woche ${montag}${erzwingen ? " probe" : ""}`;
-    if (erzwingen || !(await schonDa(graph, kennung))) {
+    if (erzwingen || umzug.woche || !(await schonDa(graph, kennung))) {
       const termine = await holeBereich(montag, plusTage(montag, 6));
       await inPosteingang(
         graph,
