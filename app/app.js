@@ -269,7 +269,11 @@ async function zeigeHeute() {
 }
 
 // --- Überblick wie „Outlook Heute“ ---
-// Kalender: alle Termine von heute und den nächsten zwei Tagen.
+// Kalender: die eigentlichen Termine von heute und den nächsten zwei Tagen,
+// ohne Fahrt- und Vor-/Nachbereitungsblöcke.
+const PUFFER_TITEL = /^(🚗\s*)?(Jetzt losfahren|Anfahrt|Rückfahrt|Vorbereitung|Nachbereitung|Nach-\/Vorbereitung) - /;
+const istPuffer = (t) =>
+  (t.kategorien || []).some((k) => k === einstellungen.kategorieFahrt || k === einstellungen.kategoriePuffer) || PUFFER_TITEL.test(t.titel);
 function zeigeKalender(termine, heute) {
   const jetzt = jetztLokal();
   const tage = [0, 1, 2].map((n) => plusTage(heute, n));
@@ -278,7 +282,7 @@ function zeigeKalender(termine, heute) {
     .map((d, n) => {
       const ende = plusTage(d, 1);
       const amTag = termine
-        .filter((t) => t.start < `${ende}T00:00` && t.ende > `${d}T00:00`)
+        .filter((t) => !istPuffer(t) && t.start < `${ende}T00:00` && t.ende > `${d}T00:00`)
         .sort((a, b) => (a.start < b.start ? -1 : 1));
       const zeilen = amTag.map((t) => {
         const ganz = t.start.slice(11) === "00:00" && t.ende.slice(11) === "00:00";
