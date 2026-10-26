@@ -60,3 +60,14 @@ test("Wochenvorschau als PDF entsteht", async () => {
   const bytes = Buffer.from(doc.output("arraybuffer"));
   assert.equal(bytes.subarray(0, 4).toString(), "%PDF");
 });
+
+test("Wochenvorschau landet als ungelesene Mail im Posteingang", async () => {
+  const { inPosteingang, NACHRICHTEN_FLAGS } = await import("../automatik/hinweise.js");
+  const aufrufe = [];
+  const graph = async (methode, pfad, body) => (aufrufe.push({ methode, pfad, body }), methode === "POST" ? { id: "m1" } : null);
+  await inPosteingang(graph, "woche 2026-10-26", "Kursplaner: Woche ab 26.10.", "<p>x</p>", [], "ich@example.org");
+  assert.equal(aufrufe[0].pfad, "/mailFolders/inbox/messages");
+  assert.deepEqual(aufrufe[0].body.singleValueExtendedProperties.find((p) => p.id === NACHRICHTEN_FLAGS), { id: NACHRICHTEN_FLAGS, value: "1" });
+  assert.equal(aufrufe[0].body.from.emailAddress.address, "ich@example.org");
+  assert.deepEqual(aufrufe[1], { methode: "PATCH", pfad: "/messages/m1", body: { isRead: false } });
+});

@@ -1,6 +1,7 @@
-// Entwürfe für Michael: morgens Hinweise (fehlende Protokolle, Überschneidungen),
-// sonntagabends die Wochenvorschau. Jeder Entwurf entsteht nur einmal (Kennung
-// am Entwurf). Gesendet wird nichts. Die öffentliche Ausgabe enthält nur Zahlen.
+// Für Michael: morgens Hinweise als Entwurf (fehlende Protokolle, Überschneidungen),
+// sonntagabends die Wochenvorschau als ungelesene Mail im Posteingang. Jede
+// entsteht nur einmal (Kennung an der Nachricht). Gesendet wird nichts. Die
+// öffentliche Ausgabe enthält nur Zahlen.
 import { BERICHT, ladeJsPdf } from "./monatsbericht.js";
 import { wochenPdf } from "../src/wochenPdf.js";
 import { fehlendeProtokolle, ueberschneidungen, hinweisHtml, wochenHtml, plusTage } from "../src/hinweise.js";
@@ -20,6 +21,24 @@ const entwurf = (graph, kennung, betreff, html, anhaenge = []) =>
     singleValueExtendedProperties: [{ id: BERICHT, value: kennung }],
     attachments: anhaenge,
   });
+// MAPI-Nachrichtenflags: 1 = gelesen, ohne „nicht gesendet“. So liegt die
+// Nachricht als normale Mail im Posteingang statt als Entwurf; danach auf
+// ungelesen gestellt, damit sie auffällt. Braucht nur Mail.ReadWrite.
+export const NACHRICHTEN_FLAGS = "Integer 0x0E07";
+export async function inPosteingang(graph, kennung, betreff, html, anhaenge = [], postfach) {
+  const an = postfach ? { emailAddress: { name: "Kursplaner", address: postfach } } : undefined;
+  const mail = await graph("POST", "/mailFolders/inbox/messages", {
+    subject: betreff,
+    body: { contentType: "html", content: html },
+    ...(an && { from: an, toRecipients: [an] }),
+    singleValueExtendedProperties: [
+      { id: BERICHT, value: kennung },
+      { id: NACHRICHTEN_FLAGS, value: "1" },
+    ],
+    attachments: anhaenge,
+  });
+  await graph("PATCH", `/messages/${mail.id}`, { isRead: false });
+}
 const pdfAnhang = (name, doc) => ({
   "@odata.type": "#microsoft.graph.fileAttachment",
   name,
@@ -28,7 +47,7 @@ const pdfAnhang = (name, doc) => ({
 });
 
 // jetzt = "JJJJ-MM-TTTHH:MM" deutsche Zeit.
-export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausgabe, erzwingen = false, holeMails = async () => [] }) {
+export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausgabe, erzwingen = false, holeMails = async () => [], postfach }) {
   const e = einstellungen.hinweise;
   if (!e) return;
   const heute = jetzt.slice(0, 10);
@@ -71,14 +90,15 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
     const kennung = `woche ${montag}${erzwingen ? " probe" : ""}`;
     if (erzwingen || !(await schonDa(graph, kennung))) {
       const termine = await holeBereich(montag, plusTage(montag, 6));
-      await entwurf(
+      await inPosteingang(
         graph,
         kennung,
         `${erzwingen ? "PROBE: " : ""}Kursplaner: Woche ab ${montag.slice(8, 10)}.${montag.slice(5, 7)}.`,
         wochenHtml(termine, montag, einstellungen),
-        [pdfAnhang(`Woche ab ${montag.slice(8, 10)}.${montag.slice(5, 7)}.pdf`, wochenPdf(termine, montag, einstellungen, ladeJsPdf()))]
+        [pdfAnhang(`Woche ab ${montag.slice(8, 10)}.${montag.slice(5, 7)}.pdf`, wochenPdf(termine, montag, einstellungen, ladeJsPdf()))],
+        postfach
       );
-      ausgabe(`Wochenvorschau ab ${montag}: Entwurf angelegt`);
+      ausgabe(`Wochenvorschau ab ${montag}: im Posteingang`);
     }
   }
 }
