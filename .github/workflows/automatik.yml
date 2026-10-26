@@ -32,6 +32,10 @@ on:
         description: "ja = Hinweise und Wochenvorschau sofort als PROBE in den Posteingang"
         required: false
         default: ""
+      hinweise_umziehen:
+        description: "ja = heutige Hinweise und Wochenvorschau aus den Entwürfen in den Posteingang umziehen"
+        required: false
+        default: ""
       nachberechnen_schreiben:
         description: "ja = Nachberechnung wirklich ausführen (sonst nur Probelauf)"
         required: false
@@ -71,6 +75,7 @@ jobs:
           NACHBERECHNEN: ${{ inputs.nachberechnen }}
           ROUTENLINKS: ${{ inputs.routenlinks }}
           HINWEISE_PROBE: ${{ inputs.hinweise_probe }}
+          HINWEISE_UMZIEHEN: ${{ inputs.hinweise_umziehen }}
           FAHRTEN_PROBE: ${{ inputs.fahrten_probe }}
           STRECKEN_PROBE: ${{ inputs.strecken_probe }}
           ABSCHLUESSE: ${{ inputs.abschluesse }}

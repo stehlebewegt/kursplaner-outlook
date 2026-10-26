@@ -40,15 +40,34 @@ const pdfAnhang = (name, doc) => ({
 });
 
 // jetzt = "JJJJ-MM-TTTHH:MM" deutsche Zeit.
-export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausgabe, erzwingen = false, holeMails = async () => [], postfach }) {
+// Einmalig: die heutigen Hinweise und die Wochenvorschau dieser Woche, die noch
+// als Entwurf liegen, löschen und frisch im Posteingang anlegen.
+async function ziehUm(graph, heute) {
+  const montag = plusTage(heute, -((new Date(`${heute}T12:00:00Z`).getUTCDay() + 6) % 7));
+  const gesucht = { [`hinweise ${heute}`]: "hinweise", [`woche ${montag}`]: "woche" };
+  const filter = encodeURIComponent(`id eq '${BERICHT}'`);
+  const entwuerfe = await graph("GET", `/mailFolders/drafts/messages?$top=100&$select=id&$expand=singleValueExtendedProperties($filter=${filter})`);
+  const umzug = { montag };
+  for (const m of entwuerfe.value) {
+    const art = gesucht[m.singleValueExtendedProperties?.[0]?.value];
+    if (!art) continue;
+    await graph("DELETE", `/messages/${m.id}`);
+    umzug[art] = true;
+  }
+  return umzug;
+}
+
+export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausgabe, erzwingen = false, holeMails = async () => [], postfach, umziehen = false }) {
   const e = einstellungen.hinweise;
   if (!e) return;
   const heute = jetzt.slice(0, 10);
   const stunde = Number(jetzt.slice(11, 13));
+  const umzug = umziehen ? await ziehUm(graph, heute) : {};
+  if (umziehen) ausgabe(`Umzug: Hinweise ${umzug.hinweise ? "ja" : "nein"}, Woche ${umzug.woche ? "ja" : "nein"}`);
 
   // Nur in einem Fenster am Morgen suchen; ohne Hinweise entsteht kein Entwurf,
   // dann wird in diesem Fenster bei jedem Lauf erneut (kurz) geprüft.
-  if (erzwingen || (stunde >= e.morgensAb && stunde < e.morgensAb + 2)) {
+  if (erzwingen || umzug.hinweise || (stunde >= e.morgensAb && stunde < e.morgensAb + 2)) {
     const kennung = `hinweise ${heute}${erzwingen ? " probe" : ""}`;
     if (erzwingen || !(await schonDa(graph, kennung))) {
       // Protokolle: Kurse der letzten Tage, die schon vorbei sind.
@@ -78,8 +97,8 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
 
   // Sonntag ab der eingestellten Stunde: Vorschau auf die kommende Woche.
   const sonntag = new Date(`${heute}T12:00:00Z`).getUTCDay() === 0;
-  if (erzwingen || (sonntag && stunde >= e.wocheAb)) {
-    const montag = sonntag ? plusTage(heute, 1) : plusTage(heute, (8 - new Date(`${heute}T12:00:00Z`).getUTCDay()) % 7 || 7);
+  if (erzwingen || umzug.woche || (sonntag && stunde >= e.wocheAb)) {
+    const montag = umzug.woche && !erzwingen ? umzug.montag : sonntag ? plusTage(heute, 1) : plusTage(heute, (8 - new Date(`${heute}T12:00:00Z`).getUTCDay()) % 7 || 7);
     const kennung = `woche ${montag}${erzwingen ? " probe" : ""}`;
     if (erzwingen || !(await schonDa(graph, kennung))) {
       const termine = await holeBereich(montag, plusTage(montag, 6));

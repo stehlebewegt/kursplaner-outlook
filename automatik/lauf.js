@@ -396,6 +396,7 @@ try {
     ausgabe,
     erzwingen: process.env.HINWEISE_PROBE === "ja",
     postfach,
+    umziehen: process.env.HINWEISE_UMZIEHEN === "ja",
     holeMails: () => offeneMails({ graph, regeln: mailRegeln, jetztIso: new Date().toISOString(), einstellungen }),
   });
 } catch (e) {

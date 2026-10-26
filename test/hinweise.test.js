@@ -71,3 +71,28 @@ test("Wochenvorschau landet als ungelesene Mail im Posteingang", async () => {
   assert.equal(aufrufe[0].body.from.emailAddress.address, "ich@example.org");
   assert.deepEqual(aufrufe[1], { methode: "PATCH", pfad: "/messages/m1", body: { isRead: false } });
 });
+
+test("Umziehen löscht die aktuellen Entwürfe und legt sie im Posteingang neu an", async () => {
+  const { hinweise } = await import("../automatik/hinweise.js");
+  const { einstellungen } = await import("../src/einstellungen.js");
+  const aufrufe = [];
+  const graph = async (methode, pfad, body) => {
+    aufrufe.push({ methode, pfad, body });
+    if (pfad.startsWith("/mailFolders/drafts/messages"))
+      return { value: [
+        { id: "h", singleValueExtendedProperties: [{ value: "hinweise 2026-10-28" }] },
+        { id: "w", singleValueExtendedProperties: [{ value: "woche 2026-10-26" }] },
+        { id: "alt", singleValueExtendedProperties: [{ value: "woche 2026-10-19" }] },
+        { id: "x" },
+      ] };
+    if (pfad.startsWith("/messages?")) return { value: [] };
+    if (pfad.startsWith("/events/")) return { body: { content: "" } };
+    if (methode === "POST") return { id: "neu" };
+    return null;
+  };
+  const kurs = { id: "k", titel: "RehaSport (Michael)", start: "2026-10-27T08:45", ende: "2026-10-27T09:30", kategorien: ["10 SVE: RehaSport"] };
+  await hinweise({ graph, holeBereich: async () => [kurs, { ...kurs, id: "k2" }], einstellungen, jetzt: "2026-10-28T12:00", ausgabe: () => {}, umziehen: true });
+  assert.deepEqual(aufrufe.filter((a) => a.methode === "DELETE").map((a) => a.pfad), ["/messages/h", "/messages/w"]);
+  const neu = aufrufe.filter((a) => a.methode === "POST").map((a) => a.body.subject);
+  assert.ok(neu.some((b) => /Woche ab 26\.10\./.test(b)), neu.join());
+});
