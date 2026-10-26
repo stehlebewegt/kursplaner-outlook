@@ -268,6 +268,21 @@ async function zeigeHeute() {
   zeigeKurse(kurse.filter((t) => t.start.slice(0, 10) === tag), $("h-liste"), zeigeHeute, { mitTag: false });
 }
 
+// Bereiche im Überblick: auf dem Handy klappbar (Zustand gemerkt), auf dem PC immer offen.
+const handy = matchMedia("(max-width: 760px)");
+function richteKlappenEin() {
+  document.querySelectorAll(".klapp").forEach((d) => {
+    const schluessel = `klapp-${d.dataset.klapp}`;
+    d.open = !handy.matches || speicher.lies(schluessel) !== "zu";
+    d.querySelector("summary").onclick = (e) => {
+      if (!handy.matches) e.preventDefault();
+    };
+    d.ontoggle = () => handy.matches && speicher.merke(schluessel, d.open ? "auf" : "zu");
+  });
+}
+richteKlappenEin();
+handy.addEventListener("change", richteKlappenEin);
+
 // --- Überblick wie „Outlook Heute“ ---
 // Kalender: die eigentlichen Termine von heute und den nächsten zwei Tagen,
 // ohne Fahrt- und Vor-/Nachbereitungsblöcke.

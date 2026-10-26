@@ -115,6 +115,9 @@
     /* Überblick wie „Outlook Heute“: Kalender links, Aufgaben und Nachrichten rechts */
     .ueberblick { display: grid; grid-template-columns: 3fr 2fr; gap: 0 20px; }
     .ueberblick .karte { padding: 8px 18px; }
+    /* Auf dem PC immer offen, auf dem Handy auf- und zuklappbar */
+    .klapp > summary { list-style: none; cursor: default; }
+    .klapp > summary::-webkit-details-marker { display: none; }
     .k-tag { font-weight: 700; color: var(--dunkel); margin: 10px 0 2px; padding-bottom: 2px; border-bottom: 1px solid var(--linie); }
     .k-zeile { display: grid; grid-template-columns: 96px 1fr; gap: 0 10px; padding: 5px 0; font-size: 15px; }
     .k-zeile .zeit { color: var(--leise); font-variant-numeric: tabular-nums; }
@@ -219,6 +222,9 @@
       .kurs .zeit { width: auto; }
       .kacheln { grid-template-columns: repeat(2, 1fr); }
       .ueberblick { grid-template-columns: 1fr; }
+      .klapp > summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+      .klapp > summary::after { content: "▾"; font-size: 20px; color: var(--leise); transition: transform .15s; }
+      .klapp:not([open]) > summary::after { transform: rotate(-90deg); }
       #leiste { border-left: 0; padding: 18px 16px calc(24px + env(safe-area-inset-bottom)); z-index: 18; }
       #leiste .d-knoepfe { margin: 14px -16px 0; padding: 12px 16px; }
       header .rechts { display: none; }
@@ -270,10 +276,10 @@
       <div class="tag" id="h-titel"></div>
       <div id="h-liste"></div>
       <div class="ueberblick">
-        <div><div class="tag">Kalender</div><div class="karte" id="h-kalender"></div></div>
+        <div><details class="klapp" data-klapp="kalender" open><summary class="tag">Kalender</summary><div class="karte" id="h-kalender"></div></details></div>
         <div>
-          <div class="tag">Aufgaben</div><div class="karte" id="h-aufgaben"></div>
-          <div class="tag">Nachrichten</div><div class="karte" id="h-nachrichten"></div>
+          <details class="klapp" data-klapp="aufgaben" open><summary class="tag">Aufgaben</summary><div class="karte" id="h-aufgaben"></div></details>
+          <details class="klapp" data-klapp="nachrichten" open><summary class="tag">Nachrichten</summary><div class="karte" id="h-nachrichten"></div></details>
         </div>
       </div>
       <div id="h-wartet"></div>
