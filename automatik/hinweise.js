@@ -41,7 +41,8 @@ const pdfAnhang = (name, doc) => ({
 
 // jetzt = "JJJJ-MM-TTTHH:MM" deutsche Zeit.
 // Einmalig: die heutigen Hinweise und die Wochenvorschau dieser Woche, die noch
-// als Entwurf liegen, löschen und frisch im Posteingang anlegen.
+// als Entwurf liegen, löschen und frisch im Posteingang anlegen. Die Woche
+// kommt auch dann in den Posteingang, wenn es keinen Entwurf mehr gibt.
 async function ziehUm(graph, heute) {
   const montag = plusTage(heute, -((new Date(`${heute}T12:00:00Z`).getUTCDay() + 6) % 7));
   const gesucht = { [`hinweise ${heute}`]: "hinweise", [`woche ${montag}`]: "woche" };
@@ -54,6 +55,13 @@ async function ziehUm(graph, heute) {
     await graph("DELETE", `/messages/${m.id}`);
     umzug[art] = true;
   }
+  // Die Wochenvorschau dieser Woche soll auf jeden Fall im Posteingang liegen,
+  // auch wenn der Entwurf schon weg ist.
+  const imPosteingang = await graph(
+    "GET",
+    `/mailFolders/inbox/messages?$top=1&$select=id&$filter=singleValueExtendedProperties/any(ep: ep/id eq '${BERICHT}' and ep/value eq 'woche ${montag}')`
+  );
+  if (!imPosteingang.value.length) umzug.woche = true;
   return umzug;
 }
 

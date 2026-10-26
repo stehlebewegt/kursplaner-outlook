@@ -85,7 +85,7 @@ test("Umziehen löscht die aktuellen Entwürfe und legt sie im Posteingang neu a
         { id: "alt", singleValueExtendedProperties: [{ value: "woche 2026-10-19" }] },
         { id: "x" },
       ] };
-    if (pfad.startsWith("/messages?")) return { value: [] };
+    if (pfad.startsWith("/messages?") || pfad.startsWith("/mailFolders/inbox/messages?")) return { value: [] };
     if (pfad.startsWith("/events/")) return { body: { content: "" } };
     if (methode === "POST") return { id: "neu" };
     return null;
