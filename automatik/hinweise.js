@@ -1,5 +1,5 @@
-// Für Michael: morgens Hinweise als Entwurf (fehlende Protokolle, Überschneidungen),
-// sonntagabends die Wochenvorschau als ungelesene Mail im Posteingang. Jede
+// Für Michael: morgens Hinweise (fehlende Protokolle, Überschneidungen) und
+// sonntagabends die Wochenvorschau, beide als ungelesene Mail im Posteingang. Jede
 // entsteht nur einmal (Kennung an der Nachricht). Gesendet wird nichts. Die
 // öffentliche Ausgabe enthält nur Zahlen.
 import { BERICHT, ladeJsPdf } from "./monatsbericht.js";
@@ -14,13 +14,6 @@ async function schonDa(graph, kennung) {
   return da.value.length > 0;
 }
 
-const entwurf = (graph, kennung, betreff, html, anhaenge = []) =>
-  graph("POST", "/messages", {
-    subject: betreff,
-    body: { contentType: "html", content: html },
-    singleValueExtendedProperties: [{ id: BERICHT, value: kennung }],
-    attachments: anhaenge,
-  });
 // MAPI-Nachrichtenflags: 1 = gelesen, ohne „nicht gesendet“. So liegt die
 // Nachricht als normale Mail im Posteingang statt als Entwurf; danach auf
 // ungelesen gestellt, damit sie auffällt. Braucht nur Mail.ReadWrite.
@@ -77,7 +70,7 @@ export async function hinweise({ graph, holeBereich, einstellungen, jetzt, ausga
       }
       const anzahl = protokolle.length + paare.length + mails.length;
       if (anzahl) {
-        await entwurf(graph, kennung, `${erzwingen ? "PROBE: " : ""}Kursplaner: ${anzahl} Hinweise`, hinweisHtml({ protokolle, paare, mails }));
+        await inPosteingang(graph, kennung, `${erzwingen ? "PROBE: " : ""}Kursplaner: ${anzahl} Hinweise`, hinweisHtml({ protokolle, paare, mails }), [], postfach);
       }
       ausgabe(`Hinweise ${heute}: ${protokolle.length} Protokolle fehlen, ${paare.length} Überschneidungen, ${mails.length} Mails offen`);
     }
