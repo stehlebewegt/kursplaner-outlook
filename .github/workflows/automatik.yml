@@ -29,7 +29,7 @@ on:
         required: false
         default: ""
       hinweise_probe:
-        description: "ja = Hinweise und Wochenvorschau sofort als PROBE-Entwurf anlegen"
+        description: "ja = Hinweise (Entwurf) und Wochenvorschau (Posteingang) sofort als PROBE anlegen"
         required: false
         default: ""
       nachberechnen_schreiben:
